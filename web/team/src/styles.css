@@ -482,6 +482,73 @@ svg.lucide { flex: none; }
 .line-input:focus { outline: none; border-bottom-color: var(--brand); }
 .group-title { font-weight: var(--fw-semibold); text-transform: uppercase; font-size: var(--fs-sm); color: var(--bs-gray-700); }
 
+/* ---- Project: column bar tones, task state bubble, project status dot, favourite star ---- */
+.colbar-seg.info { background: var(--bs-info, #0dcaf0); }
+.colbar-seg.done { background: #0f5132; }
+.tstate-wrap, .tstate-select, .pstatus-wrap, .pstatus-select, .fav-wrap { display: inline-flex; }
+.tstate-btn, .pstatus-btn, .fav { border: 0; background: transparent; padding: 1px; line-height: 0; cursor: pointer; border-radius: 50%; outline: none; }
+:is(.tstate-btn, .pstatus-btn, .fav)[data-hovered]:not([data-disabled]) { background: rgba(0, 0, 0, .06); }
+:is(.tstate-btn, .pstatus-btn, .fav)[data-focus-visible] { box-shadow: var(--focus-ring); }
+.tstate { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.tstate.progress { border-radius: 50%; border: 1.5px solid var(--bs-gray-400); background: var(--surface); }
+.tstate.approved { border-radius: 50%; background: var(--ok); color: var(--bs-white); }
+.tstate.changes { color: var(--warn); }
+.tstate.waiting { color: #0a7ea4; }
+.tstate.done { color: var(--ok); }
+.tstate.canceled { color: var(--danger); }
+.pstatus { display: inline-block; border-radius: 50%; flex: none; }
+.pstatus.to_define { border: 1.5px solid var(--bs-gray-400); background: var(--surface); }
+.pstatus.on_track { background: var(--ok); }
+.pstatus.at_risk { background: var(--warn); }
+.pstatus.off_track { background: var(--danger); }
+.pstatus.on_hold { background: #0a7ea4; }
+.pstatus.done { background: #8f60b6; }
+.fav { color: var(--bs-gray-500); }
+.fav[data-selected] { color: #f3cc00; }
+.fav[data-selected] svg { fill: #f3cc00; stroke: #d4a900; }
+
+/* ---- Project: the overview's cards ---- */
+.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--sp-3); padding: var(--sp-3); }
+.pcard { position: relative; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-sm); box-shadow: var(--card-shadow);
+  padding: var(--sp-2) var(--sp-3); min-height: 180px; cursor: pointer; outline: none; }
+.pcard:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
+.pcard:focus-visible { box-shadow: var(--focus-ring); }
+.pcard .phead { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; }
+.pcard .pname { font-size: var(--fs-h5); font-weight: var(--fw-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard .pline { display: flex; align-items: center; gap: var(--sp-2); color: var(--muted); margin-top: 2px; }
+.pcard .pline svg { flex: none; }
+.pcard .pline a, .pcard .pline .link { color: var(--muted); }
+.pcard .pfoot { display: flex; align-items: center; gap: var(--sp-2); margin-top: auto; padding-top: var(--sp-2); }
+.pcard .pfoot .grow { flex: 1; }
+.mood.happy { color: var(--ok); }
+.mood.neutral { color: var(--warn); }
+.mood.unhappy { color: var(--danger); }
+.hours.over { color: var(--danger); }
+.hours.ok { color: var(--ok); }
+.hours.near { color: var(--warn); }
+.ms-flag { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-sm); }
+.ms-flag.late { color: var(--danger); }
+.ms-flag.doable { color: var(--ok); }
+
+/* ---- Project: a project's task board and its cards ---- */
+.task-card { position: relative; overflow: hidden; }
+.task-card.closed > :not(.bottom) { opacity: .5; }
+.task-card .meta { display: flex; flex-direction: column; gap: 1px; color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
+.task-card .meta > span { display: flex; align-items: center; gap: var(--sp-1); }
+.task-card .meta .late { color: var(--danger); }
+.task-card .parent { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-sm); color: var(--brand); }
+.task-card .bottom { margin-top: var(--sp-2); gap: var(--sp-2); }
+.task-card .bottom .grow { flex: 1; }
+.subtasks-btn { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); font-size: var(--fs-sm); padding: 0 var(--sp-1); }
+.col-mail { color: var(--muted); }
+.project-tabs { display: flex; gap: var(--sp-3); border-bottom: 1px solid var(--border); margin: var(--sp-3) 0 var(--sp-2); }
+.project-tabs button { border: 0; background: transparent; padding: var(--sp-1) 0; border-bottom: 2px solid transparent; font: inherit; color: var(--bs-gray-700); cursor: pointer; }
+.project-tabs button[aria-selected="true"] { border-bottom-color: var(--brand); color: var(--text); font-weight: var(--fw-medium); }
+.subtask-list { width: 100%; border-collapse: collapse; }
+.subtask-list td { padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--border); }
+.subtask-list tr.closed td { color: var(--muted); }
+.task-hours { display: grid; grid-template-columns: auto auto; gap: 2px var(--sp-3); justify-content: start; }
+
 /* ---- touch: fingers need bigger targets than a mouse (about 40px, Apple asks for 44) ---- */
 @media (pointer: coarse) {
   .prio-btn { padding: 9px; margin: -8px; }

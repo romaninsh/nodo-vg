@@ -10,6 +10,10 @@ const TodoForm = lazy(() => import("./pages/TodoForm").then((m) => ({ default: m
 const Pipeline = lazy(() => import("./crm/Pipeline").then((m) => ({ default: m.Pipeline })));
 const OpportunityForm = lazy(() => import("./crm/OpportunityForm").then((m) => ({ default: m.OpportunityForm })));
 const NewOpportunityForm = lazy(() => import("./crm/OpportunityForm").then((m) => ({ default: m.NewOpportunityForm })));
+// Project is its own chunk too.
+const ProjectsOverview = lazy(() => import("./project/Projects").then((m) => ({ default: m.ProjectsOverview })));
+const TaskBoard = lazy(() => import("./project/TaskBoard").then((m) => ({ default: m.TaskBoard })));
+const ProjectTaskForm = lazy(() => import("./project/TaskForm").then((m) => ({ default: m.ProjectTaskForm })));
 
 const loading = <p className="muted pad">Loading…</p>;
 
@@ -26,6 +30,9 @@ export function App() {
         <Route path="/crm" element={<Suspense fallback={loading}><Pipeline /></Suspense>} />
         <Route path="/crm/new" element={<Suspense fallback={loading}><NewOpportunityForm /></Suspense>} />
         <Route path="/crm/:id" element={<Suspense fallback={loading}><OpportunityForm /></Suspense>} />
+        <Route path="/project" element={<Suspense fallback={loading}><ProjectsOverview /></Suspense>} />
+        <Route path="/project/:pid/tasks" element={<Suspense fallback={loading}><TaskBoard /></Suspense>} />
+        <Route path="/project/:pid/tasks/:id" element={<Suspense fallback={loading}><ProjectTaskForm /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Shell>

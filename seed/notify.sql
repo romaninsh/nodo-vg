@@ -24,7 +24,12 @@ BEGIN
     'project_tags', 'project_tags_project_task_rel', 'res_users', 'res_partner',
     -- CRM
     'crm_lead', 'crm_stage', 'crm_stage_crm_team_rel', 'crm_tag', 'crm_tag_rel',
-    'crm_lost_reason', 'crm_team', 'crm_team_member', 'mail_activity'
+    'crm_lost_reason', 'crm_team', 'crm_team_member', 'mail_activity',
+    -- Project
+    'project_project', 'project_task_type_rel', 'project_milestone', 'project_update',
+    'project_favorite_user_rel', 'project_project_project_tags_rel',
+    'project_allowed_internal_users_rel', 'task_dependencies_rel', 'rating_rating',
+    'account_analytic_line', 'mail_followers'
   ] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS nodo_notify ON %I', t);
     EXECUTE format(

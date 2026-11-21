@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Set a project's status from the overview card's dot. Args: id, status (on_track, at_risk,
+# off_track, on_hold, done). Odoo's own write of last_update_status, as the signed-in person:
+# Odoo turns it into a status update ("Status Update - <date>", with the last update's
+# progress and its description built from the milestones) and points the project at it.
+# Project Users may do this too: Odoo writes the update, not the project.
+kind: script
+label: Set status
+icon: CircleDot
+params:
+  id: { type: int }
+  status: { type: string }
+body: |
+  import "project" as p;
+  let id = parse_int(args.id.to_string());
+  let status = p::text(args.status);
+  if !["on_track", "at_risk", "off_track", "on_hold", "done"].contains(status) { fail("That status doesn't exist"); }
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to set a project's status"); }
+  let prj = table("project").get(id);
+  if prj == () { fail("You can't see this project"); }
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.project", method: "write", params: [[id], #{ last_update_status: status }],
+  });
+  let after = table("project").get(id);
+  if after == () || after.last_update_status != status || after.write_date == prj.write_date { fail("Odoo didn't accept the change"); }
+  #{ id: id, status: status }

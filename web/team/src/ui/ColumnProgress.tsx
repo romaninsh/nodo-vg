@@ -1,7 +1,8 @@
 import { ToggleButton } from "react-aria-components";
 import { Hint } from "./Hint";
 
-export type Segment = { key: string; label: string; count: number; tone: "ok" | "warn" | "danger" | "none" };
+/** `info` (blue) and `done` (dark green) are Project's waiting and done tasks. */
+export type Segment = { key: string; label: string; count: number; tone: "ok" | "warn" | "danger" | "none" | "info" | "done" };
 
 /**
  * Odoo's kanban column bar: one coloured segment per group of cards (planned, today, overdue,

@@ -29,15 +29,22 @@ part needs:
   tallies before they are taken back, as Odoo does.
 - **Checked against Odoo**: a move, Lost with a reason, Restore, Won and a move out of Won were
   each done once through Odoo's own API and once through nodo, from the same starting point.
-  The rows and the whole frequency table came out the same, field for field, except
-  `duration_tracking` (below). An independent 12-step paired test on throwaway opportunities
+  The rows and the whole frequency table came out the same, field for field (then except
+  `duration_tracking`, now written too: below). An independent 12-step paired test on throwaway opportunities
   matched every column at every step. Archive and Unarchive were checked the same way on a
   throwaway pair (Odoo's unarchive writes the rescored probability, which clears the closing
   date; nodo's does too).
 
-**`duration_tracking` isn't written.** Odoo keeps the minutes spent in each stage in a `jsonb`
-column; Vantage has no column type that writes `jsonb` yet (FEEDBACK.md). After a nodo move,
-Odoo's stage bar shows the old time-in-stage figures. Rotting doesn't depend on it.
+**`duration_tracking` is written (2026-11-21).** Odoo keeps the minutes spent in each stage in
+a `jsonb` map (`{"1": 0, "3": 1, "s": 4, "d": "2026-11-21 21:54:06"}`): on a stage change it
+adds the whole minutes since `d` under the stage it leaves (`s`), then sets `s` and `d`.
+Vantage has no `json` column type, but a column declared with no type (`duration_tracking: {}`)
+is bound as `jsonb` by the Postgres driver, and Odoo reads the map back as its own.
+`table/lead_duration.yaml` (that one column of `crm_lead`; no inserts or deletes) carries it,
+`lib/duration.rhai` computes it as Odoo's `mail.tracking.duration.mixin` does, and `crm_move`
+and `crm_won` write it when the stage changes. Checked on a throwaway pair (one moved through
+Odoo's API, one through nodo, at the same moments): New → Qualified → Proposition → Won (after a
+minute) → New gave the same map at every step, `{"1": 0, "2": 0, "3": 1, "4": 0, …}`.
 
 **Chatter isn't written.** Odoo logs every tracked change (stage, salesperson, won, lost) as a
 message, and the lost dialog's closing note goes into that message. nodo writes no messages yet,
@@ -77,6 +84,25 @@ or one of the person's allowed companies (`res_company_users_rel`). Odoo narrows
 the companies ticked in its company switcher; nodo has no switcher and uses all allowed ones.
 The form's Extra Info shows the Company, saved through Odoo. Amounts are in the opportunity's
 company currency, or the person's own company's when it has none.
+
+The lists the CRM screens pick from are scoped too, and only people with Sales rights get them:
+- **Contacts** (`table/customer.yaml`): Odoo's res.partner company rule, `partner_share = False
+  OR company_id parent_of company_ids OR company_id = False`: internal users' contacts,
+  contacts with no company, and contacts of a company that is (a parent of) one of the person's
+  allowed companies. Odoo itself lets every internal user read contacts; nodo's contact list
+  serves the CRM screens, so it stops at Sales users, as the opportunities do.
+- **Sales teams** (`table/sales_team.yaml`): Odoo's rule, `company_id in company_ids + [False]`.
+- **Companies** (`table/company.yaml`): Odoo's rule, `id in company_ids`.
+
+Vantage has no row rule per table, so each of these query tables returns one row per record
+and per person allowed to see it, with that person in `user_id`; the datasource's `user_id`
+rule then keeps everyone to their own rows. The rule has to list these three tables (it refuses
+unknown tables with a `user_id` column).
+
+Numbers typed into the form are checked as numbers: `crm::num` refuses anything that isn't a
+finite number ("NaN", "Infinity", "1e999"), and every range check is written so NaN fails it
+(NaN compares false with everything, so `v < 0 || v > 100` would let it through). The lead
+table's own validate hook refuses non-finite amounts and probabilities on any write path.
 
 ## 4. Live updates
 
@@ -166,7 +192,7 @@ running on the same database as Mitchell Admin. The desktop app has no CRM pages
 | Stage bar, click to move | yes | yes | done |
 | Folded stages collapsed into "…" on the stage bar | yes | greyed, shown in full | partly |
 | Rotting days pill on the current stage | yes | yes | done |
-| Time spent in each stage on the stage bar | yes | no (`duration_tracking` not written) | not yet |
+| Time spent in each stage on the stage bar | yes | written as Odoo writes it (Odoo's bar shows it); nodo's bar doesn't show it yet | partly |
 | Won, Lost, Restore buttons by status | yes | yes | done |
 | Hotkeys: Alt+W Won, Alt+L Lost, Alt+X Restore | yes | yes | done |
 | Updates live while open (own actions, the board, Odoo) | yes (after its own actions; others' after a reload) | yes | done |
@@ -300,6 +326,8 @@ DOMPurify before showing them. A plain-text `description` sent to `crm_save` is 
 |---|---|---|---|
 | Who sees what: Odoo's Sales groups | yes | yes, read from Odoo's groups | done |
 | Delete only for Sales administrators | yes | yes | done |
+| Contacts, sales teams and companies scoped by Odoo's company rules | yes | yes, and only for Sales users | done |
+| Every internal user may read contacts | yes | CRM's contact list is for Sales users only | won't (it serves the CRM screens) |
 | Multi-company rule (allowed companies) | yes | yes | done |
 | Company switcher narrowing to the ticked companies | yes | all allowed companies | partly |
 | Teams overview (Sales > Teams) | yes | no | not yet |

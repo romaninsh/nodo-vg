@@ -9,7 +9,7 @@ entities:
     read_only: true
     params:
       columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, description, summary, write_date, open_for]
-      filter: [name, state, active, priority, due, open_for]
+      filter: [id, name, state, active, priority, due, open_for]
       default_sort: date_deadline
     # A computed view: it listens to the Odoo tables it reads (table/todo_view.yaml), so
     # changes from nodo and Odoo arrive as they happen.
@@ -97,7 +97,49 @@ entities:
       columns: [name]
       default_sort: name
 
+  # Project. The overview reads every project card in one query; a project's board reads its
+  # cards in one query (filtered by project) and its stages, and groups them in the browser.
+  # The datasource rules apply Odoo's project and task visibility. Lazy, like CRM.
+  - name: projects
+    observe: project
+    read_only: true
+    params:
+      columns: [name, sequence, active, color, partner_id, customer, user_id, manager, date_start, date, label_tasks, open_task_count, task_count, closed_task_count, tag_ids, favorite_ids, last_update_status, privacy_visibility, allow_milestones, milestone_count, milestone_reached, milestone_late, milestone_doable, allow_billable, alias_email, show_ratings, rating_avg, rating_count, allow_timesheets, allocated_hours, remaining_hours, activity_state, activity_icon, activity_summary, write_date]
+      filter: [id, name, active, user_id]
+      default_sort: sequence
+  - name: task_stages
+    observe: task_stage
+    read_only: true
+    params:
+      columns: [name, sequence, fold, project_ids, mails_customer, asks_rating]
+      filter: [id, project_ids]
+      default_sort: sequence
+  - name: tasks
+    observe: task
+    read_only: true
+    params:
+      columns: [name, project_id, project_name, stage_id, state, priority, sequence, active, color, date_deadline, partner_id, customer, allow_billable, allow_milestones, milestone_id, milestone, milestone_late, tag_ids, assignee_ids, assignees, allow_timesheets, allocated_hours, effective_hours, subtask_effective_hours, remaining_hours, progress, parent_id, parent_name, display_in_project, subtask_count, closed_subtask_count, depend_on_ids, depend_on_count, closed_depend_on_count, rating_active, rating_avg, rating_count, recurring_task, activity_state, activity_icon, activity_summary, description, write_date]
+      filter: [id, name, project_id, stage_id, state, active, display_in_project, parent_id]
+  - name: milestones
+    observe: milestone
+    read_only: true
+    params:
+      columns: [name, project_id, deadline, is_reached, sequence]
+      filter: [project_id]
+  # The signed-in person's own Project rights (the datasource rule shows only their row).
+  - name: my_project
+    observe: project_right
+    read_only: true
+    params:
+      columns: [user, manager]
+
 actions:
+  - project_task_move
+  - project_task_save
+  - project_task_create
+  - project_task_archive
+  - project_toggle_favorite
+  - project_set_status
   - sign_in
   - sign_out
   - whoami

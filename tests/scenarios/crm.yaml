@@ -1,6 +1,8 @@
 fixtures: crm-basics
 vars:
   desks: { record: lead, id: 501 }
+  desks_time: { record: lead_duration, id: 501 }
+  chairs_time: { record: lead_duration, id: 502 }
   chairs: { record: lead, id: 502 }
   lamps: { record: lead, id: 503 }
   new_tally: { record: pls_frequency, id: 1 }
@@ -27,6 +29,10 @@ scenarios:
           - parse_float(desks.prorated_revenue.to_string()) == 7333.6
           - desks.won_status == "pending"
           - desks.write_uid == 5
+          # Odoo's time in stage: two hours in New (since 07:00), now in Qualified since 09:00.
+          - desks_time.duration_tracking["1"] == 120
+          - desks_time.duration_tracking.s == 2
+          - desks_time.duration_tracking.d == "2026-11-21 09:00:00"
         what_if: [someone-elses, unassigned, no-sales-rights, manual-probability, other-company]
 
   someone-elses:
@@ -196,7 +202,7 @@ scenarios:
           - desks.date_deadline == "2026-12-15"
           - parse_float(desks.prorated_revenue.to_string()) == 3600.0
           - desks.date_closed == ()
-        what_if: [html-notes, out-of-range, no-name]
+        what_if: [html-notes, out-of-range, no-name, probability-nan, probability-infinity, probability-overflow, revenue-nan]
 
   html-notes:
     steps:
@@ -246,6 +252,55 @@ scenarios:
       - step: An empty name
         do: { action: crm_save, args: { id: 501, name: "  " } }
         fails: "Give the opportunity a name"
+
+  # Numbers that aren't finite: NaN compares false with everything, so a check written as
+  # `v < 0 || v > 100` would let it through; infinities would be stored as they are.
+  probability-nan:
+    steps:
+      - step: A probability of "NaN"
+        do: { action: crm_save, args: { id: 501, probability: "NaN" } }
+        fails: "The probability must be a number"
+
+  probability-infinity:
+    steps:
+      - step: A probability of "Infinity"
+        do: { action: crm_save, args: { id: 501, probability: "Infinity" } }
+        fails: "The probability must be a number"
+
+  probability-overflow:
+    steps:
+      - step: A probability of "1e999", too big for a float
+        do: { action: crm_save, args: { id: 501, probability: "1e999" } }
+        fails: "The probability must be a number"
+
+  revenue-nan:
+    steps:
+      - step: An expected revenue of "NaN"
+        do: { action: crm_save, args: { id: 501, expected_revenue: "NaN" } }
+        fails: "The expected revenue must be a number"
+
+  # CRM's contact list is narrowed per person: the customer query table returns one row per
+  # contact and per salesperson allowed to see it (Odoo's res.partner company rule), and the
+  # datasource's user_id rule keeps each person to their rows. The SQL that builds those rows
+  # can't run in memory, so the fixture holds its output: OpenWood for Marc, a Chicago-only
+  # contact for Mitchell (Marc isn't allowed in that company).
+  customers-scoped:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    steps:
+      - step: Marc lists the contacts an opportunity can be for
+        do: |
+          table("customer").list().map(|c| c.id)
+        assert:
+          - result.contains(13)
+          - "!result.contains(40)"
+        what_if: [customers-no-sales-rights]
+
+  customers-no-sales-rights:
+    steps:
+      - step: Monica, without Sales rights, gets no contacts
+        as: { app: team, uid: 6, name: Monica Light, login: light }
+        assert:
+          - result.len() == 0
 
   # The form menu's Archive: out of the pipeline, closed, but not lost; Unarchive puts it back.
   archive-and-back:

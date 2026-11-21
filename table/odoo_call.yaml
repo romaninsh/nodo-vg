@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Insert-only: each row is one call of an Odoo model method through Odoo's JSON-RPC
+# (`execute_kw`), as the person whose login and password it carries. Project saves go this
+# way because Odoo's own methods write more than the row: the time spent in each stage
+# (`duration_tracking`, jsonb), the stage's customer email and rating request, chatter
+# tracking, followers and personal stages, recurrences. `params` is the positional argument
+# list the calling action builds (`[[id], vals]` for write, `[vals]` for create, `[[id]]` for
+# toggle_favorite or action_archive); `kwargs` its keyword arguments. Odoo answers 200 even when it refuses, so the caller
+# reads the result back from the database.
+datasource: odoo_rpc
+title: Odoo call
+columns:
+  id: { type: string, flags: [id] }
+  uid: { type: int }
+  password: { type: string }
+  model: { type: string }
+  method: { type: string }
+  params: {}
+  # Keyword arguments (`#{ context: #{ default_project_id: 1 } }`); none when left out.
+  kwargs: {}
+api:
+  read: false
+  endpoint: /jsonrpc
+  insert:
+    method: POST
+    body: |
+      #{
+        jsonrpc: "2.0",
+        method: "call",
+        id: 1,
+        params: #{
+          service: "object",
+          method: "execute_kw",
+          args: ["odoo", record.uid, record.password, record.model, record.method, record.params,
+                 if record.kwargs == () { #{} } else { record.kwargs }]
+        }
+      }

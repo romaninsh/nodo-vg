@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's projects (project_project) as the overview's cards show them: customer, planned dates,
+# open task count with the project's own word for tasks, tags, manager, status, milestones,
+# customer rating, remaining hours and the next activity. Read-only: a project's name is
+# translated `jsonb` and its saves run through Odoo (project actions).
+#
+# Templates and each company's internal project are left out, as on Odoo's overview. The
+# datasource's `user_id` rule (here `user_id` is the manager) applies Odoo's visibility.
+# `favorite_ids` lists who starred it (",2,5,"): the page matches the signed-in person.
+datasource: odoo
+title: Project
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Project, flags: [title, searchable] }
+  sequence: { type: int, label: Order }
+  active: { type: bool, label: Active }
+  color: { type: int, label: Colour }
+  partner_id: { type: int, flags: [hidden] }
+  customer: { type: string, label: Customer }
+  company_id: { type: int, flags: [hidden] }
+  user_id: { type: int, flags: [hidden] }
+  manager: { type: string, label: Project manager }
+  date_start: { type: date, label: Start }
+  date: { type: date, label: End }
+  label_tasks: { type: string, label: Name of tasks }
+  open_task_count: { type: int, label: Open tasks }
+  task_count: { type: int, label: Tasks }
+  closed_task_count: { type: int, label: Closed tasks }
+  tag_ids: { type: string, label: Tag ids }
+  favorite_ids: { type: string, label: Starred by }
+  last_update_status: { type: string, label: Status, enum: [on_track, at_risk, off_track, on_hold, to_define, done] }
+  privacy_visibility: { type: string, label: Visibility }
+  allow_milestones: { type: bool, label: Milestones }
+  milestone_count: { type: int, label: Milestones }
+  milestone_reached: { type: int, label: Milestones reached }
+  # The next unreached milestone is late (its deadline passed with tasks still open), or all of
+  # its tasks are closed and it can be marked reached: Odoo's red and green flag.
+  milestone_late: { type: bool, label: Milestone late }
+  milestone_doable: { type: bool, label: Milestone can be reached }
+  # Sales: the card shows the rating only on billable projects (sale_project's card view).
+  allow_billable: { type: bool, label: Billable }
+  # The project's email alias ("office@…"), shown on the card when set.
+  alias_email: { type: string, label: Project email }
+  show_ratings: { type: bool, label: Ratings on }
+  rating_avg: { type: float, label: Average rating }
+  rating_count: { type: int, label: Ratings }
+  allow_timesheets: { type: bool, label: Timesheets }
+  allocated_hours: { type: float, label: Allocated hours }
+  remaining_hours: { type: float, label: Remaining hours }
+  activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
+  activity_icon: { type: string, label: Activity type icon }
+  activity_summary: { type: string, label: Next activity }
+  write_date: { type: timestamp, label: Last updated }
+postgres:
+  listen: [project_project, project_task, project_milestone, project_update, project_favorite_user_rel, project_project_project_tags_rel, project_allowed_internal_users_rel, project_task_type_rel, rating_rating, account_analytic_line, mail_activity, res_partner, res_users]
+  rhai: |
+    let open = "state NOT IN ('1_done', '1_canceled')";
+    let tasks = "FROM project_task t WHERE t.project_id = project_project.id AND t.has_template_ancestor IS NOT TRUE AND t.active IS NOT FALSE";
+    let unreached = "FROM project_milestone m WHERE m.project_id = project_project.id AND m.is_reached IS NOT TRUE";
+    let open_on = "(SELECT count(*) FROM project_task t WHERE t.milestone_id = m.id AND t.state NOT IN ('1_done', '1_canceled'))";
+    let closed_on = "(SELECT count(*) FROM project_task t WHERE t.milestone_id = m.id AND t.state IN ('1_done', '1_canceled'))";
+    let ratings = "FROM rating_rating r WHERE r.parent_res_model = 'project.project' AND r.parent_res_id = project_project.id AND r.consumed AND r.rating >= 1 AND r.write_date >= (now() AT TIME ZONE 'UTC') - interval '30 days'";
+    let late = "EXISTS (SELECT 1 " + unreached + " AND m.deadline < (now() AT TIME ZONE 'UTC')::date AND (" + open_on + " > 0 OR " + closed_on + " = 0))";
+    sql::select().from("project_project")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(sequence, 10)").alias("sequence"))
+        .expression(sql::expr("coalesce(active, true)").alias("active"))
+        .expression(sql::expr("coalesce(color, 0)").alias("color"))
+        .field("partner_id")
+        .expression(sql::expr("(SELECT coalesce(p.complete_name, p.name) FROM res_partner p WHERE p.id = project_project.partner_id)").alias("customer"))
+        .field("company_id")
+        .field("user_id")
+        .expression(sql::expr("(SELECT p.name FROM res_users u JOIN res_partner p ON p.id = u.partner_id WHERE u.id = project_project.user_id)").alias("manager"))
+        .field("date_start")
+        .field("date")
+        .expression(sql::expr("coalesce(label_tasks->>'en_US', 'Tasks')").alias("label_tasks"))
+        .expression(sql::expr("(SELECT count(*) " + tasks + " AND t." + open + ")").alias("open_task_count"))
+        .expression(sql::expr("(SELECT count(*) " + tasks + ")").alias("task_count"))
+        .expression(sql::expr("(SELECT count(*) " + tasks + " AND t.state IN ('1_done', '1_canceled'))").alias("closed_task_count"))
+        .expression(sql::expr("(SELECT string_agg(r.project_tags_id::text, ',' ORDER BY g.name->>'en_US', g.id) FROM project_project_project_tags_rel r JOIN project_tags g ON g.id = r.project_tags_id WHERE r.project_project_id = project_project.id)").alias("tag_ids"))
+        .expression(sql::expr("',' || coalesce((SELECT string_agg(f.user_id::text, ',' ORDER BY f.user_id) FROM project_favorite_user_rel f WHERE f.project_id = project_project.id), '') || ','").alias("favorite_ids"))
+        .field("last_update_status")
+        .field("privacy_visibility")
+        .expression(sql::expr("coalesce(allow_milestones, false)").alias("allow_milestones"))
+        .expression(sql::expr("(SELECT count(*) FROM project_milestone m WHERE m.project_id = project_project.id)").alias("milestone_count"))
+        .expression(sql::expr("(SELECT count(*) FROM project_milestone m WHERE m.project_id = project_project.id AND m.is_reached)").alias("milestone_reached"))
+        .expression(sql::expr(late).alias("milestone_late"))
+        .expression(sql::expr("(NOT " + late + " AND EXISTS (SELECT 1 " + unreached + " AND " + open_on + " = 0 AND " + closed_on + " > 0))").alias("milestone_doable"))
+        .expression(sql::expr("coalesce(allow_billable, false)").alias("allow_billable"))
+        .expression(sql::expr("(SELECT a.alias_full_name FROM mail_alias a WHERE a.id = project_project.alias_id AND a.alias_name IS NOT NULL AND a.alias_domain_id IS NOT NULL)").alias("alias_email"))
+        .expression(sql::expr("EXISTS (SELECT 1 FROM project_task_type s JOIN project_task_type_rel r ON r.type_id = s.id WHERE r.project_id = project_project.id AND s.rating_active)").alias("show_ratings"))
+        .expression(sql::expr("(SELECT round(avg(r.rating)::numeric, 2)::float8 " + ratings + ")").alias("rating_avg"))
+        .expression(sql::expr("(SELECT count(*) " + ratings + ")").alias("rating_count"))
+        .expression(sql::expr("coalesce(allow_timesheets, false)").alias("allow_timesheets"))
+        .expression(sql::expr("coalesce(allocated_hours, 0)").alias("allocated_hours"))
+        .expression(sql::expr("coalesce(allocated_hours, 0) - coalesce((SELECT round(sum(l.unit_amount)::numeric, 2)::float8 FROM account_analytic_line l WHERE l.project_id = project_project.id), 0)").alias("remaining_hours"))
+        .expression(sql::expr("(SELECT CASE min(sign(a.date_deadline - (now() AT TIME ZONE coalesce(a.user_tz, 'UTC'))::date)) WHEN -1 THEN 'overdue' WHEN 0 THEN 'today' WHEN 1 THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'project.project' AND a.res_id = project_project.id AND a.active IS NOT FALSE)").alias("activity_state"))
+        .expression(sql::expr("(SELECT t.icon FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'project.project' AND a.res_id = project_project.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_icon"))
+        .expression(sql::expr("(SELECT coalesce(nullif(a.summary, ''), coalesce(t.name->>'en_US', '')) || ' · ' || to_char(a.date_deadline, 'YYYY-MM-DD') FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'project.project' AND a.res_id = project_project.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_summary"))
+        .field("write_date")
+        .where(sql::expr("is_template IS NOT TRUE AND id NOT IN (SELECT internal_project_id FROM res_company WHERE internal_project_id IS NOT NULL)"))
+        .order_by(sql::ident("sequence"), "asc")

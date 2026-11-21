@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Project tasks (project_task with a project) with everything a board card and the task form
+# show: customer, milestone, tags, assignees, hours, sub-task counts, rating, next activity.
+# Task templates are left out. Read-only: every task change goes through Odoo's own write (the
+# project task actions), which also keeps the time in each stage, the stage emails and the
+# rating requests right. The datasource's `project_id` rule applies Odoo's task visibility.
+datasource: odoo
+title: Task
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Title, flags: [title, searchable] }
+  project_id: { type: int, label: Project }
+  project_name: { type: string, label: Project name }
+  stage_id: { type: int, label: Stage }
+  state: { type: string, label: State, enum: [01_in_progress, 02_changes_requested, 03_approved, 04_waiting_normal, 1_done, 1_canceled] }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  sequence: { type: int, label: Order }
+  active: { type: bool, label: Active }
+  color: { type: int, label: Colour }
+  company_id: { type: int, flags: [hidden] }
+  date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
+  partner_id: { type: int, flags: [hidden] }
+  customer: { type: string, label: Customer }
+  # The project is billable (Sales): only then does Odoo's task form show the customer.
+  allow_billable: { type: bool, label: Billable project }
+  allow_milestones: { type: bool, label: Milestones on }
+  milestone_id: { type: int, label: Milestone }
+  milestone: { type: string, label: Milestone name }
+  milestone_late: { type: bool, label: Milestone late }
+  tag_ids: { type: string, label: Tag ids }
+  assignee_ids: { type: string, label: Assignee ids }
+  assignees: { type: string, label: Assigned to }
+  allow_timesheets: { type: bool, label: Timesheets on }
+  allocated_hours: { type: float, label: Allocated hours }
+  effective_hours: { type: float, label: Time spent }
+  subtask_effective_hours: { type: float, label: Time spent on sub-tasks }
+  remaining_hours: { type: float, label: Remaining hours }
+  progress: { type: float, label: Progress }
+  parent_id: { type: int, label: Parent task }
+  parent_name: { type: string, label: Parent task name }
+  display_in_project: { type: bool, label: Shown on the board }
+  subtask_count: { type: int, label: Sub-tasks }
+  closed_subtask_count: { type: int, label: Closed sub-tasks }
+  depend_on_ids: { type: string, label: Blocked by ids }
+  depend_on_count: { type: int, label: Blocked by }
+  closed_depend_on_count: { type: int, label: Closed blockers }
+  rating_active: { type: bool, label: Stage asks for ratings }
+  rating_avg: { type: float, label: Average rating }
+  rating_count: { type: int, label: Ratings }
+  recurring_task: { type: bool, label: Recurrent }
+  activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
+  activity_icon: { type: string, label: Activity type icon }
+  activity_summary: { type: string, label: Next activity }
+  description: { type: string, label: Description }
+  write_date: { type: timestamp, label: Last updated }
+postgres:
+  listen: [project_task, project_project, project_milestone, project_task_user_rel, project_tags_project_task_rel, task_dependencies_rel, project_task_type, rating_rating, mail_activity, mail_followers, res_partner, res_users]
+  rhai: |
+    let ratings = "FROM rating_rating r WHERE r.res_model = 'project.task' AND r.res_id = project_task.id AND r.consumed AND r.rating >= 1";
+    // Odoo counts the active direct children (archived sub-tasks don't count).
+    let children = "FROM project_task c WHERE c.parent_id = project_task.id AND c.is_template IS NOT TRUE AND c.active IS NOT FALSE";
+    sql::select().from("project_task")
+        .field("id")
+        .field("name")
+        .field("project_id")
+        .expression(sql::expr("(SELECT coalesce(p.name->>'en_US', '') FROM project_project p WHERE p.id = project_task.project_id)").alias("project_name"))
+        .field("stage_id")
+        .field("state")
+        .expression(sql::expr("coalesce(priority, '0')").alias("priority"))
+        .expression(sql::expr("coalesce(sequence, 10)").alias("sequence"))
+        .expression(sql::expr("coalesce(active, true)").alias("active"))
+        .expression(sql::expr("coalesce(color, 0)").alias("color"))
+        .field("company_id")
+        .field("date_deadline")
+        .field("partner_id")
+        .expression(sql::expr("(SELECT coalesce(p.complete_name, p.name) FROM res_partner p WHERE p.id = project_task.partner_id)").alias("customer"))
+        .expression(sql::expr("coalesce((SELECT p.allow_billable FROM project_project p WHERE p.id = project_task.project_id), false)").alias("allow_billable"))
+        .expression(sql::expr("coalesce((SELECT p.allow_milestones FROM project_project p WHERE p.id = project_task.project_id), false)").alias("allow_milestones"))
+        .field("milestone_id")
+        .expression(sql::expr("(SELECT m.name || coalesce(' - ' || to_char(m.deadline, 'MM/DD/YYYY'), '') FROM project_milestone m WHERE m.id = project_task.milestone_id)").alias("milestone"))
+        .expression(sql::expr("coalesce((SELECT m.is_reached IS NOT TRUE AND m.deadline < (now() AT TIME ZONE 'UTC')::date FROM project_milestone m WHERE m.id = project_task.milestone_id), false)").alias("milestone_late"))
+        .expression(sql::expr("(SELECT string_agg(tr.project_tags_id::text, ',' ORDER BY g.name->>'en_US', g.id) FROM project_tags_project_task_rel tr JOIN project_tags g ON g.id = tr.project_tags_id WHERE tr.project_task_id = project_task.id)").alias("tag_ids"))
+        .expression(sql::expr("(SELECT string_agg(ur.user_id::text, ',' ORDER BY ur.user_id) FROM project_task_user_rel ur WHERE ur.task_id = project_task.id)").alias("assignee_ids"))
+        .expression(sql::expr("(SELECT string_agg(p.name, ', ' ORDER BY p.name) FROM project_task_user_rel ur JOIN res_users u ON u.id = ur.user_id JOIN res_partner p ON p.id = u.partner_id WHERE ur.task_id = project_task.id)").alias("assignees"))
+        .expression(sql::expr("coalesce((SELECT p.allow_timesheets FROM project_project p WHERE p.id = project_task.project_id), false)").alias("allow_timesheets"))
+        .expression(sql::expr("coalesce(allocated_hours, 0)").alias("allocated_hours"))
+        .expression(sql::expr("coalesce(effective_hours, 0)").alias("effective_hours"))
+        .expression(sql::expr("coalesce(subtask_effective_hours, 0)").alias("subtask_effective_hours"))
+        .expression(sql::expr("coalesce(remaining_hours, 0)").alias("remaining_hours"))
+        .expression(sql::expr("coalesce(progress, 0)").alias("progress"))
+        .field("parent_id")
+        .expression(sql::expr("(SELECT p.name FROM project_task p WHERE p.id = project_task.parent_id)").alias("parent_name"))
+        .expression(sql::expr("coalesce(display_in_project, true)").alias("display_in_project"))
+        .expression(sql::expr("(SELECT count(*) " + children + ")").alias("subtask_count"))
+        .expression(sql::expr("(SELECT count(*) " + children + " AND c.state IN ('1_done', '1_canceled'))").alias("closed_subtask_count"))
+        .expression(sql::expr("(SELECT string_agg(d.depends_on_id::text, ',' ORDER BY d.depends_on_id) FROM task_dependencies_rel d WHERE d.task_id = project_task.id)").alias("depend_on_ids"))
+        .expression(sql::expr("(SELECT count(*) FROM task_dependencies_rel d WHERE d.task_id = project_task.id)").alias("depend_on_count"))
+        .expression(sql::expr("(SELECT count(*) FROM task_dependencies_rel d JOIN project_task b ON b.id = d.depends_on_id WHERE d.task_id = project_task.id AND b.state IN ('1_done', '1_canceled'))").alias("closed_depend_on_count"))
+        .expression(sql::expr("coalesce((SELECT s.rating_active FROM project_task_type s WHERE s.id = project_task.stage_id), false)").alias("rating_active"))
+        .expression(sql::expr("(SELECT round(avg(r.rating)::numeric, 2)::float8 " + ratings + ")").alias("rating_avg"))
+        .expression(sql::expr("(SELECT count(*) " + ratings + ")").alias("rating_count"))
+        .expression(sql::expr("coalesce(recurring_task, false)").alias("recurring_task"))
+        .expression(sql::expr("(SELECT CASE min(sign(a.date_deadline - (now() AT TIME ZONE coalesce(a.user_tz, 'UTC'))::date)) WHEN -1 THEN 'overdue' WHEN 0 THEN 'today' WHEN 1 THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'project.task' AND a.res_id = project_task.id AND a.active IS NOT FALSE)").alias("activity_state"))
+        .expression(sql::expr("(SELECT t.icon FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'project.task' AND a.res_id = project_task.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_icon"))
+        .expression(sql::expr("(SELECT coalesce(nullif(a.summary, ''), coalesce(t.name->>'en_US', '')) || ' · ' || to_char(a.date_deadline, 'YYYY-MM-DD') FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'project.task' AND a.res_id = project_task.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_summary"))
+        .field("description")
+        .field("write_date")
+        .where(sql::expr("project_id IS NOT NULL AND has_template_ancestor IS NOT TRUE"))

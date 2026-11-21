@@ -46,19 +46,30 @@ export { tagColor, tagText } from "./ui/tagColors";
 export const ids = (s: string | null | undefined) =>
   (s ?? "").split(",").map((x) => x.trim()).filter((x) => x !== "");
 
-/** A UTC instant from the API, shown in this browser's time zone, the way Odoo shows a deadline. */
-export function deadlineLabel(iso: string | null | undefined) {
+/**
+ * A UTC instant from the API, in this browser's time zone, the way Odoo's relative date shows a
+ * deadline: in days up to 13 days away ("Today", "In 13 days", "2 days ago"), then in calendar
+ * weeks within the month before or after ("Next week", "In 3 weeks"), then in months up to
+ * about two years ("In 5 months"), then in years.
+ */
+export function deadlineLabel(iso: string | null | undefined, now: Date = new Date()) {
   if (!iso) return "";
   const d = new Date(iso);
-  const today = new Date();
-  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diff = Math.round((day(d) - day(today)) / 86400000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff === -1) return "Yesterday";
-  if (diff < 0 && diff > -7) return `${-diff} days ago`;
-  if (diff > 0 && diff < 7) return `In ${diff} days`;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+  const start = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const v = start(d);
+  const today = start(now);
+  const days = Math.round((v.getTime() - today.getTime()) / 86400000);
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  if (Math.floor(Math.abs(days) / 7) <= 1) return cap(rtf.format(days, "day"));
+  const months = (v.getFullYear() - today.getFullYear()) * 12 + v.getMonth() - today.getMonth();
+  if (Math.abs(months) <= 1) {
+    const monday = (x: Date) => { const m = new Date(x); m.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return m; };
+    const weeks = Math.round((monday(v).getTime() - monday(today).getTime()) / (7 * 86400000));
+    return cap(rtf.format(weeks, "week"));
+  }
+  if (Math.floor(Math.abs(days) / 365.25) <= 1) return cap(rtf.format(months, "month"));
+  return cap(rtf.format(v.getFullYear() - today.getFullYear(), "year"));
 }
 
 export const fullDate = (iso: string | null | undefined) =>

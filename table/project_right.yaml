@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# What each person may do in Project, from Odoo's own groups (implied groups followed): `user`
+# = Project User or more (the Project app and task changes); `manager` = Project
+# Administrator (creates and changes projects: status, settings, stages). Read by the web
+# overview to offer only what Odoo would offer; Odoo checks again on every save. `user_id`
+# makes the datasource rule show each person only their own row.
+datasource: odoo
+title: Project rights
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  user_id: { type: int, flags: [hidden] }
+  user: { type: bool, label: Project user }
+  manager: { type: bool, label: Project administrator }
+postgres:
+  listen: [res_users]
+  rhai: |
+    let in_group = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = res_users.id UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'project' AND d.res_id = g.gid WHERE d.name = ";
+    sql::select().from("res_users")
+        .expression(sql::expr("res_users.id").alias("id"))
+        .expression(sql::expr("res_users.id").alias("user_id"))
+        .expression(sql::expr(in_group + "'group_project_user')").alias("user"))
+        .expression(sql::expr(in_group + "'group_project_manager')").alias("manager"))
+        .where(sql::expr("res_users.active AND res_users.share IS NOT TRUE"))

@@ -51,6 +51,21 @@ export const Empty: Story = {
   play: async () => { await expect(screen.queryAllByRole("button")).toHaveLength(0); },
 };
 
+/** Project's bar: one segment per task state, with the waiting (blue) and done (dark green) tones. */
+export const TaskStates: Story = {
+  args: {
+    label: "Task states in In Progress",
+    segments: [
+      { key: "1_done", label: "done", count: 1, tone: "done" },
+      { key: "03_approved", label: "approved", count: 2, tone: "ok" },
+      { key: "02_changes_requested", label: "changes requested", count: 1, tone: "warn" },
+      { key: "04_waiting_normal", label: "waiting", count: 1, tone: "info" },
+      { key: "01_in_progress", label: "in progress", count: 3, tone: "none" },
+    ],
+  },
+  play: async () => { await expect(screen.getAllByRole("button")).toHaveLength(5); },
+};
+
 export const PickAndClear: Story = {
   play: async ({ args, userEvent }) => {
     await userEvent.click(segment(/overdue/));

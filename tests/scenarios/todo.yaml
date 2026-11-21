@@ -1,6 +1,7 @@
 fixtures: todo-basics
 vars:
   monicas: { record: todo, id: 900 }
+  projects_task: { record: todo, id: 901 }
   marc_cards: { vista: todo_user, where: { user_id: 5 } }
 
 scenarios:
@@ -52,7 +53,7 @@ scenarios:
         assert:
           - result.priority == "2"
           - monicas.priority == "2"
-        what_if: [no-fifth-level, done-and-back, not-marcs]
+        what_if: [no-fifth-level, done-and-back, not-marcs, folded-stage]
       - step: And back up to Urgent
         do: { action: todo_set_priority, args: { id: 900, priority: "3" } }
         assert:
@@ -79,13 +80,17 @@ scenarios:
 
   done-and-back:
     steps:
+      # Odoo stamps date_last_stage_update on every state change; date_end follows the stage's
+      # fold flag, and a to-do has no stage, so closing it leaves date_end empty.
       - step: Monica marks the to-do done
         do: { action: todo_toggle_done, args: { id: 900 } }
         assert:
           - result.done == true
           - monicas.state == "1_done"
-          - monicas.date_end != ()
+          - monicas.date_end == ()
+          - date(monicas.date_last_stage_update) == date("2026-11-21T09:00:00Z")
           - monicas.priority == "3"
+        what_if: [closed-later]
       - step: She opens it again
         do: { action: todo_toggle_done, args: { id: 900 } }
         assert:
@@ -93,6 +98,35 @@ scenarios:
           - monicas.state == "01_in_progress"
           - monicas.date_end == ()
 
+  closed-later:
+    steps:
+      - step: Monica marks it done three hours later; the state change moves the stage date
+        clock: +3h
+        do: { action: todo_toggle_done, args: { id: 900 } }
+        assert:
+          - monicas.state == "1_done"
+          - date(monicas.date_last_stage_update) == date("2026-11-21T12:00:00Z")
+          - monicas.date_end == ()
+
+  # date_end follows the project stage's fold flag (Odoo's update_date_end). A project task
+  # (901, in "In Progress") moved by the hook alone: setup writes run hooks without the rules.
+  folded-stage:
+    steps:
+      - step: The task enters the folded Cancelled stage, which stamps its end date
+        before: |
+          table("todo").record(901).set(#{ stage_id: 4 }).flash();
+        do: |
+          table("task_stage").get(4)
+        assert:
+          - projects_task.date_end != ()
+          - date(projects_task.date_last_stage_update) == date("2026-11-21T09:00:00Z")
+      - step: Back to In Progress, which isn't folded, clears it
+        before: |
+          table("todo").record(901).set(#{ stage_id: 2 }).flash();
+        do: |
+          table("task_stage").get(2)
+        assert:
+          - projects_task.date_end == ()
   # A rich description is HTML: it goes to Odoo's own write (which cleans it with
   # html_sanitize), never into the column from nodo. The test copies have no Odoo to answer, so
   # the save is refused and the column stays as it was; the cleaned result was checked on the

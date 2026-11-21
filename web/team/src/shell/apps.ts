@@ -1,4 +1,4 @@
-import { Handshake, ListTodo, type LucideIcon } from "lucide-react";
+import { FolderKanban, Handshake, ListTodo, type LucideIcon } from "lucide-react";
 
 /** One nodo app in the shell: its tile in the app switcher and its menu in the top bar. */
 export type NodoApp = {
@@ -20,6 +20,7 @@ export const APPS: NodoApp[] = [
     menu: [{ to: "/", label: "My to-dos", end: true }, { to: "/list", label: "List" }],
   },
   { id: "crm", name: "CRM", icon: Handshake, colour: "#2a7e91", home: "/crm", ready: true, menu: [{ to: "/crm", label: "Pipeline" }] },
+  { id: "project", name: "Project", icon: FolderKanban, colour: "#b25d24", home: "/project", ready: true, menu: [{ to: "/project", label: "Projects" }] },
 ];
 
 /** The app a path belongs to: the one with the longest matching home, To-do otherwise. */

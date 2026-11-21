@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
+import { observer, useCollection } from "@vantage-ui/client/react";
 import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
 import type { Todos } from "../vantage.gen";
 import { auth, call, fromLocalInput, ids, isDone, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
@@ -8,14 +8,18 @@ import { Avatar, DateTimePicker, MultiPicker, Priority, toast } from "../ui";
 import { RichText } from "../ui/RichText";
 import { setPending, usePending } from "../pending";
 
-/** One to-do: read it, edit it, set its priority, tag it, assign it, mark it done. */
+/**
+ * One to-do: read it, edit it, set its priority, tag it, assign it, mark it done. It is read as
+ * a collection of one row, as CRM's and Project's forms are: a record ref on a query-table
+ * entity doesn't follow changes (FEEDBACK.md), a collection does.
+ */
 export const TodoForm = observer(() => {
   const db = useDb();
   const { id = "" } = useParams();
-  const ref = useMemo(() => db.todos.ref(id), [db, id]);
-  const { value: todo, status, error } = useRecord(ref);
-  if (status === "error") return <p className="alert">{error}</p>;
-  if (status === "missing") return <p className="alert">This to-do isn't in your list. <Link to="/">Back to my to-dos</Link></p>;
+  const rows = useCollection(db.todos.where({ id }));
+  const todo = rows.items[0];
+  if (rows.error) return <p className="alert">{rows.error}</p>;
+  if (!todo && rows.loadState !== "loading") return <p className="alert">This to-do isn't in your list. <Link to="/">Back to my to-dos</Link></p>;
   if (!todo) return <p className="muted" style={{ padding: 16 }}>Loading…</p>;
   return <Editor key={todo.id} todo={todo} />;
 });

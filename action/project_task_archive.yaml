@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Archive a project task, or restore it. Args: id. Odoo's own action_archive / action_unarchive,
+# as the signed-in person: archiving also archives its sub-tasks that sit in the same project.
+kind: script
+label: Archive
+icon: Archive
+params:
+  id: { type: int }
+body: |
+  import "project" as p;
+  let id = parse_int(args.id.to_string());
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to change project tasks"); }
+  let task = table("task").get(id);
+  if task == () { fail("You can't see this task"); }
+  let archive = task.active != false;
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.task", method: if archive { "action_archive" } else { "action_unarchive" }, params: [[id]],
+  });
+  let after = table("task").get(id);
+  if after == () || after.active == task.active { fail("Odoo didn't accept the change"); }
+  #{ id: id, active: after.active }

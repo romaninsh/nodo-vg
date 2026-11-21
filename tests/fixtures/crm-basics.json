@@ -18,11 +18,21 @@
     { "id": 5, "user_id": 5, "salesman": true, "all_docs": false, "manager": false, "company_ids": ",1,", "team_ids": ",4," },
     { "id": 6, "user_id": 6, "salesman": false, "all_docs": false, "manager": false, "company_ids": ",1,", "team_ids": ",," }
   ],
+  "customer": [
+    { "id": 13, "name": "OpenWood", "email": "openwood@example.com", "is_company": true, "user_id": 5 },
+    { "id": 40, "name": "Chicago Desks", "email": "chicago@example.com", "is_company": true, "user_id": 2 }
+  ],
   "crm_tag": [
     { "id": 1, "name": "Product", "color": 1 }
   ],
   "crm_tag_color": [
     { "id": 1, "color": 1 }
+  ],
+  "lead_duration": [
+    { "id": 501, "duration_tracking": { "s": 1, "d": "2026-11-21 07:00:00" } },
+    { "id": 502, "duration_tracking": { "1": 30, "s": 2, "d": "2026-11-20 09:00:00" } },
+    { "id": 503 },
+    { "id": 504 }
   ],
   "lead": [
     { "id": 501, "name": "Marc's desks", "type": "opportunity", "active": true, "stage_id": 1, "user_id": 5, "team_id": 1,

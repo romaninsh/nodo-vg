@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# An opportunity's time in each stage (crm_lead.duration_tracking, jsonb), written by crm_move
+# as Odoo's mail.tracking.duration.mixin writes it: the minutes spent in the stage it leaves
+# added under that stage's id, then `s` (the new stage) and `d` (when it got there, naive UTC).
+# The column is declared without a type, which the Postgres driver binds as jsonb. Only the
+# CRM actions use this table (it is no API entity); it can't add or remove opportunities.
+datasource: odoo
+table: crm_lead
+title: Opportunity time in stage
+columns:
+  id: { type: int, flags: [id] }
+  duration_tracking: {}
+deny:
+  actions: [insert, delete]

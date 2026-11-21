@@ -19,7 +19,21 @@ invariants:
         table.with_condition(sql::expr(in_group + "('group_sale_salesman')) AND (user_id = {} OR user_id IS NULL OR " + in_group + "('group_sale_salesman_all_leads', 'group_sale_manager')))", [session.uid, session.uid, session.uid]));
         // Odoo's multi-company rule: no company, or one of the person's allowed companies.
         table.with_condition(sql::expr("(company_id IS NULL OR company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {}))", [session.uid]));
-      } else {
+      } else if table_name == "project" {
+        // Project: `user_id` is the project manager, not the reader. Odoo's read rule: Project
+        // Administrators see every project; other internal users see projects open to all
+        // employees (`employees`, `portal`) and the private ones they are a team member of.
+        // Multi-company: no company or one of the person's companies.
+        let admin = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = {} UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'project' AND d.res_id = g.gid WHERE d.name = 'group_project_manager')";
+        table.with_condition(sql::expr("(" + admin + " OR privacy_visibility IN ('employees', 'portal') OR id IN (SELECT project_project_id FROM project_allowed_internal_users_rel WHERE res_users_id = {}))", [session.uid, session.uid]));
+        table.with_condition(sql::expr("(company_id IS NULL OR company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {}))", [session.uid]));
+        table.before_insert(|record| throw "Projects are created through Odoo");
+        table.before_update(|record, stored| throw "Projects are changed through Odoo");
+        table.before_delete(|id, row| throw "Projects are deleted through Odoo");
+      } else if ["todo_user", "stage", "stage_bar", "sales_right", "customer", "sales_team", "company", "project_right"].contains(table_name) {
+        // Tables whose `user_id` is the reader: assignments, personal stages, the person's own
+        // CRM and Project rights, and CRM's contacts, teams and companies (one row per record and per person
+        // allowed to see it).
         table.where("user_id", session.uid);
         if table_name == "todo_user" {
           // To-dos only (no project tasks), and not archived: the board shows what Odoo's does.
@@ -31,6 +45,10 @@ invariants:
         table.before_insert(|record| throw "Assignments are made by adding or assigning a to-do");
         table.before_update(|record, stored| if record.user_id != session.uid || stored.user_id != session.uid { throw "You can only change your own rows" });
         table.before_delete(|id, row| if row.user_id != session.uid { throw "You can only remove your own rows" });
+      } else {
+        // A table this rule wasn't written for: `user_id` means something different in every
+        // Odoo table (assignee, salesperson, manager, author), so no rule is guessed.
+        throw `table ${table_name} has a user_id column but no rule in datasource/odoo.yaml`;
       }
     exceptions:
       # The CRM actions change opportunities the way Odoo does, in steps the rule's write
@@ -54,11 +72,36 @@ invariants:
       - { type: action, name: todo_create, when: 'session.uid != ()' }
   # To-dos (project_task): only tasks with no project, no parent, not a template, that are
   # assigned to you.
+  # Project tasks (`task`): Odoo's read rule. Project Administrators see every task with a
+  # project; others see a task when they can see its project, follow it or are assigned to it.
+  # Multi-company as for projects. Project tasks change only through Odoo.
   project_id:
     script: |
-      table.with_condition(sql::expr("project_id IS NULL AND id IN (SELECT ur.task_id FROM project_task_user_rel ur JOIN project_task t ON t.id = ur.task_id WHERE ur.user_id = {} AND t.parent_id IS NULL AND t.is_template IS NOT TRUE)", [session.uid]));
-      table.before_insert(|record| if record.project_id != () { throw "A to-do belongs to no project" });
-      table.before_update(|record, stored| if record.project_id != () { throw "A to-do belongs to no project" });
+      if table_name == "todo" || table_name == "todo_view" {
+        table.with_condition(sql::expr("project_id IS NULL AND id IN (SELECT ur.task_id FROM project_task_user_rel ur JOIN project_task t ON t.id = ur.task_id WHERE ur.user_id = {} AND t.parent_id IS NULL AND t.is_template IS NOT TRUE)", [session.uid]));
+        table.before_insert(|record| if record.project_id != () { throw "A to-do belongs to no project" });
+        table.before_update(|record, stored| if record.project_id != () { throw "A to-do belongs to no project" });
+      } else if table_name == "task" {
+        let admin = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = {} UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'project' AND d.res_id = g.gid WHERE d.name = 'group_project_manager')";
+        let readable_project = "project_id IN (SELECT p.id FROM project_project p WHERE (p.privacy_visibility IN ('employees', 'portal') OR p.id IN (SELECT project_project_id FROM project_allowed_internal_users_rel WHERE res_users_id = {})) AND (p.company_id IS NULL OR p.company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {})))";
+        let follows = "id IN (SELECT f.res_id FROM mail_followers f JOIN res_users u ON u.partner_id = f.partner_id WHERE f.res_model = 'project.task' AND u.id = {})";
+        let assigned = "id IN (SELECT task_id FROM project_task_user_rel WHERE user_id = {})";
+        table.with_condition(sql::expr("project_id IS NOT NULL AND (" + admin + " OR " + readable_project + " OR " + follows + " OR " + assigned + ")", [session.uid, session.uid, session.uid, session.uid, session.uid]));
+        table.with_condition(sql::expr("(company_id IS NULL OR company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {}))", [session.uid]));
+        table.before_insert(|record| throw "Tasks are created through Odoo");
+        table.before_update(|record, stored| throw "Tasks are changed through Odoo");
+        table.before_delete(|id, row| throw "Tasks are deleted through Odoo");
+      } else if table_name == "milestone" {
+        // Odoo's milestone rule: the milestones of the projects a person can read.
+        let admin = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = {} UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'project' AND d.res_id = g.gid WHERE d.name = 'group_project_manager')";
+        table.with_condition(sql::expr("(" + admin + " OR project_id IN (SELECT p.id FROM project_project p WHERE p.privacy_visibility IN ('employees', 'portal') OR p.id IN (SELECT project_project_id FROM project_allowed_internal_users_rel WHERE res_users_id = {})))", [session.uid, session.uid]));
+        table.with_condition(sql::expr("(company_id IS NULL OR company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {}))", [session.uid]));
+        table.before_insert(|record| throw "Milestones are created through Odoo");
+        table.before_update(|record, stored| throw "Milestones are changed through Odoo");
+        table.before_delete(|id, row| throw "Milestones are deleted through Odoo");
+      } else {
+        throw `table ${table_name} has a project_id column but no rule in datasource/odoo.yaml`;
+      }
     exceptions:
       # A new to-do isn't assigned to anyone until the same action adds its assignment, so the
       # insert can't pass the "assigned to you" check. The action stamps project_id = () and
@@ -73,5 +116,7 @@ invariants:
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       - { type: action, name: todo_archive, when: 'session.uid != ()' }
       # Writes nothing here: it checks the to-do is assigned to the caller, then hands the
-      # description to Odoo's own write and reads the row back.
+      # description to Odoo's own write and reads the row back. Listed only so its scenario
+      # tests can run (the rule's SQL doesn't run on test tables): a deliberate trade, to drop
+      # once scenario tests can evaluate rule SQL (TEST-1). Odoo checks access again as you.
       - { type: action, name: todo_set_description, when: 'session.uid != ()' }

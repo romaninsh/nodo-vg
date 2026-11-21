@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Move a project task to another stage of its project (a drag on the board, a click on the
+# form's stage bar). Args: id, stage. The move is Odoo's own write, as the signed-in person:
+# besides the stage it stamps the stage date and the end date (folded stages), puts an open
+# task back to In Progress, adds the time spent in the old stage to `duration_tracking`, and
+# sends the new stage's customer email or rating request. Needs the password a web sign-in
+# keeps; the row is read back to see that Odoo took it.
+kind: script
+label: Move to stage
+icon: Kanban
+params:
+  id: { type: int }
+  stage: { type: int }
+body: |
+  import "project" as p;
+  let id = parse_int(args.id.to_string());
+  let stage = parse_int(args.stage.to_string());
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to change project tasks"); }
+  let task = table("task").get(id);
+  if task == () { fail("You can't see this task"); }
+  if !p::in_project(table("task_stage").get(stage), task.project_id) { fail("That stage isn't one of this project's stages"); }
+  if task.stage_id == stage { return #{ id: id, stage: stage, state: task.state }; }
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.task", method: "write", params: [[id], #{ stage_id: stage }],
+  });
+  let after = table("task").get(id);
+  if after == () || after.stage_id != stage { fail("Odoo didn't accept the move"); }
+  #{ id: id, stage: stage, state: after.state }

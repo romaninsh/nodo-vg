@@ -2,7 +2,8 @@
 # Move an opportunity to another pipeline stage (a drag on the board, a click on the form's
 # stage bar). Args: id, stage. Writes what Odoo writes for the same move: the stage, the
 # stage dates (lead hooks), the automated probability for the new stage, the probability too
-# when it was following the automated one, and the scoring tallies when the move wins it or
+# when it was following the automated one, the time spent in the old stage
+# (`duration_tracking`, lib/duration.rhai), and the scoring tallies when the move wins it or
 # takes it out of Won.
 kind: script
 label: Move to stage
@@ -13,6 +14,7 @@ params:
   stage: { type: int }
 body: |
   import "crm" as crm;
+  import "duration" as dur;
   let id = parse_int(args.id.to_string());
   let stage = parse_int(args.stage.to_string());
   let me = session.uid;
@@ -31,6 +33,8 @@ body: |
       if lead.active != false && crm::same_probability(lead.probability, lead.automated_probability) { p.probability = auto; }
     }
     table("lead").record(id).set(p).flash();
+    // Odoo's time in stage: the minutes in the stage it leaves, then the new stage and now.
+    table("lead_duration").record(id).set(#{ duration_tracking: dur::track(table("lead_duration").get(id).duration_tracking, stage, now()) }).flash();
     for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
       if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
       else { table("pls_frequency").insert(w); }

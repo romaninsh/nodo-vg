@@ -1,0 +1,113 @@
+# Project saves are Odoo's own writes (JSON-RPC as the signed-in person), so the test copies,
+# which have no Odoo to answer, check what nodo decides before the call: what it asks Odoo to
+# write (lib/project.rhai) and what it refuses. The writes themselves were checked on the live
+# app on throwaway tasks and projects (docs/project.md).
+scenarios:
+  # Quick create sends what Odoo's kanban sends: the title as display_name (Odoo's create reads
+  # the keywords) and the project and column in the context, so the creator isn't assigned.
+  # Marc signed in on the web (with the Odoo password the sign-in keeps), and without it; the
+  # YAML anchors are reused below.
+  quick-create:
+    session: &marc { app: team, uid: 5, name: Marc Demo, login: demo, odoo_password: secret }
+    steps:
+      - step: Marc adds a title with a tag, a person and two bangs to the New column of Office Design
+        do: |
+          import "project" as p;
+          p::quick_create_call(1, 1, "Fix the door #bug @Mitchell !!", [5])
+        assert:
+          - 'result.params[0].display_name == "Fix the door #bug @Mitchell !!"'
+          - '!("name" in result.params[0]) && !("project_id" in result.params[0])'
+          - result.params[0].user_ids == [[6, 0, [5]]]
+          - result.kwargs.context.default_project_id == 1
+          - result.kwargs.context.default_stage_id == 1
+        what_if: [no-title, no-password-to-add]
+
+  no-title:
+    steps:
+      - step: An empty title
+        do: { action: project_task_create, args: { project: 1, title: "  " } }
+        fails: "Give the task a title"
+
+  no-password-to-add:
+    steps:
+      - step: A session without the Odoo password a web sign-in keeps
+        as: &marc_no_password { app: team, uid: 5, name: Marc Demo, login: demo }
+        do: { action: project_task_create, args: { project: 1, title: "Fix the door" } }
+        fails: "Sign in on the web to add a task"
+
+  # A save asks Odoo to write only what changed, in Odoo's own formats.
+  save-fields:
+    session: *marc
+    steps:
+      - step: Marc sets the priority, marks it done, gives it a deadline and two tags
+        do: |
+          import "project" as p;
+          let task = #{ name: "Fix the door", priority: "0", state: "01_in_progress" };
+          p::save_vals(task, #{ name: "Fix the door", priority: "2", state: "1_done", date_deadline: "2026-11-30T15:00:00.000Z", tags: "1,5" })
+        assert:
+          - result.priority == "2"
+          - result.state == "1_done"
+          - result.date_deadline == "2026-11-30 15:00:00"
+          - result.tag_ids == [[6, 0, [1, 5]]]
+          - '!("name" in result)'
+        what_if: [clear-deadline, waiting-is-odoos, fifth-priority, empty-name, no-password-to-save]
+
+  clear-deadline:
+    steps:
+      - step: An empty deadline clears it, and an empty milestone takes it off
+        do: |
+          import "project" as p;
+          p::save_vals(#{ name: "x", priority: "0", state: "01_in_progress" }, #{ date_deadline: "", milestone_id: "" })
+        assert:
+          - result.date_deadline == false
+          - result.milestone_id == false
+
+  waiting-is-odoos:
+    steps:
+      - step: Waiting can't be picked; Odoo sets it while a blocking task is open
+        do: |
+          import "project" as p;
+          p::save_vals(#{ name: "x", priority: "0", state: "01_in_progress" }, #{ state: "04_waiting_normal" })
+        fails: "That state can't be picked"
+
+  fifth-priority:
+    steps:
+      - step: A priority Odoo doesn't have
+        do: |
+          import "project" as p;
+          p::save_vals(#{ name: "x", priority: "0", state: "01_in_progress" }, #{ priority: "4" })
+        fails: "Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)"
+
+  empty-name:
+    steps:
+      - step: A title cleared to nothing
+        do: |
+          import "project" as p;
+          p::save_vals(#{ name: "x", priority: "0", state: "01_in_progress" }, #{ name: "   " })
+        fails: "Give the task a title"
+
+  no-password-to-save:
+    steps:
+      - step: A move from a session without the Odoo password
+        as: *marc_no_password
+        do: { action: project_task_move, args: { id: 26, stage: 2 } }
+        fails: "Sign in on the web to change project tasks"
+
+  status-names:
+    session: *marc
+    steps:
+      - step: A status Odoo doesn't have
+        do: { action: project_set_status, args: { id: 1, status: "sideways" } }
+        fails: "That status doesn't exist"
+
+  # Every other check reads the task or project tables, whose rules narrow with SQL the test
+  # copies can't run ("native condition isn't this table's condition type"). Checked live as
+  # Mitchell and Marc instead: a task or project you can't see is refused, a stage of another
+  # project is refused, and Odoo's own refusals come back as "Odoo didn't accept the change".
+  board-access:
+    skip: the project rules' SQL conditions don't run on in-memory test tables; checked live
+    session: *marc
+    steps:
+      - step: Marc moves a task of Research & Development, a team-members-only project he isn't in
+        do: { action: project_task_move, args: { id: 30, stage: 2 } }
+        fails: "You can't see this task"

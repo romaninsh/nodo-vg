@@ -20,6 +20,12 @@ fn assigned(view, uid) {
     ("," + view.assignee_ids.to_string() + ",").contains("," + uid.to_string() + ",")
 }
 
+// Odoo's update_date_end: entering a folded stage stamps the end date, any other stage clears
+// it. `stage` is the task_stage row (or ()), `at` the current instant.
+fn date_end_for(stage, at) {
+    if stage != () && stage.fold == true { at } else { () }
+}
+
 // A list of ids from a checklist (array) or "1,5" text.
 fn ids(v) {
     let out = [];

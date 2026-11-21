@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Star a project for me, or take the star off. Args: id. Odoo's own toggle_favorite, as the
+# signed-in person (it may star projects it can't edit; the star is a row in a link table
+# with no id, which Vantage can't add).
+kind: script
+label: Favorite
+icon: Star
+params:
+  id: { type: int }
+body: |
+  import "project" as p;
+  let id = parse_int(args.id.to_string());
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to star a project"); }
+  let prj = table("project").get(id);
+  if prj == () { fail("You can't see this project"); }
+  let me = "," + session.uid.to_string() + ",";
+  let was = prj.favorite_ids != () && prj.favorite_ids.contains(me);
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.project", method: "toggle_favorite", params: [[id]],
+  });
+  let after = table("project").get(id);
+  let now = after != () && after.favorite_ids != () && after.favorite_ids.contains(me);
+  if now == was { fail("Odoo didn't accept the change"); }
+  #{ id: id, favorite: now }

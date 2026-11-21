@@ -14,6 +14,8 @@ columns:
   state: { type: string, label: Status, enum: [01_in_progress, 02_changes_requested, 03_approved, 04_waiting_normal, 1_done, 1_canceled], default: 01_in_progress }
   active: { type: bool, label: Active, default: true }
   project_id: { type: int, flags: [hidden] }
+  # A project task's stage (a to-do has none: its columns are personal, in todo_user).
+  stage_id: { type: int, flags: [hidden] }
   parent_id: { type: int, flags: [hidden] }
   is_template: { type: bool, flags: [hidden] }
   has_template_ancestor: { type: bool, flags: [hidden] }
@@ -62,11 +64,31 @@ hook:
       });
       record.description = lines.reduce(|acc, x| acc + x, "");
     }
-    // Odoo sets date_end when a task closes and clears it when it reopens.
-    let closed = record.state == "1_done" || record.state == "1_canceled";
-    let was_closed = stored != () && (stored.state == "1_done" || stored.state == "1_canceled");
-    if closed && !was_closed { record.date_end = now(); }
-    if !closed && was_closed { record.date_end = (); }
+    // Odoo's write: every state change stamps date_last_stage_update. date_end follows the
+    // stage, not the state: entering a folded stage sets it, any other stage clears it. A to-do
+    // has no stage, so closing one leaves date_end alone, as in Odoo.
+    if op != "insert" && stored != () && record.state != stored.state { record.date_last_stage_update = now(); }
+    // (The fold lookup reads task_stage, which normalise may not: it is in before_patch and
+    // before_update below.)
+    let moved = if op == "insert" { record.stage_id != () } else { stored != () && record.stage_id != stored.stage_id };
+    if moved {
+      if record.project_id == () && record.stage_id != () { throw "You can only set a personal stage on a private task."; }
+      record.date_last_stage_update = now();
+    }
+    record
+  before_patch: |
+    import "todo" as t;
+    if "stage_id" in patch && (stored == () || patch.stage_id != stored.stage_id) {
+      let s = if patch.stage_id == () { () } else { table("task_stage").get(patch.stage_id) };
+      patch.date_end = t::date_end_for(s, now());
+    }
+    patch
+  before_update: |
+    import "todo" as t;
+    if stored == () || record.stage_id != stored.stage_id {
+      let s = if record.stage_id == () { () } else { table("task_stage").get(record.stage_id) };
+      record.date_end = t::date_end_for(s, now());
+    }
     record
   validate: |
     let n = if record.name == () { "" } else { record.name };

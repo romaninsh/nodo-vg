@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Change a project task: any of name, priority, state, date_deadline (UTC, "" clears it),
+# milestone_id, partner_id, tags ("1,5"), users ("2,5"), description (HTML). Args: id plus the
+# fields to change. It is Odoo's own write, as the signed-in person: Odoo tracks each change in
+# the chatter, stamps the stage date on a state change, forces Waiting while a blocking task is
+# open, creates the next occurrence of a recurring task when it closes, gives new assignees
+# their personal stage and makes them followers, and cleans the description's HTML. Needs the
+# password a web sign-in keeps; the row is read back to see that Odoo took it.
+kind: script
+label: Save task
+icon: Save
+params:
+  id: { type: int }
+  name: { type: string, required: false }
+  priority: { type: string, required: false }
+  state: { type: string, required: false }
+  date_deadline: { type: string, required: false }
+  milestone_id: { type: string, required: false }
+  partner_id: { type: string, required: false }
+  tags: { type: string, required: false }
+  users: { type: string, required: false }
+  description: { type: string, required: false }
+body: |
+  import "project" as p;
+  let id = parse_int(args.id.to_string());
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to change project tasks"); }
+  let task = table("task").get(id);
+  if task == () { fail("You can't see this task"); }
+  let vals = p::save_vals(task, args);
+  if vals.len() == 0 { return #{ id: id, state: task.state }; }
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.task", method: "write", params: [[id], vals],
+  });
+  // Odoo answers 200 even when it refuses: it took the change when its write stamp moved.
+  let after = table("task").get(id);
+  if after == () || after.write_date == task.write_date { fail("Odoo didn't accept the change"); }
+  #{ id: id, state: after.state, priority: after.priority, description: after.description }

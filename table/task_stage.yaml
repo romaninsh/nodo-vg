@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Project task stages (project_task_type rows with no owner; personal stages are `stage`). A
+# stage can be shared by several projects: `project_ids` lists them as ",1,5,", so a board
+# reads its columns with `project_ids like ",<project>,"`. Read-only: stage names are
+# translated `jsonb`, which Vantage can't write.
+datasource: odoo
+title: Task stage
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Stage, flags: [title] }
+  sequence: { type: int, label: Order }
+  fold: { type: bool, label: Folded }
+  project_ids: { type: string, label: Projects }
+  # Arriving in this stage mails the customer (Odoo's stage email template) or asks them for
+  # a rating; shown on the board as a hint.
+  mails_customer: { type: bool, label: Emails the customer }
+  asks_rating: { type: bool, label: Asks for a rating }
+postgres:
+  listen: [project_task_type, project_task_type_rel]
+  rhai: |
+    sql::select().from("project_task_type")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .field("sequence")
+        .expression(sql::expr("coalesce(fold, false)").alias("fold"))
+        .expression(sql::expr("',' || coalesce((SELECT string_agg(r.project_id::text, ',' ORDER BY r.project_id) FROM project_task_type_rel r WHERE r.type_id = project_task_type.id), '') || ','").alias("project_ids"))
+        .expression(sql::expr("(mail_template_id IS NOT NULL)").alias("mails_customer"))
+        .expression(sql::expr("coalesce(rating_active, false) AND rating_status = 'stage'").alias("asks_rating"))
+        .where(sql::expr("user_id IS NULL AND active IS NOT FALSE"))
+        .order_by(sql::ident("sequence"), "asc")
+        .order_by(sql::ident("id"), "asc")

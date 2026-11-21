@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Quick create on a project's board: a task with a title (Odoo reads #tags, @people and ! / !!
+# / !!! out of it) in the column it was added in, optionally with assignees. Args: project,
+# title, stage, users ("2,5"). Odoo's own create, as the signed-in person: it fills the stage,
+# company and customer from the project, gives assignees their personal stage, adds the
+# followers, sends the stage's customer email and logs "Task Created". Returns the new task's
+# id, read back from the database.
+kind: script
+label: New task
+icon: Plus
+params:
+  project: { type: int }
+  title: { type: string }
+  stage: { type: int, required: false }
+  users: { type: string, required: false }
+body: |
+  import "project" as p;
+  let project = parse_int(args.project.to_string());
+  let title = p::text(args.title);
+  if title == "" { fail("Give the task a title"); }
+  let pw = p::password(session.odoo_password);
+  if pw == "" { fail("Sign in on the web to add a task"); }
+  let prj = table("project").get(project);
+  if prj == () || prj.active == false { fail("You can't add tasks to this project"); }
+  let stage = if "stage" in args && args.stage != () && args.stage.to_string() != "" { parse_int(args.stage.to_string()) } else { () };
+  if stage != () && !p::in_project(table("task_stage").get(stage), project) { fail("That stage isn't one of this project's stages"); }
+  let users = if "users" in args { p::ids(args.users) } else { [] };
+  let last = table("task").where("project_id", project).sort("id", "desc").first();
+  let floor = if last == () { 0 } else { last.id };
+  let req = p::quick_create_call(project, stage, title, users);
+  table("odoo_call").insert(#{
+    id: uuid_v7(), uid: session.uid, password: pw,
+    model: "project.task", method: "create", params: req.params, kwargs: req.kwargs,
+  });
+  let made = table("task").where("project_id", project).sort("id", "desc").first();
+  if made == () || made.id <= floor { fail("Odoo didn't create the task"); }
+  #{ id: made.id, name: made.name }

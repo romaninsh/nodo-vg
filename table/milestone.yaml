@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Project milestones, for the task form's milestone picker. Read-only for now. The
+# datasource's `project_id` rule shows the milestones of the projects a person can see.
+datasource: odoo
+title: Milestone
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Milestone, flags: [title] }
+  project_id: { type: int, label: Project }
+  company_id: { type: int, flags: [hidden] }
+  deadline: { type: date, label: Deadline }
+  is_reached: { type: bool, label: Reached }
+  sequence: { type: int, label: Order }
+postgres:
+  listen: [project_milestone]
+  rhai: |
+    sql::select().from("project_milestone")
+        .field("id")
+        .expression(sql::expr("project_milestone.name || coalesce(' - ' || to_char(deadline, 'MM/DD/YYYY'), '')").alias("name"))
+        .field("project_id")
+        .expression(sql::expr("(SELECT p.company_id FROM project_project p WHERE p.id = project_milestone.project_id)").alias("company_id"))
+        .field("deadline")
+        .expression(sql::expr("coalesce(is_reached, false)").alias("is_reached"))
+        .expression(sql::expr("coalesce(sequence, 10)").alias("sequence"))
+        .order_by(sql::ident("sequence"), "asc")
+        .order_by(sql::ident("deadline"), "asc")

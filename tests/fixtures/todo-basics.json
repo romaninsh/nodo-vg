@@ -10,7 +10,12 @@
     { "id": 28, "name": "Today", "user_id": 6, "sequence": 2, "fold": false }
   ],
   "todo": [
-    { "id": 900, "name": "Monica's own to-do", "state": "01_in_progress", "priority": "3", "active": true }
+    { "id": 900, "name": "Monica's own to-do", "state": "01_in_progress", "priority": "3", "active": true },
+    { "id": 901, "name": "A project task", "state": "01_in_progress", "priority": "0", "active": true, "project_id": 1, "stage_id": 2 }
+  ],
+  "task_stage": [
+    { "id": 2, "name": "In Progress", "sequence": 10, "fold": false, "project_ids": ",1," },
+    { "id": 4, "name": "Cancelled", "sequence": 30, "fold": true, "project_ids": ",1," }
   ],
   "todo_view": [
     { "id": 900, "name": "Monica's own to-do", "state": "01_in_progress", "priority": "3", "active": true, "assignee_ids": "6" }
