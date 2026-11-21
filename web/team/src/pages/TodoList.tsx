@@ -37,6 +37,10 @@ export const TodoList = observer(() => {
   // `like` matches "contains", ignoring case (the server adds the wildcards).
   if (text.trim()) q = q.where({ name: { like: text.trim() } });
   const list = useCollection(q.sort("date_deadline", "asc"));
+  // The server sorts on one column, so to-dos with the same deadline (or none) arrive in any
+  // order; the id keeps them in one order between loads.
+  const rows = [...list.items].sort((a, b) =>
+    (a.date_deadline ?? "￿").localeCompare(b.date_deadline ?? "￿") || Number(a.id) - Number(b.id));
 
   const setPriority = async (id: string, priority: Level) => {
     const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
@@ -73,13 +77,13 @@ export const TodoList = observer(() => {
               <th style={{ width: 36 }}><span className="sr-only">Done</span></th>
               <th>To-do</th>
               <th style={{ width: 40 }} title="Priority"><Star size={14} aria-hidden="true" /><span className="sr-only">Priority</span></th>
-              <th style={{ width: 150 }}>Deadline</th>
-              <th>Tags</th>
-              <th>Assigned to</th>
+              <th className="col-deadline">Deadline</th>
+              <th className="col-wide">Tags</th>
+              <th className="col-wide">Assigned to</th>
             </tr>
           </thead>
           <tbody>
-            {list.items.map((t) => (
+            {rows.map((t) => (
               <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
                 onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
             ))}
@@ -109,8 +113,8 @@ const Row = observer(({ t, onOpen, onPriority, onDone }: {
           {deadlineLabel(v.date_deadline)}
         </span>
       </td>
-      <td><TagPills tagIds={v.tag_ids} /></td>
-      <td><span className="people"><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
+      <td className="col-wide"><TagPills tagIds={v.tag_ids} /></td>
+      <td className="col-wide"><span className="people"><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
     </tr>
   );
 });
