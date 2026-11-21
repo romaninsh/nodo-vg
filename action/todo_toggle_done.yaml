@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Mark a to-do done, or open it again. Args: id.
+kind: script
+label: Mark as done
+icon: CircleCheck
+params:
+  id: { type: int }
+body: |
+  let id = parse_int(args.id.to_string());
+  if table("todo_view").where("id", id).count() == 0
+     || table("todo_user").where("task_id", id).where("user_id", session.uid).count() == 0 {
+    fail("That to-do isn't yours");
+  }
+  let t = table("todo").get(id);
+  let done = t.state == "1_done";
+  table("todo").record(id).set(#{ state: if done { "01_in_progress" } else { "1_done" } }).flash();
+  #{ id: id, done: !done }

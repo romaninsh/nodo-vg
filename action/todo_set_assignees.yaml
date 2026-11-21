@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Set who a to-do is assigned to, as Odoo does: each new assignee gets the to-do in their own
+# first column (Inbox) and becomes a follower; removed people lose their assignment. You
+# always keep it yourself (otherwise it would vanish from your list).
+# Args: id (the to-do), users (a list of user ids, or "2,5" text).
+kind: script
+label: Assign
+icon: Users
+atomic: true
+params:
+  id: { type: int }
+  users: { type: string, required: false }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  if table("todo_view").where("id", id).count() == 0
+     || table("todo_user").where("task_id", id).where("user_id", me).count() == 0 {
+    fail("That to-do isn't yours");
+  }
+  let wanted = [me];
+  for u in t::ids(args.users) { if !wanted.contains(u) { wanted.push(u); } }
+  let have = [];
+  for r in table("todo_user").where("task_id", id).list() {
+    if wanted.contains(r.user_id) { have.push(r.user_id); } else { table("todo_user").delete(r.id); }
+  }
+  let added = 0;
+  for u in wanted {
+    if have.contains(u) { continue; }
+    let p = table("person").get(u);
+    if p == () { fail("Unknown person"); }
+    let inbox = table("stage").where("user_id", u).sort("sequence", "asc").first();
+    table("todo_user").insert(#{ task_id: id, user_id: u, stage_id: if inbox == () { () } else { inbox.id } });
+    if table("follower").where("res_model", "project.task").where("res_id", id).where("partner_id", p.partner_id).count() == 0 {
+      let f = table("follower").insert(#{
+        res_model: "project.task", res_id: id, partner_id: p.partner_id,
+        create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+      });
+      table("follower_subtype").insert(#{ mail_followers_id: f, mail_message_subtype_id: 1 });
+    }
+    added += 1;
+  }
+  if added > 0 { table("todo").record(id).set(#{ date_assign: now() }).flash(); }
+  #{ id: id, assignees: wanted.len() }

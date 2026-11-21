@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Personal to-do stages (project_task_type rows owned by a user). Odoo keeps the name as
+# translated JSON, so this is read-only.
+datasource: odoo
+title: Stage
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Stage, flags: [title] }
+  user_id: { type: int, flags: [hidden] }
+  sequence: { type: int, label: Order }
+  fold: { type: bool, label: Folded }
+postgres:
+  rhai: |
+    sql::select().from("project_task_type")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .field("user_id")
+        .field("sequence")
+        .expression(sql::expr("coalesce(fold, false)").alias("fold"))
+        .where(sql::expr("user_id IS NOT NULL AND active IS NOT FALSE"))
+        .order_by(sql::ident("sequence"), "asc")

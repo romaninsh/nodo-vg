@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Move one of my to-dos to another of my columns (my personal stage). Args: id (the to-do),
+# stage (one of my stage ids). Only my own assignment row changes; others keep their column.
+kind: script
+label: Move
+icon: Kanban
+params:
+  id: { type: int }
+  stage: { type: int }
+body: |
+  let id = parse_int(args.id.to_string());
+  let stage = parse_int(args.stage.to_string());
+  let me = session.uid;
+  let s = table("stage").get(stage);
+  if s == () || s.user_id != me { fail("That column isn't yours"); }
+  let r = table("todo_user").where("task_id", id).where("user_id", me).first();
+  if r == () { fail("That to-do isn't yours"); }
+  if r.stage_id != stage { table("todo_user").record(r.id).set(#{ stage_id: stage }).flash(); }
+  #{ id: id, stage: stage }

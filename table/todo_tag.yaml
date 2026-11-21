@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's tag links (project_tags_project_task_rel). The table has no id of its own (its key is
+# the pair), so the tag column stands in for it. Always narrow to one to-do first:
+#   table("todo_tag").where("project_task_id", t).insert(...) / .delete(tag)
+datasource: odoo
+table: project_tags_project_task_rel
+title: Tag link
+id_column: project_tags_id
+columns:
+  project_tags_id: { type: int, flags: [id, auto], label: Tag }
+  project_task_id: { type: int, label: To-do }

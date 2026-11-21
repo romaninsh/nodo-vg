@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's res_users: who may sign in. Only the session built-ins read it; the password hash
+# (passlib pbkdf2-sha512, as Odoo writes it) never leaves the backend.
+datasource: odoo_auth
+table: res_users
+title: Odoo user
+columns:
+  id: { type: int, flags: [id, auto] }
+  login: { type: string, label: Login, flags: [title, searchable] }
+  active: { type: bool, label: Active }
+  share: { type: bool, label: Portal user }
+  partner_id: { type: int, flags: [hidden] }
+  password: { type: string, flags: [hidden] }
+deny:
+  actions: [insert, delete]

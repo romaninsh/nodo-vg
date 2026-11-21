@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=./layout-schema-1.json
+regions:
+  title_bar:
+    left: [ { kind: app_title } ]
+    right:
+      - kind: identity
+        id: me
+        text: '${session.name}'
+        menu: [switch_person, restore_identity]
+      - { kind: view, view: title_tools }
+      - { kind: theme_toggle }
+  left: { nav: menu, source: { menu: left }, header: project_switcher, footer: project_settings }
+  main: { host: tabs }

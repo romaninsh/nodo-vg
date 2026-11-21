@@ -1,0 +1,68 @@
+fixtures: todo-basics
+vars:
+  monicas: { record: todo, id: 900 }
+  marc_cards: { vista: todo_user, where: { user_id: 5 } }
+
+scenarios:
+  quick-add:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc adds a to-do from the board
+        do: { action: todo_create, args: { name: "Call the supplier" } }
+        assert:
+          - result.id != ()
+          - marc_cards.count() == 1
+          - marc_cards.first().stage_id == 12
+        vars:
+          added: { record: todo, from: result.id }
+        what_if: [no-columns-yet, html-description]
+      - step: The new to-do is stamped the way Odoo stamps it
+        assert:
+          - added.state == "01_in_progress"
+          - added.priority == "0"
+          - added.create_uid == 5
+          - added.project_id == ()
+
+  no-columns-yet:
+    steps:
+      - step: Marc has no personal columns yet
+        before: |
+          set("stage", 12, #{ user_id: 99 });
+          set("stage", 13, #{ user_id: 99 });
+        fails: "You have no to-do columns yet"
+
+  html-description:
+    steps:
+      - step: Marc adds a to-do whose description looks like HTML
+        do: { action: todo_create, args: { name: "Check the link", description: "<img src=x onerror=alert(1)>" } }
+        vars:
+          html: { record: todo, from: result.id }
+      - step: It is stored as text, so Odoo shows it instead of running it
+        assert:
+          - html.description == "<p>&lt;img src=x onerror=alert(1)&gt;</p>"
+
+  columns-stay-private:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    steps:
+      - step: Marc tries to put a card into Monica's column
+        do: { action: todo_move, args: { id: 900, stage: 27 } }
+        fails: "That column isn't yours"
+
+  # The to-do and assignment rules narrow with SQL (`with_condition`), which the in-memory test
+  # copies can't evaluate ("native condition isn't this table's condition type"). These
+  # refusals were checked on the live app instead (NOTES.md).
+  others-stay-private:
+    skip: the rules' SQL conditions don't run on in-memory test tables; checked live
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    steps:
+      - step: Marc tries to move Monica's to-do
+        do: { action: todo_move, args: { id: 900, stage: 13 } }
+        fails: "That to-do isn't yours"
+      - step: Marc tries to give himself Monica's to-do directly
+        do: |
+          table("todo_user").insert(#{ task_id: 900, user_id: 5, stage_id: 12 });
+        fails: "Assignments are made by adding or assigning a to-do"
+      - step: Marc tries to rename Monica's to-do
+        do: { action: todo_save, args: { id: 900, name: "mine now" } }
+        fails: "That to-do isn't yours"

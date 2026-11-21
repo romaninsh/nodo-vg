@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Desktop only (title bar menu): work as another person, with exactly their rows and columns.
+kind: script
+label: Switch person…
+icon: Users
+body: |
+  let f = actions.switch_person_form();
+  let p = table("person").get(parse_int(f.person.to_string()));
+  if p == () { fail("Pick a person"); }
+  if p.id == 2 { session.restore(); return #{ uid: 2 }; }
+  session.assume(#{ app: "nodo", fields: #{ uid: p.id, name: p.name, login: p.login } });
+  #{ uid: p.id }

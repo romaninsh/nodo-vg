@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Sign in with an Odoo login and password (checked against Odoo's own hash in res_users).
+kind: script
+label: Sign in
+icon: User
+params:
+  login: { type: string, label: Login }
+  password: { type: string, label: Password }
+rate_limit: { per_second: 1, burst: 5 }
+body: |
+  let login = if args.login == () { "" } else { args.login.to_string() };
+  login.trim();
+  if login == "" || args.password == () { fail("Enter your login and password"); }
+  let id = session.check_password(#{ login: login }, args.password, "password");
+  if id == () { fail("Wrong login or password"); }
+  let u = session.identity(id);
+  if u.active != true || u.share == true { fail("This account can't use nodo"); }
+  let p = table("person").get(id);
+  let name = if p == () { login } else { p.name };
+  // The password stays with the sign-in on the server (memory only) for tag saves through Odoo.
+  // Memory session fields have no column type: store the id as a number, or the rules compare
+  // Odoo's integer user_id with text.
+  let uid = parse_int(id.to_string());
+  let token = session.create(id, #{ uid: uid, name: name, login: login, odoo_password: args.password.to_string() });
+  #{ token: token, uid: uid, name: name, login: login }

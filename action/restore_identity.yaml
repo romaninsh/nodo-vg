@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=./action-schema-1.json
+kind: script
+label: Back to Mitchell Admin
+icon: User
+body: |
+  session.restore();

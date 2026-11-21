@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's project tags. The name is translated JSON, so this is read-only.
+datasource: odoo
+title: Tag
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Tag, flags: [title, searchable] }
+  color: { type: int, label: Colour }
+postgres:
+  rhai: |
+    sql::select().from("project_tags")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(color, 0)").alias("color"))
+        .order_by(sql::expr("2"), "asc")

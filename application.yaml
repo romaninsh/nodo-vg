@@ -1,0 +1,27 @@
+app: nodo
+theme:
+  light: Catppuccin Latte
+  dark: Catppuccin Frappe
+layout: nodo
+home: board
+
+# Rules narrow the desktop too: it always shows exactly what one person sees. The desktop is
+# Mitchell Admin's; the title bar's name menu switches to another person (session.assume).
+desktop_full_access: false
+
+session:
+  # No `table:`: web sign-ins live in the server's memory only (nothing stored beside Odoo).
+  # A restart signs everyone out.
+  identity: odoo_user                         # Odoo's res_users
+  password_schemes: [pbkdf2_sha512, argon2id] # Odoo's passlib hashes
+  idle: 28800                                 # 8 hours unused and the sign-in ends
+  valid: (identity == () || (identity.active == true && identity.share != true))
+  fields:
+    uid: {}
+    name: {}
+    login: {}
+    # The Odoo password typed at sign-in, kept with the sign-in on the server so nodo can save
+    # tags through Odoo as you. Secret: actions read it; no page, grid or API shows it.
+    odoo_password: { secret: true }
+  signed_out: [sign_in]
+  desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin" }'

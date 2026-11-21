@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# One row per person a to-do is assigned to (project_task_user_rel), holding that person's own
+# stage (board column) for it. The datasource rule shows each person only their own rows, for
+# to-dos only (no project tasks).
+datasource: odoo
+table: project_task_user_rel
+title: My to-do
+columns:
+  id: { type: int, flags: [id, auto] }
+  task_id: { type: int, label: To-do, flags: [mandatory], references: { table: todo_view, kind: has_one, name: task } }
+  user_id: { type: int, label: Person, flags: [mandatory], references: person }
+  stage_id: { type: int, label: Stage, references: stage }
+  create_uid: { type: int, flags: [hidden] }
+  write_uid: { type: int, flags: [hidden] }
+  create_date: { type: timestamp, flags: [hidden] }
+  write_date: { type: timestamp, flags: [hidden] }
+  # Dotted columns last: a rule's write check binds values in file order but lists dotted
+  # columns after the stored ones (see FEEDBACK.md).
+  task.name: { type: string, label: Title }
+  task.date_deadline: { type: timestamp, label: Deadline }
+  task.priority: { type: string, label: Starred }
+  task.state: { type: string, label: Status }
+  task.active: { type: bool, label: Active }
+  task.tags: { type: string, label: Tags }
+  task.tag_ids: { type: string, label: Tag ids }
+  task.assignees: { type: string, label: Assigned to }
+  task.overdue: { type: bool, label: Overdue }
+  task.due: { type: string, label: Due }
+  task.notes: { type: string, label: Description }
+  task.summary: { type: string, label: Summary }
+  stage.name: { type: string, label: Stage }
+hook:
+  normalise: |
+    if session != () && session.uid != () {
+      record.write_uid = session.uid;
+      if op == "insert" { record.create_uid = session.uid; }
+    }
+    record.write_date = now();
+    if op == "insert" { record.create_date = now(); }
+    record
+  validate: |
+    if stored != () && (record.task_id != stored.task_id || record.user_id != stored.user_id) {
+      throw "An assignment can't move to another to-do or person";
+    }
+    if record.stage_id != () {
+      let s = table("stage").get(record.stage_id);
+      if s == () || s.user_id != record.user_id { throw "That column belongs to someone else"; }
+    }

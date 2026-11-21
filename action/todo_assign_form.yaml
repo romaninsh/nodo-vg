@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=./action-schema-1.json
+kind: form
+label: Assignees
+dialog:
+  title: Assigned to
+  description: You stay assigned; tick the colleagues who should have it too.
+  confirm_label: Save
+  size: sm
+form:
+  fields:
+    - { name: users, label: People, widget: checklist, references: person, required: false }
