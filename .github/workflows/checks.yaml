@@ -46,8 +46,29 @@ jobs:
       - name: vantage-server test
         run: docker run --rm -v "$PWD:/app:ro" romaninsh/vantage-server:1.14.7 test /app --strict
 
+  # The web version type-checks and builds.
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: web/team
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/team/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
   summary:
-    needs: [workflows, scenarios]
+    needs: [workflows, scenarios, web]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
