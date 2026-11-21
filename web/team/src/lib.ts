@@ -46,7 +46,15 @@ const TAG_COLORS = [
   "#EB7E7F", "#2C8397", "#475577", "#D6145F", "#30C381", "#9365B8",
 ];
 export const tagColor = (c: number | null | undefined) => TAG_COLORS[(c ?? 0) % 12] ?? TAG_COLORS[0]!;
-export const tagText = (c: number | null | undefined) => ((c ?? 0) === 0 || c === 3 ? "#374151" : "#fff");
+// White text where it reads at 4.5:1 (WCAG AA) on the tag's colour, dark text elsewhere.
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+export const tagText = (c: number | null | undefined) => (1.05 / (luminance(tagColor(c)) + 0.05) >= 4.5 ? "#fff" : "#212529");
 
 export const ids = (s: string | null | undefined) =>
   (s ?? "").split(",").map((x) => x.trim()).filter((x) => x !== "");

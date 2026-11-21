@@ -84,8 +84,53 @@ jobs:
           name: web
           path: ${{ runner.temp }}/web-sizes.txt
 
+  # The UI gallery (web/team/gallery): every story runs as a test in Chromium (its interactions and
+  # an axe check), then each is photographed at 375, 768 and 1280 px and compared with
+  # web/team/playwright/snapshots. Inside the Playwright image, so fonts render the same each run.
+  gallery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: web/team
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: npm ci
+      - name: Stories (interactions and axe)
+        run: npx vitest run --project gallery --reporter=default --reporter=junit --outputFile.junit=test-results/gallery-stories.xml
+      - run: npm run build-storybook
+      - name: Visual snapshots
+        id: visual
+        env:
+          CI: "true"
+        run: npx playwright test -c playwright/gallery.config.ts
+      # A fresh set of snapshots to download and commit when the pixels moved on purpose.
+      - name: Fresh snapshots
+        if: failure() && steps.visual.outcome == 'failure'
+        run: npx playwright test -c playwright/gallery.config.ts --update-snapshots=all --reporter=dot --output "$RUNNER_TEMP/fresh" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure() && steps.visual.outcome == 'failure'
+        with:
+          name: gallery-snapshots
+          path: web/team/playwright/snapshots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: gallery
+          path: |
+            web/team/test-results/gallery-stories.xml
+            web/team/test-results/gallery-visual.xml
+            web/team/test-results/gallery
+          if-no-files-found: ignore
+
   summary:
-    needs: [workflows, scenarios, web]
+    needs: [workflows, scenarios, web, gallery]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -113,7 +158,8 @@ jobs:
           RESULTS: ${{ runner.temp }}/results
         run: |
           python3 -I scripts/ci_report.py --jobs "$JOBS" --base "$BASE" --run "$RUN_URL" \
-            --junit "$RESULTS/scenarios/junit.xml" --web "$RESULTS/web/web-sizes.txt" > summary.md
+            --junit "$RESULTS/scenarios/junit.xml" --web "$RESULTS/web/web-sizes.txt" \
+            --stories "$RESULTS/gallery/gallery-stories.xml" --visual "$RESULTS/gallery/gallery-visual.xml" > summary.md
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
       # One comment per PR, found by its marker and edited, never a new one per run.
       - name: PR comment
