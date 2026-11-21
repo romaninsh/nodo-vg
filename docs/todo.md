@@ -59,10 +59,10 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Card title | yes | yes | yes | done |
 | Card deadline as "2 days ago", red when past | yes | deadline date | yes, plus amber for today | done |
 | Card tags in their colour | yes | tags as plain labels | yes | partly (desktop) |
-| Card priority stars, clickable | three stars | none | one star, click to toggle | partly |
+| Card priority stars, clickable | three stars | none (desktop stays plain) | one star per level (outline, half, full, red with "!"); click opens a pick of the four levels | partly (desktop) |
 | Card avatars, shown only when shared with others | photos, only if 2+ people | none | initials, always shown | partly |
-| Card done checkmark, click to mark done | yes | no | no | not yet |
-| Done and cancelled cards dimmed | yes | no | done struck through | partly |
+| Card done checkmark, click to mark done | yes | no (Mark as done on the sheet) | checkmark circle, click toggles | partly (desktop) |
+| Done and cancelled cards dimmed | yes | no | dimmed, title struck through | partly (desktop) |
 | Card activity icon (next activity, schedule one) | yes | no | no | not yet |
 | Card menu: colour, cover image, delete | yes | no | no | not yet |
 | Column bar of activities (planned, today, late) | yes | no | no | not yet |
@@ -71,7 +71,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Quick add on a column: title, Enter adds, box stays open, Edit opens it | yes | no (New dialog only) | yes | partly (desktop) |
 | Quick add takes a deadline | yes | in the New dialog | no | partly |
 | Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | no | not yet |
-| New button | quick add in first column | dialog (title, deadline, star), then opens it | none (per-column + only) | partly |
+| New button | quick add in first column | dialog (title, deadline), then opens it | none (per-column + only) | partly |
 | Search and filters on the board | full search panel | search box | none | partly |
 
 ### List
@@ -80,8 +80,8 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 |---|---|---|---|---|
 | Open a row to see the to-do | yes | side sheet | full page | done |
 | Title and deadline ("in 3 days", red when past) | yes | yes, plus a Due chip | yes | done |
-| Priority star in the row, clickable | one star | ★/☆, read only | yes | partly (desktop) |
-| Done checkmark in the row | yes | Status column (text) | done struck through | partly |
+| Priority star in the row, clickable | three stars | Priority column (Low, Medium, High, Urgent), read only | one star per level; click opens a pick of the four levels | partly (desktop) |
+| Done checkmark in the row | yes | Status column (text) | checkmark circle, click toggles; done rows struck through and dimmed | partly (desktop) |
 | Tags and assignees columns | optional, hidden | shown | shown | done |
 | Personal stage column | optional | no | no | not yet |
 | Activities column | optional | no | no | not yet |
@@ -96,7 +96,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | feature | Odoo | nodo desktop | nodo web | status |
 |---|---|---|---|---|
 | Title edited in place | yes | Edit dialog | yes | done |
-| Priority on the form | three stars (Medium, High, Urgent), Alt+R | Star/Unstar button, ★ before the title: on or off | one star: on or off | partly (High and Urgent from Odoo show unstarred) |
+| Priority on the form | three stars (Medium, High, Urgent), Alt+R | none (desktop stays plain) | one star per level; click opens a pick of the four levels | partly (desktop; no Alt+R) |
 | Mark as done / back to to-do | check circle | button | button | done |
 | Column bar: my stages, click to move, folded ones under "…" | yes | "My column" list down the sheet | bar across, folded ones greyed | done |
 | Assignees with avatars: add, remove | yes | checklist dialog | picker | done |
@@ -123,7 +123,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Closed (done or cancelled) | yes | Done only | Done only | partly |
 | Closed on (date periods) | yes | no | no | not yet |
 | Deadline by period (month, quarter, year) | yes | Overdue chip | Overdue chip | partly |
-| Starred | group by priority | chip | chip | done |
+| Starred | group by priority | chip (Medium and up) | chip (Medium and up) | done |
 | Archived | custom filter only | chip | chip | done |
 | Group by priority, deadline, tags, any field | yes | no | no | not yet |
 | Custom filter editor | yes | no | no | not yet |
@@ -200,9 +200,10 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 
 ### Next blocks
 
-1. **Done and priority on the board and list**: checkmark on cards and rows, dimmed done
-   cards, open-first card order, Open as the board default, and the three-star priority
-   (Medium, High, Urgent) on cards, list and form.
+1. **Board order and default**: open-first card order (then priority, then deadline) and
+   Open as the board default. Done checkmarks and the four-level priority on the web's cards,
+   rows and form are in (`todo_set_priority`, `todo_toggle_done`; `Priority` and `DoneCheck`).
+   The desktop stays plain CRUD: priority is a labelled column there.
 2. **Chatter and activities**: messages, log notes, change history, followers, attachments,
    then scheduling activities, the activity icon and bar on cards, the activity view and
    Add a To-Do from anywhere.

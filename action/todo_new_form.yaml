@@ -10,4 +10,3 @@ form:
   fields:
     - { name: name, type: string, label: Title, placeholder: "e.g. Call the supplier" }
     - { name: date_deadline, type: timestamp, label: Deadline, required: false }
-    - { name: priority, type: bool, label: Starred, required: false, default: "false" }

@@ -9,7 +9,8 @@ columns:
   name: { type: string, label: Title, flags: [title, mandatory, searchable] }
   description: { type: string, label: Description }
   date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
-  priority: { type: string, label: Starred, enum: ["0", "1"], default: "0" }
+  # Odoo's four levels: "0" Low, "1" Medium, "2" High, "3" Urgent (pages label them).
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"], default: "0" }
   state: { type: string, label: Status, enum: [01_in_progress, 02_changes_requested, 03_approved, 04_waiting_normal, 1_done, 1_canceled], default: 01_in_progress }
   active: { type: bool, label: Active, default: true }
   project_id: { type: int, flags: [hidden] }

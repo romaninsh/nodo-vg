@@ -7,13 +7,13 @@
   Later, plus Done and Cancelled (folded). Dragging a card moves it for you only; the other
   people on that to-do keep their own column for it. Cards show the title, a short
   description, tags, the deadline and who has it. Double-click a card to open it.
-- **List** shows your to-dos with a star column, the deadline (as "in 3 days", with an
+- **List** shows your to-dos with a priority column (Low, Medium, High, Urgent), the deadline (as "in 3 days", with an
   Overdue/Today chip in red/amber), tags, who it's assigned to and the status. Chips at the
   top: Open and Active (on by default), Starred, Overdue, Done, Archived. There is a search box.
   **Open** works like Odoo's: it leaves out to-dos that are done or cancelled, and to-dos
   sitting in one of your folded columns (Done, Cancelled).
 - **Opening a to-do** (a side sheet) shows it, with buttons: Edit (title, deadline,
-  description), Mark as done / Open again, Star / Unstar, Tags, Assignees, Archive / Restore.
+  description), Mark as done / Open again, Tags, Assignees, Archive / Restore.
   Under **My column** it lists your columns with the to-do's current one marked (●, "here");
   click another to move the to-do there (for you only). The sheet is narrow, so the columns
   run down the page rather than across.
@@ -28,12 +28,15 @@ project open. It is also listed under Services in Vantage, with "Open in browser
 - A soft violet top bar (Odoo 20's `#71639e`) with "To-do", My to-dos / List, and who is
   signed in, with Sign out.
 - **Board**: your columns; drag cards between them; the **+** on a column adds a to-do
-  there (type, Enter); the star on a card stars it; folded Done/Cancelled columns open on
-  click.
+  there (type, Enter); the star on a card shows the priority (outline Low, half Medium,
+  full High, red with "!" Urgent) and a click opens a pick of the four levels; the circle marks it done or open again; folded Done/Cancelled
+  columns open on click.
 - **List**: search, filter chips (Open, Starred, Overdue, Done, All, Archived), click a row
-  to open it. Open is Odoo's Open, as on the desktop.
+  to open it; each row has the done circle and the priority star, as on a card. Open is
+  Odoo's Open, as on the desktop.
 - **To-do form**: Odoo's column bar across the top (your columns, the current one
-  highlighted; click one to move the to-do there for you), title, star, assignees (add or
+  highlighted; click one to move the to-do there for you), title, the priority star (as
+  on a card), assignees (add or
   remove people), deadline, tags (in Odoo's colours), description, Save/Discard, Mark as
   done, Archive.
 - **Signing in again**: sign-ins live only in the server's memory. When the Vantage window
@@ -61,7 +64,8 @@ test to-dos afterwards.
   gives them the to-do in their own Inbox and makes them a follower, as Odoo does. Removing
   someone takes their assignment away and, like Odoo, leaves them following it.
 - **Marking done** sets Odoo's state "done" and its end date; opening it again clears them.
-  The star is Odoo's priority. Archive is Odoo's "active" flag.
+  The priority is Odoo's four levels ("0" Low, "1" Medium, "2" High, "3" Urgent), kept
+  as Odoo stores them. Archive is Odoo's "active" flag.
 - **Description**: nodo shows and edits it as plain text and saves it as simple paragraphs.
   A description written in Odoo with bold, links or lists loses that formatting if you edit
   and save it in nodo (reading it is fine).
@@ -104,7 +108,7 @@ test to-dos afterwards.
 - `datasource/odoo_rpc.yaml`, `table/odoo_task_write.yaml`: Odoo's JSON-RPC, for tag changes.
 - `table/`: to-dos (`todo`, `todo_view`), assignments (`todo_user`), columns (`stage`),
   tags, people, followers; `stage_bar` (the to-do sheet's column list).
-- `action/`: sign-in, create, save, move, done, star, tags, assignees, archive, switch person.
+- `action/`: sign-in, create, save, move, done, priority, tags, assignees, archive, switch person.
 - `page/board.yaml`, `page/todos.yaml`, `page/todo.yaml`, `menu/left.yaml`, `layout/nodo.yaml`.
 - `api/team.yaml` and `web/team/`: the web version (React). Vantage builds it in a
   container; you don't need Node.

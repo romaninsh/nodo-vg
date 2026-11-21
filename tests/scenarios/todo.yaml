@@ -42,6 +42,57 @@ scenarios:
         assert:
           - html.description == "<p>&lt;img src=x onerror=alert(1)&gt;</p>"
 
+  # Odoo's four priority levels survive a round trip; done toggles Odoo's two states.
+  monica-priority:
+    session: { app: team, uid: 6, name: Monica Light, login: light }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Monica's Urgent to-do goes down to High
+        do: { action: todo_set_priority, args: { id: 900, priority: "2" } }
+        assert:
+          - result.priority == "2"
+          - monicas.priority == "2"
+        what_if: [no-fifth-level, done-and-back, not-marcs]
+      - step: And back up to Urgent
+        do: { action: todo_set_priority, args: { id: 900, priority: "3" } }
+        assert:
+          - monicas.priority == "3"
+
+  no-fifth-level:
+    steps:
+      - step: Monica asks for a level Odoo doesn't have
+        do: { action: todo_set_priority, args: { id: 900, priority: "4" } }
+        fails: "Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)"
+      - step: The to-do stays Urgent
+        assert:
+          - monicas.priority == "3"
+
+  not-marcs:
+    steps:
+      - step: Marc tries to change the priority of Monica's to-do
+        as: { app: team, uid: 5, name: Marc Demo, login: demo }
+        fails: "That to-do isn't yours"
+      - step: Marc can't mark it done either
+        as: { app: team, uid: 5, name: Marc Demo, login: demo }
+        do: { action: todo_toggle_done, args: { id: 900 } }
+        fails: "That to-do isn't yours"
+
+  done-and-back:
+    steps:
+      - step: Monica marks the to-do done
+        do: { action: todo_toggle_done, args: { id: 900 } }
+        assert:
+          - result.done == true
+          - monicas.state == "1_done"
+          - monicas.date_end != ()
+          - monicas.priority == "3"
+      - step: She opens it again
+        do: { action: todo_toggle_done, args: { id: 900 } }
+        assert:
+          - result.done == false
+          - monicas.state == "01_in_progress"
+          - monicas.date_end == ()
+
   columns-stay-private:
     session: { app: team, uid: 5, name: Marc Demo, login: demo }
     steps:

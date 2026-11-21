@@ -9,4 +9,5 @@ form:
   fields:
     - { name: name, type: string, label: Title }
     - { name: date_deadline, type: timestamp, label: Deadline, required: false, placeholder: "YYYY-MM-DD HH:MM (empty: no deadline)" }
+    - { name: priority, type: string, label: Priority, choices: [Low, Medium, High, Urgent] }
     - { name: description, type: string, label: Description, multiline: true, required: false }

@@ -44,5 +44,6 @@ invariants:
       # to-do is a to-do assigned to the caller before they write.
       - { type: action, name: todo_save, when: 'session.uid != ()' }
       - { type: action, name: todo_toggle_done, when: 'session.uid != ()' }
+      - { type: action, name: todo_set_priority, when: 'session.uid != ()' }
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       - { type: action, name: todo_archive, when: 'session.uid != ()' }

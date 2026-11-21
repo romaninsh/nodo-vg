@@ -3,10 +3,10 @@ import { Link, useNavigate, useParams } from "react-router";
 import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
 import type { Todos } from "../vantage.gen";
 import { auth, avatarColor, call, fromLocalInput, ids, initials, isDone, toLocalInput, useDb, type Outcome } from "../lib";
-import { TagPills, toast } from "../components";
+import { Priority, TagPills, toast } from "../components";
 import { setPending, usePending } from "../pending";
 
-/** One to-do: read it, edit it, star it, tag it, assign it, mark it done. */
+/** One to-do: read it, edit it, set its priority, tag it, assign it, mark it done. */
 export const TodoForm = observer(() => {
   const db = useDb();
   const { id = "" } = useParams();
@@ -87,7 +87,6 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
   const peopleIds = ids(v.assignee_ids);
   const done = isDone(v.state);
   const archived = v.active === false;
-  const starred = v.priority === "1";
 
   return (
     <>
@@ -113,8 +112,8 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
           <StageBar id={id} />
         </div>
         <div className="titlerow">
-          <button className={`star${starred ? " on" : ""}`} title={starred ? "Remove the star" : "Star"} disabled={busy}
-            onClick={() => void run(call(db.run.todo_toggle_star, { id }), () => setPending(id, { priority: starred ? "0" : "1" }))}>★</button>
+          <Priority value={v.priority} size={30} disabled={busy}
+            onChange={(priority) => void run(call(db.run.todo_set_priority, { id, priority }), () => setPending(id, { priority }))} />
           <input aria-label="Title" value={name} placeholder="e.g. Call the supplier"
             onChange={(e) => { setEditing(true); setName(e.target.value); }}
             onKeyDown={(e) => { if (e.key === "Enter" && dirty) void save(); }} />
@@ -134,7 +133,7 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
         <div className="tabs"><span>Description</span></div>
         <textarea className="desc" aria-label="Description" value={notes} placeholder="Add details about this to-do…"
           onChange={(e) => { setEditing(true); setNotes(e.target.value); }} />
-        <p className="muted">Title, deadline and description are kept with Save; the star, tags, assignees and done are saved at once.</p>
+        <p className="muted">Title, deadline and description are kept with Save; the priority, tags, assignees and done are saved at once.</p>
         <button className="btn" onClick={() => navigate(-1)}>← Back</button>
       </div>
     </>
