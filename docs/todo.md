@@ -41,3 +41,182 @@ writes them back as naive UTC, so Odoo sees what it wrote. The desktop shows and
 timestamps in the machine's zone: the demo deadline stored as `16:01` shows as `17:01` on a
 Brussels machine, as in Odoo. Dates and times of day never shift. `create_date`/`write_date`
 can now be set in the `normalise` hook (§1).
+
+## Feature inventory
+
+Odoo 20's To-do compared with nodo on 2026-11-21, from Odoo's source and both running apps
+(Mitchell Admin, same records). The desktop app is judged from its YAML. Status is for nodo
+as a whole: `partly` when one side lacks it or both have only part of it.
+
+### Board
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Columns are my personal stages, with a card count | yes | yes, but each person's columns are typed into the page (3 people) | yes, read from my stages | partly (desktop per person) |
+| Drag a card to another column, for me only | yes | yes | yes | done |
+| Reorder cards inside a column by drag | yes | no | no | not yet |
+| Card order: open first, then priority, then deadline | yes | no set order | no set order | not yet |
+| Card title | yes | yes | yes | done |
+| Card deadline as "2 days ago", red when past | yes | deadline date | yes, plus amber for today | done |
+| Card tags in their colour | yes | tags as plain labels | yes | partly (desktop) |
+| Card priority stars, clickable | three stars | none | one star, click to toggle | partly |
+| Card avatars, shown only when shared with others | photos, only if 2+ people | none | initials, always shown | partly |
+| Card done checkmark, click to mark done | yes | no | no | not yet |
+| Done and cancelled cards dimmed | yes | no | done struck through | partly |
+| Card activity icon (next activity, schedule one) | yes | no | no | not yet |
+| Card menu: colour, cover image, delete | yes | no | no | not yet |
+| Column bar of activities (planned, today, late) | yes | no | no | not yet |
+| Done and Cancelled folded, click to look inside | yes | yes | yes | done |
+| Board shows only open to-dos by default | yes (Open filter) | shows all | shows all | not yet |
+| Quick add on a column: title, Enter adds, box stays open, Edit opens it | yes | no (New dialog only) | yes | partly (desktop) |
+| Quick add takes a deadline | yes | in the New dialog | no | partly |
+| Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | no | not yet |
+| New button | quick add in first column | dialog (title, deadline, star), then opens it | none (per-column + only) | partly |
+| Search and filters on the board | full search panel | search box | none | partly |
+
+### List
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Open a row to see the to-do | yes | side sheet | full page | done |
+| Title and deadline ("in 3 days", red when past) | yes | yes, plus a Due chip | yes | done |
+| Priority star in the row, clickable | one star | ★/☆, read only | yes | partly (desktop) |
+| Done checkmark in the row | yes | Status column (text) | done struck through | partly |
+| Tags and assignees columns | optional, hidden | shown | shown | done |
+| Personal stage column | optional | no | no | not yet |
+| Activities column | optional | no | no | not yet |
+| Show or hide optional columns | yes | no | no | not yet |
+| Rows grouped by my column, with counts | yes | flat | flat | not yet |
+| Edit rows in place, "Add a line" per group | yes | no | no | not yet |
+| Select rows: bulk edit, archive, duplicate, delete, export | yes | no | no | not yet |
+| Sort by a column header | yes | yes | fixed by deadline | partly (web) |
+
+### Form
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Title edited in place | yes | Edit dialog | yes | done |
+| Priority on the form | three stars (Medium, High, Urgent), Alt+R | Star/Unstar button, ★ before the title: on or off | one star: on or off | partly (High and Urgent from Odoo show unstarred) |
+| Mark as done / back to to-do | check circle | button | button | done |
+| Column bar: my stages, click to move, folded ones under "…" | yes | "My column" list down the sheet | bar across, folded ones greyed | done |
+| Assignees with avatars: add, remove | yes | checklist dialog | picker | done |
+| Remove yourself (it leaves your list) | yes | no, you stay assigned | no, you stay assigned | won't (it would vanish from your board) |
+| Tags: pick existing | yes | checklist dialog, asks your Odoo password | picker | done |
+| Tags: create a new one here | yes | no | no | not yet |
+| Tags: click one to change its colour | yes | no | no | not yet |
+| Deadline with date and time, red when past | yes | typed in the Edit dialog, "(overdue)" | picker, Clear, Overdue mark | done |
+| Description as rich text (bold, lists, checklists, links, images, / commands) | yes | shown as text, edited as plain text | plain text box | partly (formatting lost on save) |
+| Description edited by several people at once, whiteboard | yes | no | no | not yet |
+| Description version history, restore an old one | yes | no | no | not yet |
+| Saving | saves by itself when you leave | dialog Save | Save/Discard for text, the rest at once | partly |
+| Archived mark | red ribbon | "Archived" label | badge | done |
+| Previous / next to-do (2 / 10) | yes | no | no | not yet |
+| Back to the board | breadcrumb | close the sheet | breadcrumb and Back | done |
+
+### Search and filters
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Search by title | yes | yes | list only | done |
+| Search by tag | yes | no | no | not yet |
+| Open, on by default | not done or cancelled | also hides my folded columns (your choice) | same as desktop | done |
+| Closed (done or cancelled) | yes | Done only | Done only | partly |
+| Closed on (date periods) | yes | no | no | not yet |
+| Deadline by period (month, quarter, year) | yes | Overdue chip | Overdue chip | partly |
+| Starred | group by priority | chip | chip | done |
+| Archived | custom filter only | chip | chip | done |
+| Group by priority, deadline, tags, any field | yes | no | no | not yet |
+| Custom filter editor | yes | no | no | not yet |
+| Saved searches (Favorites) | yes | no | no | not yet |
+| Activity filters (mine, late, today, future) | yes, from the systray | no | no | not yet |
+
+### Stages
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Each person has their own columns; others keep their own for the same to-do | yes | yes | yes | done |
+| A new person gets the 7 default columns | automatically | no ("open To-do in Odoo once") | no (same message) | not yet |
+| New person or new column shows up on the board | yes | needs a page edit | yes | partly (desktop) |
+| Add a column | yes | no | no | not yet |
+| Rename a column | yes | no | no | not yet |
+| Delete a column | yes | no | no | not yet |
+| Fold or unfold a column for good | yes | Done/Cancelled fixed as folded | unfold for the visit only | partly |
+| Reorder columns by drag | yes | no | no | not yet |
+| New to-do goes to the first column; quick add into a chosen one | yes | Inbox only | yes | partly (desktop) |
+
+### Tags
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Tag colours | yes | no colours | Odoo's palette, darker shades | partly |
+| Pick from existing tags | yes | yes (password asked each time) | yes | done |
+| Create a tag (form or #tag) | yes | no | no | not yet |
+| Change a tag's colour by clicking it | yes | no | no | not yet |
+| Recently used tags first | yes | no | no | not yet |
+
+### Assignees
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Share by assigning: they get it in their Inbox and follow it | yes | yes | yes | done |
+| Each person sees only their own to-dos | yes | yes | yes | done |
+| Use the app as another Odoo user | Odoo sign-in | "Switch person…" menu | Odoo login and password | done |
+| Avatars | photos | names | coloured initials | partly |
+| Click an avatar for the person's card (chat, email) | yes | no | no | not yet |
+| Assignment notification (inbox, email) | yes | no | no | not yet |
+
+### Activities and chatter
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Schedule an activity on a to-do | yes | no | no | not yet |
+| Activity view (to-dos by activity type) | yes | no | no | not yet |
+| Systray Activities with a To-Do group | yes | no | no | not yet |
+| Add a To-Do from anywhere (Alt+Shift+T) with a reminder | yes | no | no | not yet |
+| Chatter panel, toggled with D and remembered | yes | no | no | not yet |
+| Send message, log note | yes | no | no | not yet |
+| Change history in the chatter (stage, deadline, people) | yes | no | no | not yet |
+| Followers: see, add, remove | yes | added on create and assign, not shown | same as desktop | partly |
+| Attachments | yes | no | no | not yet |
+| Search messages | yes | no | no | not yet |
+
+### Other
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Archive and restore | yes | yes | yes | done |
+| Duplicate | yes | no | no | not yet |
+| Delete | yes | no | no | not yet |
+| Convert to a project task | yes | no | no | won't (nodo has no Project app) |
+| Calendar by deadline | yes | no | no | not yet |
+| Welcome to-do for each new user | yes | shows existing ones | shows existing ones | not yet |
+| Create with no title ("Untitled to-do", or first line of the description) | yes | title required | title required | won't (nodo asks for a title) |
+| Empty board help ("No to-do found. Let's create one!") | yes | note for people with no board | note when no columns | partly |
+| Changes by others appear live | at once | when the page reopens | within 10 to 30 s | partly |
+| Times in my time zone | user's zone | computer's zone | browser's zone | done |
+| Phone layout | yes | n/a | not fitted to phones | not yet |
+| Share from the phone into To-do | yes | no | no | won't (phone app only) |
+| Keyboard shortcuts (priority, chatter, add to-do) | yes | no | no | not yet |
+
+### Next blocks
+
+1. **Done and priority on the board and list**: checkmark on cards and rows, dimmed done
+   cards, open-first card order, Open as the board default, and the three-star priority
+   (Medium, High, Urgent) on cards, list and form.
+2. **Chatter and activities**: messages, log notes, change history, followers, attachments,
+   then scheduling activities, the activity icon and bar on cards, the activity view and
+   Add a To-Do from anywhere.
+3. **Column management**: add, rename, delete, reorder and fold columns; default columns
+   for a new person; desktop board reading columns from the database.
+4. **Tags**: create tags (form and #tag), change colours, colours on the desktop, search
+   and group by tag.
+5. **Rich description**: formatting kept on save, then version history.
+6. **Faster capture**: quick add on the desktop board, deadline in web quick add, #tag,
+   @person and ! keywords, a New button on the web.
+7. **List power**: group by column, priority, deadline and tags; edit in place; select rows
+   for bulk archive, delete and export; optional columns; closed and date filters; saved
+   searches.
+8. **Record housekeeping**: duplicate, delete, previous/next on the form.
+9. **Calendar by deadline.**
+10. **Polish**: avatar photos and person cards, assignment notifications, live updates,
+    phone layout, keyboard shortcuts, welcome to-do for new users.
