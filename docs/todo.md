@@ -193,6 +193,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Create with no title ("Untitled to-do", or first line of the description) | yes | title required | title required | won't (nodo asks for a title) |
 | Empty board help ("No to-do found. Let's create one!") | yes | note for people with no board | note when no columns | partly |
 | Changes by others appear live | at once | when the page reopens | within 10 to 30 s | partly |
+| A reload shows your own last change | yes | n/a | not always: reloading seconds after a priority or done change can show the card as it was; a fresh sign-in shows it (seen in the end-to-end tests) | partly |
 | Times in my time zone | user's zone | computer's zone | browser's zone | done |
 | Phone layout | yes | n/a | not fitted to phones | not yet |
 | Share from the phone into To-do | yes | no | no | won't (phone app only) |

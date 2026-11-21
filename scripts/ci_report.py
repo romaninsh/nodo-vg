@@ -2,11 +2,11 @@
 amount of code. Run by checks.yaml's `summary` job; prints Markdown.
 
     python3 -I scripts/ci_report.py --jobs JSON --base SHA [--junit FILE] [--web FILE]
-        [--stories FILE] [--visual FILE] [--run URL]
+        [--stories FILE] [--visual FILE] [--e2e FILE] [--run URL]
 
 --jobs is toJSON(needs); --junit the scenario run's JUnit report; --web the web build's asset
 list (`<name> <bytes>` per line); --stories and --visual the UI gallery's JUnit reports (the
-stories run by Vitest, the snapshots compared by Playwright).
+stories run by Vitest, the snapshots compared by Playwright); --e2e the end-to-end run's.
 """
 
 import argparse
@@ -71,6 +71,7 @@ def main():
     p.add_argument("--web")
     p.add_argument("--stories")
     p.add_argument("--visual")
+    p.add_argument("--e2e")
     p.add_argument("--run", default="")
     a = p.parse_args()
 
@@ -83,6 +84,7 @@ def main():
         ("Scenario tests", jobs.get("scenarios"), junit(a.junit)),
         ("Web build", jobs.get("web"), web(a.web)),
         ("UI gallery", jobs.get("gallery"), gallery(a.stories, a.visual)),
+        ("End to end", jobs.get("e2e"), junit(a.e2e, "passed on the demo database", lambda c: c.get("name"))),
     ]
     code = [
         ("Backend: Vantage YAML and Rhai", "backend_lines",
