@@ -73,9 +73,9 @@ export const TodoList = observer(() => {
               <th style={{ width: 36 }}><span className="sr-only">Done</span></th>
               <th>To-do</th>
               <th style={{ width: 40 }} title="Priority"><Star size={14} aria-hidden="true" /><span className="sr-only">Priority</span></th>
-              <th style={{ width: 150 }}>Deadline</th>
-              <th>Tags</th>
-              <th>Assigned to</th>
+              <th className="col-deadline">Deadline</th>
+              <th className="col-wide">Tags</th>
+              <th className="col-wide">Assigned to</th>
             </tr>
           </thead>
           <tbody>
@@ -109,8 +109,8 @@ const Row = observer(({ t, onOpen, onPriority, onDone }: {
           {deadlineLabel(v.date_deadline)}
         </span>
       </td>
-      <td><TagPills tagIds={v.tag_ids} /></td>
-      <td><span className="people"><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
+      <td className="col-wide"><TagPills tagIds={v.tag_ids} /></td>
+      <td className="col-wide"><span className="people"><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
     </tr>
   );
 });

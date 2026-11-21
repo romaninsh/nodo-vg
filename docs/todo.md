@@ -195,7 +195,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Changes by others appear live | at once | when the page reopens | within 10 to 30 s | partly |
 | A reload shows your own last change | yes | n/a | not always: reloading seconds after a priority or done change can show the card as it was; a fresh sign-in shows it (seen in the end-to-end tests) | partly |
 | Times in my time zone | user's zone | computer's zone | browser's zone | done |
-| Phone layout | yes | n/a | not fitted to phones | not yet |
+| Phone layout | yes: menu behind a ☰, columns swiped one at a time, form fields stacked, New and search as icons | n/a | columns swiped one at a time, form fields stacked, About and Sign out as icons, finger-sized targets; the list drops its tags and people columns | partly (no ☰ menu, no New or search on the phone board) |
 | Share from the phone into To-do | yes | no | no | won't (phone app only) |
 | Keyboard shortcuts (priority, chatter, add to-do) | yes | no | no | not yet |
 

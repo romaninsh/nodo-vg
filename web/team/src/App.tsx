@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router";
 import { useConnection } from "@vantage-ui/client/react";
-import { Grip } from "lucide-react";
+import { Grip, Info, LogOut } from "lucide-react";
 import { auth, call, useDb } from "./lib";
 import { Login } from "./pages/Login";
 import { Board } from "./pages/Board";
@@ -69,14 +69,15 @@ function TopBar({ onSignedOut }: { onSignedOut: () => void }) {
         <NavLink to="/list">List</NavLink>
       </span>
       <span className="spacer" />
-      <button className="about" onClick={openAbout}>About</button>
+      {/* On a phone the labels hide and the icons stay; the labels still name the buttons. */}
+      <button className="about" onClick={openAbout}><Info size={16} aria-hidden="true" /><span className="label">About</span></button>
       {me && (
         <span className="user" title={me.login}>
           <Avatar name={me.name} large />
-          {me.name}
+          <span className="label">{me.name}</span>
         </span>
       )}
-      <button className="signout" onClick={() => void signOut()}>Sign out</button>
+      <button className="signout" onClick={() => void signOut()}><LogOut size={16} aria-hidden="true" /><span className="label">Sign out</span></button>
     </nav>
   );
 }

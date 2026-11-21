@@ -160,12 +160,25 @@ jobs:
           echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           e2e/stack.sh up
       - name: End-to-end tests
+        id: e2e
         env:
           CI: "true"
         run: npm run test:e2e
       - name: Server logs
         if: failure()
         run: e2e/stack.sh logs
+      # A fresh set of phone pictures, on a fresh stack, to download and commit when the pixels
+      # moved on purpose.
+      - name: Fresh snapshots
+        if: failure() && steps.e2e.outcome == 'failure'
+        run: |
+          e2e/stack.sh up
+          npx playwright test -c playwright/e2e.config.ts --project phone --update-snapshots=all --reporter=dot --output "$RUNNER_TEMP/fresh" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure() && steps.e2e.outcome == 'failure'
+        with:
+          name: e2e-snapshots
+          path: web/team/e2e/snapshots
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

@@ -11,7 +11,6 @@ export default defineConfig({
   // One browser at a time: the tests sign in as the same people and change the same rows.
   workers: 1,
   timeout: 30_000,
-  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["list"], ["junit", { outputFile: "../test-results/e2e.xml" }]] : "list",
   use: {
     baseURL: process.env.NODO_URL ?? "http://127.0.0.1:8090",
@@ -20,5 +19,22 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } }],
+  // The phone's pictures are CI's, like the gallery's: a failed run uploads a fresh set as the
+  // `e2e-snapshots` artifact (gh run download <run id> -n e2e-snapshots -D web/team/e2e/snapshots).
+  snapshotPathTemplate: "{testDir}/snapshots/{arg}-{projectName}{ext}",
+  expect: { timeout: 10_000, toHaveScreenshot: { maxDiffPixelRatio: 0.002 } },
+  projects: [
+    // First, on the untouched demo data.
+    {
+      name: "phone",
+      testMatch: "phone.spec.ts",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 },
+    },
+    {
+      name: "desktop",
+      testMatch: "todo.spec.ts",
+      dependencies: ["phone"],
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+    },
+  ],
 });
