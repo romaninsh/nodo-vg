@@ -32,8 +32,22 @@ jobs:
       - name: shellcheck
         run: shellcheck seed/*.sh
 
+  # The app's scenario tests, headless against in-memory copies of the tables, in the released
+  # server image (1.14.7 is the first that loads memory sessions).
+  scenarios:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: vantage-server test
+        run: docker run --rm -v "$PWD:/app:ro" romaninsh/vantage-server:1.14.7 test /app --strict
+
   summary:
-    needs: [workflows]
+    needs: [workflows, scenarios]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
