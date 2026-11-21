@@ -4,14 +4,14 @@ export const ABOUT = {
   "measuredOn": "2026-11-21",
   "vantageVersion": "1.14.9",
   "code": {
-    "backend_lines": 1129,
+    "backend_lines": 1153,
     "tables": 12,
     "pages": 3,
     "actions": 18,
-    "frontend_lines": 1276,
-    "frontend_files": 13,
-    "generated_lines": 884,
-    "scenario_steps": 9
+    "frontend_lines": 1489,
+    "frontend_files": 14,
+    "generated_lines": 902,
+    "scenario_steps": 17
   },
   "odooTables": [
     "mail_followers",
@@ -24,7 +24,7 @@ export const ABOUT = {
     "res_partner",
     "res_users"
   ],
-  "pullRequests": 4,
+  "pullRequests": 6,
   "vantage": {
     "features": [
       "Sign-ins kept in the server's memory, so nothing is added to Odoo's database",
