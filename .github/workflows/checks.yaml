@@ -1,5 +1,6 @@
-# PR checks. `summary` is the one required check (vantage-terraform's ruleset) and fails when a job
-# it needs failed or was cancelled. The app's own checks join here as it grows; the seed has its
+# PR checks. `summary` is the one required check (vantage-terraform's ruleset): it keeps one comment
+# on the PR up to date with what each job found and how the PR changes the amount of code
+# (scripts/ci_report.py), and fails when a job it needs failed or was cancelled. The seed has its
 # own workflow (seed.yaml), which builds on a pull request that changes it.
 name: checks
 
@@ -32,13 +33,103 @@ jobs:
       - name: shellcheck
         run: shellcheck seed/*.sh
 
+  # The app's scenario tests, headless against in-memory copies of the tables, in the released
+  # server image (1.14.7 is the first that loads memory sessions).
+  scenarios:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # The image runs as its own user: the report folder must be writable by it.
+      - name: vantage-server test
+        run: |
+          mkdir -m 777 "$RUNNER_TEMP/report"
+          docker run --rm -v "$PWD:/app:ro" -v "$RUNNER_TEMP/report:/out" \
+            romaninsh/vantage-server:1.14.7 test /app --strict --junit /out/junit.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: scenarios
+          path: ${{ runner.temp }}/report/junit.xml
+          if-no-files-found: ignore
+
+  # The web version type-checks and builds.
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: web/team
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/team/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Asset sizes
+        run: find dist/assets -type f -printf '%f %s\n' > "$RUNNER_TEMP/web-sizes.txt"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web
+          path: ${{ runner.temp }}/web-sizes.txt
+
   summary:
-    needs: [workflows]
+    needs: [workflows, scenarios, web]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
+      pull-requests: write # the summary comment
     steps:
+      # Full history: the code counts compare this PR with its base.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/results
+      # A broken report never fails the check; a failed job always does.
+      - name: Report
+        continue-on-error: true
+        env:
+          JOBS: ${{ toJSON(needs) }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULTS: ${{ runner.temp }}/results
+        run: |
+          python3 -I scripts/ci_report.py --jobs "$JOBS" --base "$BASE" --run "$RUN_URL" \
+            --junit "$RESULTS/scenarios/junit.xml" --web "$RESULTS/web/web-sizes.txt" > summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+      # One comment per PR, found by its marker and edited, never a new one per run.
+      - name: PR comment
+        if: hashFiles('summary.md') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            -q '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- nodo-ci-report -->"))) | .id' | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@summary.md > /dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@summary.md > /dev/null
+          fi
       - name: Every needed job passed or was skipped
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
