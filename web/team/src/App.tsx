@@ -7,6 +7,7 @@ import { Board } from "./pages/Board";
 import { TodoList } from "./pages/TodoList";
 import { TodoForm } from "./pages/TodoForm";
 import { Toaster } from "./components";
+import { Splash, openAbout } from "./Splash";
 
 export function App() {
   const db = useDb();
@@ -24,7 +25,7 @@ export function App() {
   }, [status, db]);
 
   if (status === "protocol_mismatch") return <p className="alert">This page is out of date. Reload it. ({error})</p>;
-  if (!signedIn || !auth.token()) return <Login onSignedIn={() => setSignedIn(true)} />;
+  if (!signedIn || !auth.token()) return <><Login onSignedIn={() => setSignedIn(true)} /><Splash /></>;
   if (halted) return <p className="alert">{error}</p>;
 
   return (
@@ -33,11 +34,14 @@ export function App() {
       {status === "closed" && <p className="alert">Connection lost; reconnecting…</p>}
       <Routes>
         <Route path="/" element={<Board />} />
+        {/* the splash shows over the board at /about (a refresh or a shared link) */}
+        <Route path="/about" element={<Board />} />
         <Route path="/list" element={<TodoList />} />
         <Route path="/todo/:id" element={<TodoForm />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster />
+      <Splash />
     </>
   );
 }
@@ -62,6 +66,7 @@ function TopBar({ onSignedOut }: { onSignedOut: () => void }) {
         <NavLink to="/list">List</NavLink>
       </span>
       <span className="spacer" />
+      <button className="about" onClick={openAbout}>About</button>
       {me && (
         <span className="user" title={me.login}>
           <span className="avatar lg" style={{ background: avatarColor(me.name) }}>{initials(me.name)}</span>

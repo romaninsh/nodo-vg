@@ -31,6 +31,15 @@ def stats(ref="HEAD"):
     scenarios = [f for f in files if re.match(r"tests/scenarios/.+\.ya?ml$", f)]
     steps = sum(len(re.findall(r"^\s*- step:", git("show", f"{ref}:{f}"), re.M)) for f in scenarios)
     kind = lambda d: sum(1 for f in backend if f.startswith(d))
+    # Odoo's own tables the app reads or writes: `table:` and the names its SQL selects from.
+    odoo = set()
+    for f in (f for f in backend if f.startswith("table/")):
+        text = git("show", f"{ref}:{f}")
+        if not re.search(r"^datasource:\s*odoo(_auth)?\s*$", text, re.M):
+            continue
+        odoo.update(re.findall(r"^table:\s*([a-z_]+)", text, re.M))
+        odoo.update(re.findall(r'from\("([a-z_]+)"\)', text))
+        odoo.update(re.findall(r"\b(?:FROM|JOIN)\s+([a-z_]+)\b(?!\s*\()", text))
     return {
         "backend_lines": sum(lines(ref, f) for f in backend),
         "tables": kind("table/"), "pages": kind("page/"), "actions": kind("action/"),
@@ -38,6 +47,7 @@ def stats(ref="HEAD"):
         "frontend_files": len(frontend),
         "generated_lines": sum(lines(ref, f) for f in generated),
         "scenario_steps": steps,
+        "odoo_tables": sorted(odoo),
     }
 
 

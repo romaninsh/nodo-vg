@@ -36,6 +36,9 @@ data/
 /FEEDBACK.md
 /PROGRESS.md
 
+# Python bytecode from scripts/.
+__pycache__/
+
 # Build output.
 node_modules/
 dist/
