@@ -2,8 +2,9 @@ import { test, expect, type Page } from "@playwright/test";
 
 // The web app on a phone (375 px, touch): pictures of each page, compared with
 // e2e/snapshots/*-phone.png, and the controls worked with taps. Runs before the desktop tests
-// change the demo data. Deadlines are masked: Odoo dates its demo data from the day the
-// image was built, so "in 3 days" changes from one image to the next.
+// change the demo data. Deadlines and tags are masked: Odoo dates its demo data from the day
+// the seed was built, so "in 3 days" changes from one seed to the next, and it gives each demo
+// tag a random colour at install. The gallery covers how tags look.
 
 async function signIn(page: Page) {
   await page.goto("/");
@@ -14,7 +15,7 @@ async function signIn(page: Page) {
   await expect(page.locator("article.card").first()).toBeVisible();
 }
 
-const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group")];
+const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group"), page.locator(".tag")];
 
 test("sign-in page", async ({ page }) => {
   await page.goto("/");
