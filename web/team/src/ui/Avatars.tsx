@@ -1,4 +1,5 @@
-const AVATAR = ["#714B67", "#2C8397", "#D6145F", "#30C381", "#9365B8", "#F4A460", "#475577"];
+// Odoo's avatar hues, the light ones darkened until white initials read at 4.5:1 (WCAG AA).
+const AVATAR = ["#714B67", "#2A7E91", "#D6145F", "#208457", "#8F60B6", "#B65A0D", "#475577"];
 
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);

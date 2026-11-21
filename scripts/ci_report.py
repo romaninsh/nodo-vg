@@ -1,10 +1,12 @@
 """The PR's summary comment: each check's result and what it found, and how the PR changes the
 amount of code. Run by checks.yaml's `summary` job; prints Markdown.
 
-    python3 -I scripts/ci_report.py --jobs JSON --base SHA [--junit FILE] [--web FILE] [--run URL]
+    python3 -I scripts/ci_report.py --jobs JSON --base SHA [--junit FILE] [--web FILE]
+        [--stories FILE] [--visual FILE] [--run URL]
 
 --jobs is toJSON(needs); --junit the scenario run's JUnit report; --web the web build's asset
-list (`<name> <bytes>` per line).
+list (`<name> <bytes>` per line); --stories and --visual the UI gallery's JUnit reports (the
+stories run by Vitest, the snapshots compared by Playwright).
 """
 
 import argparse
@@ -20,7 +22,8 @@ MARKER = "<!-- nodo-ci-report -->"
 ICON = {"success": "✅", "failure": "❌", "cancelled": "⏹️", "skipped": "➖"}
 
 
-def scenarios(path):
+def junit(path, what="passed", name=lambda c: f"{c.get('classname')} › {c.get('name')}"):
+    """A JUnit report as "12 passed, 1 failed" and the first failures."""
     if not path or not os.path.exists(path):
         return "no report"
     cases = ET.parse(path).getroot().iter("testcase")
@@ -31,11 +34,17 @@ def scenarios(path):
             skipped += 1
         elif c.find("failure") is not None or c.find("error") is not None:
             failed += 1
-            failures.append(f"{c.get('classname')} › {c.get('name')}")
+            failures.append(name(c))
         else:
             passed += 1
-    text = f"{passed} passed" + (f", {failed} failed" if failed else "") + (f", {skipped} skipped" if skipped else "")
+    text = f"{passed} {what}" + (f", {failed} failed" if failed else "") + (f", {skipped} skipped" if skipped else "")
     return text + "".join(f"<br>❌ {f}" for f in failures[:5])
+
+
+def gallery(stories, visual):
+    """The UI gallery: stories run as tests (interactions, axe), then their snapshots."""
+    return (f"stories: {junit(stories, 'pass interactions and axe', lambda c: c.get('name'))}"
+            f"<br>snapshots at 375 / 768 / 1280 px: {junit(visual, 'match', lambda c: c.get('name'))}")
 
 
 def web(path):
@@ -60,6 +69,8 @@ def main():
     p.add_argument("--base", required=True)
     p.add_argument("--junit")
     p.add_argument("--web")
+    p.add_argument("--stories")
+    p.add_argument("--visual")
     p.add_argument("--run", default="")
     a = p.parse_args()
 
@@ -69,8 +80,9 @@ def main():
 
     rows = [
         ("Workflows and seed scripts", jobs.get("workflows"), "actionlint, shellcheck"),
-        ("Scenario tests", jobs.get("scenarios"), scenarios(a.junit)),
+        ("Scenario tests", jobs.get("scenarios"), junit(a.junit)),
         ("Web build", jobs.get("web"), web(a.web)),
+        ("UI gallery", jobs.get("gallery"), gallery(a.stories, a.visual)),
     ]
     code = [
         ("Backend: Vantage YAML and Rhai", "backend_lines",

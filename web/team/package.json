@@ -10,7 +10,14 @@
     "gen": "vantage-client generate --from schema.json --out src/vantage.gen.ts",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p playwright",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build --quiet -o storybook-static",
+    "test:gallery": "vitest run --project gallery",
+    "test:visual": "playwright test -c playwright/gallery.config.ts"
+  },
+  "overrides": {
+    "@joshwooding/vite-plugin-react-docgen-typescript": "0.9.1"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -24,14 +31,23 @@
     "react-router": "7.18.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@storybook/addon-a11y": "10.6.8",
+    "@storybook/addon-vitest": "10.6.8",
+    "@storybook/react-vite": "10.6.8",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.3",
+    "@types/node": "22.20.5",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "5.2.0",
+    "@vitest/browser": "5.1.1",
+    "@vitest/browser-playwright": "5.1.1",
     "jsdom": "26.1.0",
+    "playwright": "1.65.1",
+    "storybook": "10.6.8",
     "typescript": "5.9.3",
     "vite": "7.3.7",
-    "vitest": "3.2.7"
+    "vitest": "5.1.1"
   }
 }

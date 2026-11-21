@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import optimizeLocales from "@react-aria/optimize-locales-plugin";
 
@@ -9,5 +9,4 @@ export default defineConfig({
     // 30-odd languages would otherwise ship in the bundle. Dates still format in the browser's locale.
     { ...optimizeLocales.vite({ locales: ["en-US"] }), enforce: "pre" },
   ],
-  test: { environment: "jsdom", setupFiles: ["test/setup.ts"] },
 });

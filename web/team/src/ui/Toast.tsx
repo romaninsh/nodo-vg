@@ -5,7 +5,8 @@ let push: ((text: string) => void) | null = null;
 /** Show a short message at the bottom right for a few seconds. */
 export const toast = (text: string) => push?.(text);
 
-export function Toaster() {
+/** `duration` is how long a message stays, in ms (the gallery keeps it up for its snapshots). */
+export function Toaster({ duration = 3500 }: { duration?: number }) {
   const [text, setText] = useState("");
   useEffect(() => {
     push = (t) => setText(t);
@@ -13,8 +14,8 @@ export function Toaster() {
   }, []);
   useEffect(() => {
     if (!text) return;
-    const h = setTimeout(() => setText(""), 3500);
+    const h = setTimeout(() => setText(""), duration);
     return () => clearTimeout(h);
-  }, [text]);
+  }, [text, duration]);
   return text ? <div className="toast" role="status">{text}</div> : null;
 }
