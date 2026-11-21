@@ -153,6 +153,9 @@ textarea.desc { width: 100%; min-height: 160px; border: 1px solid var(--border);
 .login input { width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 8px; font: inherit; }
 .login .btn { width: 100%; margin-top: 18px; padding: 8px; }
 .login .err { color: var(--danger); margin-top: 10px; }
+.login .demo-logins { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.login .demo-logins .muted { margin-right: 4px; font-size: 13px; }
+.login .demo-logins .chip:hover { border-color: var(--brand); color: var(--brand); }
 
 /* splash: Vantage's own look (near-black, indigo accents), not Odoo's */
 .splash { position: fixed; inset: 0; z-index: 90; overflow-y: auto; background: #0b0b10; color: #a0a3b5;
