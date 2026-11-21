@@ -47,6 +47,17 @@ test("sign in as the demo user and see the board", async ({ page }) => {
   await expect(page.locator("article.card").first()).toBeVisible();
 });
 
+test("the app switcher lists the apps and takes you to To-do", async ({ page }) => {
+  await signInAsDemo(page);
+  await page.getByRole("navigation", { name: "To-do" }).getByRole("link", { name: "List" }).click();
+  await expect(page).toHaveURL(/\/list$/);
+  await page.getByRole("button", { name: "Apps" }).click();
+  await expect(page.getByRole("option", { name: /CRM/ })).toHaveAttribute("aria-disabled", "true");
+  await page.getByRole("option", { name: /To-do/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("section.col").first()).toBeVisible();
+});
+
 test("change a to-do's priority", async ({ page, browser }) => {
   await signInAsDemo(page);
   const name = await firstOpenCard(page);

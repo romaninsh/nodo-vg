@@ -16,6 +16,11 @@ export default mergeConfig(viteConfig, defineConfig({
       {
         extends: true,
         plugins: [storybookTest({ configDir: ".storybook" })],
+        // Bundled up front: a dependency Vite finds mid-run reloads the page and leaves a second
+        // copy of React behind ("Cannot read properties of null (reading 'useState')").
+        optimizeDeps: {
+          include: ["react", "react-dom", "react-router", "react-aria-components", "lucide-react", "@internationalized/date", "@vantage-ui/client/react"],
+        },
         test: {
           name: "gallery",
           browser: {
