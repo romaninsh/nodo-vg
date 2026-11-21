@@ -10,13 +10,13 @@ export const COMPARISON: Row[] = [
   {
     area: "Database",
     odoo: "Postgres schema created and migrated by Odoo",
-    nodo: "That same database and schema, unchanged; nodo adds no tables or columns",
+    nodo: "That same database and schema. nodo adds no tables; its one addition is a trigger per table that announces changes",
     mark: "same",
   },
   {
     area: "Live updates",
     odoo: "A view shows other people's changes after a reload",
-    nodo: "Open boards and lists re-read every 10 to 30 seconds, so changes from nodo or Odoo show without a reload, just not at once",
+    nodo: "Postgres announces each change, from nodo or Odoo, and open boards and lists re-read at once, with no timers; a web page can still lag one change behind",
     mark: "partly",
   },
   {

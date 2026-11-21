@@ -8,6 +8,7 @@ columns:
   name: { type: string, label: Tag, flags: [title, searchable] }
   color: { type: int, label: Colour }
 postgres:
+  listen: [project_tags]
   rhai: |
     sql::select().from("project_tags")
         .field("id")

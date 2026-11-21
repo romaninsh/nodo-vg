@@ -10,9 +10,17 @@ import { Avatars, TagPills, toast } from "../components";
 export const Board = observer(() => {
   const db = useDb();
   const stages = useCollection(db.stages.sort("sequence", "asc"));
+  // All my cards in one query, grouped into columns here: a query per column multiplied by
+  // columns and open tabs.
+  const cards = useCollection(db.cards.all);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   if (stages.error) return <p className="alert">{stages.error}</p>;
   const first = stages.items[0]?.id;
+  const byStage = new Map<string, Cards[]>();
+  for (const c of cards.items) {
+    const key = String(c.stage_id ?? "");
+    byStage.set(key, [...(byStage.get(key) ?? []), c]);
+  }
   return (
     <>
       <div className="cp">
@@ -32,6 +40,8 @@ export const Board = observer(() => {
           <Column
             key={s.id}
             stage={s}
+            cards={byStage.get(String(s.id)) ?? []}
+            error={cards.error}
             inbox={s.id === first}
             folded={!!s.fold && !open[s.id]}
             onToggle={() => setOpen((o) => ({ ...o, [s.id]: !o[s.id] }))}
@@ -42,9 +52,10 @@ export const Board = observer(() => {
   );
 });
 
-const Column = observer(({ stage, inbox, folded, onToggle }: { stage: Stages; inbox: boolean; folded: boolean; onToggle: () => void }) => {
+type ColumnProps = { stage: Stages; cards: Cards[]; error?: string | null; inbox: boolean; folded: boolean; onToggle: () => void };
+
+const Column = observer(({ stage, cards, error, inbox, folded, onToggle }: ColumnProps) => {
   const db = useDb();
-  const cards = useCollection(db.cards.where({ stage_id: Number(stage.id) }));
   const [over, setOver] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -62,7 +73,7 @@ const Column = observer(({ stage, inbox, folded, onToggle }: { stage: Stages; in
     return (
       <div className={`col folded${over ? " drop" : ""}`} onClick={onToggle} title="Show"
         onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={(e) => void drop(e)}>
-        <h3>{stage.name} <span className="count">({cards.items.length})</span></h3>
+        <h3>{stage.name} <span className="count">({cards.length})</span></h3>
       </div>
     );
   }
@@ -70,13 +81,13 @@ const Column = observer(({ stage, inbox, folded, onToggle }: { stage: Stages; in
     <div className={`col${over ? " drop" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={(e) => void drop(e)}>
       <h3>
-        {stage.name} <span className="count">{cards.items.length}</span>
+        {stage.name} <span className="count">{cards.length}</span>
         {stage.fold && <button title="Fold" onClick={onToggle}>‹</button>}
         <button title={`Add a to-do to ${stage.name}`} onClick={() => setAdding(true)}>+</button>
       </h3>
       {adding && <QuickCreate stage={stage} inbox={inbox} onClose={() => setAdding(false)} />}
-      {cards.error && <p className="alert">{cards.error}</p>}
-      {cards.items.map((c) => <Card key={c.id} card={c} />)}
+      {error && <p className="alert">{error}</p>}
+      {cards.map((c) => <Card key={c.id} card={c} />)}
     </div>
   );
 });

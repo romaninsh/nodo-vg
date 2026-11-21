@@ -9,6 +9,7 @@ columns:
   login: { type: string, label: Login }
   partner_id: { type: int, flags: [hidden] }
 postgres:
+  listen: [res_users, res_partner]
   rhai: |
     sql::select().from("res_users")
         .inner_join("res_partner", "p", sql::expr("p.id = res_users.partner_id"))

@@ -11,6 +11,7 @@ columns:
   sequence: { type: int, label: Order }
   fold: { type: bool, label: Folded }
 postgres:
+  listen: [project_task_type]
   rhai: |
     sql::select().from("project_task_type")
         .field("id")

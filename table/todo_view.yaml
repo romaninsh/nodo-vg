@@ -25,6 +25,7 @@ columns:
   # folded column (Done, Cancelled). "Open" filters on the signed-in person's id in here.
   open_for: { type: string, label: Open for }
 postgres:
+  listen: [project_task, project_task_user_rel, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
   rhai: |
     sql::select().from("project_task")
         .field("id")
