@@ -37,6 +37,10 @@ export const TodoList = observer(() => {
   // `like` matches "contains", ignoring case (the server adds the wildcards).
   if (text.trim()) q = q.where({ name: { like: text.trim() } });
   const list = useCollection(q.sort("date_deadline", "asc"));
+  // The server sorts on one column, so to-dos with the same deadline (or none) arrive in any
+  // order; the id keeps them in one order between loads.
+  const rows = [...list.items].sort((a, b) =>
+    (a.date_deadline ?? "￿").localeCompare(b.date_deadline ?? "￿") || Number(a.id) - Number(b.id));
 
   const setPriority = async (id: string, priority: Level) => {
     const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
@@ -79,7 +83,7 @@ export const TodoList = observer(() => {
             </tr>
           </thead>
           <tbody>
-            {list.items.map((t) => (
+            {rows.map((t) => (
               <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
                 onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
             ))}
