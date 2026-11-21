@@ -129,15 +129,29 @@ jobs:
             web/team/test-results/gallery
           if-no-files-found: ignore
 
-  # The web app end to end on the real stack: the seeded demo database (ghcr.io/romaninsh/nodo-vg-db,
-  # a private package of this repo, hence the login), vantage-server and the built app, started by
+  # The web app end to end on the real stack: this PR's seed in the Postgres service on 5434 (the
+  # port datasource/*.yaml name), vantage-server and the built app, started by
   # web/team/e2e/stack.sh. Playwright signs in as Marc Demo and changes his to-dos.
   e2e:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # Measured: 4 min with Odoo installed from scratch, 1.5 min from the cached seed.
+    timeout-minutes: 8
     permissions:
       contents: read
-      packages: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: odoo
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     defaults:
       run:
         working-directory: web/team
@@ -145,6 +159,32 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      # Odoo's install with demo data (seed/install.sh, as the seed image) takes minutes, so its
+      # dump is cached until seed/ changes.
+      - name: Restore the seed
+        id: seed
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/seed
+          key: nodo-seed-${{ hashFiles('seed/**') }}
+      - name: Install Odoo with demo data
+        if: steps.seed.outputs.cache-hit != 'true'
+        env:
+          DB_PORT: "5434"
+        run: ../../seed/install.sh "$RUNNER_TEMP/seed"
+      - name: Save the seed
+        if: steps.seed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/seed
+          key: ${{ steps.seed.outputs.cache-primary-key }}
+      # Into Odoo's usual `odoo`, the database the datasources read, with this PR's NOTIFY triggers.
+      - name: Load the seed
+        run: |
+          pg() { docker run --rm --network host -e PGPASSWORD=odoo -v "$RUNNER_TEMP/seed:/seed:ro" \
+            -v "$GITHUB_WORKSPACE/seed:/src:ro" postgres:17 "$@"; }
+          pg pg_restore -h 127.0.0.1 -p 5434 -U odoo -d odoo --exit-on-error /seed/nodo.dump
+          pg psql -h 127.0.0.1 -p 5434 -U odoo -d odoo -v ON_ERROR_STOP=1 -q -f /src/notify.sql
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -155,10 +195,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Start the stack
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          e2e/stack.sh up
+          DB_IMAGE: running
+        run: e2e/stack.sh up
       - name: End-to-end tests
         id: e2e
         env:
