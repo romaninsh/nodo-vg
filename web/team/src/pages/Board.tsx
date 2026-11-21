@@ -1,10 +1,10 @@
-import { useState, type DragEvent, type FormEvent } from "react";
+import { useRef, useState, type DragEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import type { Cards, Stages } from "../vantage.gen";
 import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { setPending, usePending } from "../pending";
-import { Avatars, TagPills, toast } from "../components";
+import { Avatars, DoneCheck, Priority, TagPills, toast, type Level } from "../components";
 
 /** My to-dos as a board: one column per personal stage (Inbox, Today, …), like Odoo's To-do. */
 export const Board = observer(() => {
@@ -137,20 +137,29 @@ const Card = observer(({ card }: { card: Cards }) => {
     assignees: card["task.assignees"],
     date_deadline: card["task.date_deadline"],
   });
-  const starred = v.priority === "1";
+  const done = isDone(v.state);
   const due = card["task.due"];
-  const star = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const fromControl = useRef(false);
+  const setPriority = async (priority: Level) => {
     if (task == null) return;
-    const out = await call(db.run.todo_toggle_star, { id: task });
+    const out = await call(db.run.todo_set_priority, { id: task, priority });
     if (!out.ok) toast(out.message);
-    else setPending(task, { priority: starred ? "0" : "1" });
+    else setPending(task, { priority });
+  };
+  const toggleDone = async () => {
+    if (task == null) return;
+    const out = await call(db.run.todo_toggle_done, { id: task });
+    if (!out.ok) toast(out.message);
+    else setPending(task, { state: done ? "01_in_progress" : "1_done" });
   };
   return (
     <div
-      className={`card${isDone(v.state) ? " done" : ""}`}
+      className={`card${done || v.state === "1_canceled" ? " done" : ""}`}
       draggable
+      onMouseDownCapture={(e) => { fromControl.current = !!(e.target as Element).closest(".prio, .prio-menu, .donecheck"); }}
       onDragStart={(e) => {
+        // A drag that starts on the priority star or the done check isn't a card move.
+        if (fromControl.current) { e.preventDefault(); return; }
         e.dataTransfer.setData("text/nodo-task", String(task ?? ""));
         e.dataTransfer.setData("text/nodo-stage", String(card.stage_id ?? ""));
       }}
@@ -158,17 +167,18 @@ const Card = observer(({ card }: { card: Cards }) => {
     >
       <div className="top">
         <span className="title">{v.name}</span>
-        <button className={`star${starred ? " on" : ""}`} title={starred ? "Remove the star" : "Star"} onClick={(e) => void star(e)}>★</button>
       </div>
       {card["task.summary"] && <div className="summary">{card["task.summary"]}</div>}
       <TagPills tagIds={v.tag_ids} />
       <div className="bottom">
+        <Priority value={v.priority} onChange={(p) => void setPriority(p)} />
         {v.date_deadline && (
           <span className={`deadline${due === "overdue" ? " overdue" : due === "today" ? " today" : ""}`} title={fullDate(v.date_deadline)}>
             ⏱ {deadlineLabel(v.date_deadline)}
           </span>
         )}
         <Avatars names={v.assignees} />
+        <DoneCheck done={done} onToggle={() => void toggleDone()} />
       </div>
     </div>
   );

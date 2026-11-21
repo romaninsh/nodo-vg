@@ -30,10 +30,10 @@ body:
       on_select: 'open_in("sheet", "todo", #{ id: row.id })'
       columns:
         priority:
-          label: "★"
-          width: 44
-          labels: { "1": "★", "0": "☆" }
-          color: { warning: ["1"], muted: ["0"] }
+          label: Priority
+          width: 80
+          labels: { "0": Low, "1": Medium, "2": High, "3": Urgent }
+          color: { muted: ["0"], warning: ["1", "2"], danger: ["3"] }
         name: { label: To-do, width: 300 }
         date_deadline: { label: Deadline, render: relative, width: 130 }
         due:
@@ -53,7 +53,7 @@ body:
           # As in Odoo: not done or cancelled, and not in one of your folded columns (Done, Cancelled).
           - { label: Open, script: 'table.where("open_for", "like", "," + session.uid + ",")', default: true }
           - { label: Active, script: 'table.where("active", true)', default: true }
-          - { label: Starred, dot: yellow, script: 'table.where("priority", "1")' }
+          - { label: Starred, dot: yellow, script: 'table.where("priority", "in", ["1", "2", "3"])' }
           - { label: Overdue, dot: red, script: 'table.where("due", "overdue")' }
           - { label: Done, dot: green, script: 'table.where("state", "1_done")' }
           - { label: Archived, script: 'table.where("active", false)' }

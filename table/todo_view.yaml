@@ -7,7 +7,8 @@ id_column: id
 columns:
   id: { type: int, flags: [id] }
   name: { type: string, label: Title, flags: [title, searchable] }
-  priority: { type: string, label: Starred, enum: ["0", "1"] }
+  # Odoo's four levels: "0" Low, "1" Medium, "2" High, "3" Urgent (pages label them).
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
   date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
   state: { type: string, label: Status }
   active: { type: bool, label: Active }

@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react";
  */
 export type TodoPatch = Partial<{
   name: string;
-  priority: "0" | "1";
+  priority: "0" | "1" | "2" | "3";
   state: string;
   active: boolean;
   tag_ids: string;

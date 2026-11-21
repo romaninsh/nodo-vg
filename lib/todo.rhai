@@ -13,6 +13,13 @@ fn deadline(v) {
     date(d)
 }
 
+// Whether a todo_view row (or ()) is a to-do assigned to person `uid`: its assignee_ids
+// ("2,6") come from Odoo's assignment table.
+fn assigned(view, uid) {
+    if view == () || uid == () || view.assignee_ids == () { return false; }
+    ("," + view.assignee_ids.to_string() + ",").contains("," + uid.to_string() + ",")
+}
+
 // A list of ids from a checklist (array) or "1,5" text.
 fn ids(v) {
     let out = [];

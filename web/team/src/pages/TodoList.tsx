@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import { auth, call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
-import { Avatars, TagPills, toast } from "../components";
+import { Avatars, DoneCheck, Priority, TagPills, toast, type Level } from "../components";
 import { setPending, usePending } from "../pending";
 import type { Todos } from "../vantage.gen";
 
@@ -29,17 +29,21 @@ export const TodoList = observer(() => {
   // (Done, Cancelled). `open_for` lists who still has it open, as ",2,7,".
   if (filter === "open") q = q.where({ open_for: { like: `,${auth.me()?.uid ?? 0},` } });
   if (filter === "done") q = q.where({ state: "1_done" });
-  if (filter === "starred") q = q.where({ priority: "1" });
+  if (filter === "starred") q = q.where({ priority: { in: ["1", "2", "3"] } });
   if (filter === "overdue") q = q.where({ due: "overdue" });
   // `like` matches "contains", ignoring case (the server adds the wildcards).
   if (text.trim()) q = q.where({ name: { like: text.trim() } });
   const list = useCollection(q.sort("date_deadline", "asc"));
 
-  const star = async (e: React.MouseEvent, id: string, starred: boolean) => {
-    e.stopPropagation();
-    const out = await call(db.run.todo_toggle_star, { id: Number(id) });
+  const setPriority = async (id: string, priority: Level) => {
+    const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
     if (!out.ok) toast(out.message);
-    else setPending(id, { priority: starred ? "0" : "1" });
+    else setPending(id, { priority });
+  };
+  const toggleDone = async (id: string, done: boolean) => {
+    const out = await call(db.run.todo_toggle_done, { id: Number(id) });
+    if (!out.ok) toast(out.message);
+    else setPending(id, { state: done ? "01_in_progress" : "1_done" });
   };
 
   return (
@@ -65,6 +69,7 @@ export const TodoList = observer(() => {
             <tr>
               <th style={{ width: 36 }}></th>
               <th>To-do</th>
+              <th style={{ width: 40 }} title="Priority">★</th>
               <th style={{ width: 150 }}>Deadline</th>
               <th>Tags</th>
               <th>Assigned to</th>
@@ -72,7 +77,8 @@ export const TodoList = observer(() => {
           </thead>
           <tbody>
             {list.items.map((t) => (
-              <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)} onStar={(e, starred) => void star(e, t.id, starred)} />
+              <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
+                onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
             ))}
           </tbody>
         </table>
@@ -82,13 +88,19 @@ export const TodoList = observer(() => {
   );
 });
 
-const Row = observer(({ t, onOpen, onStar }: { t: Todos; onOpen: () => void; onStar: (e: React.MouseEvent, starred: boolean) => void }) => {
+const Row = observer(({ t, onOpen, onPriority, onDone }: {
+  t: Todos;
+  onOpen: () => void;
+  onPriority: (level: Level) => void;
+  onDone: (done: boolean) => void;
+}) => {
   const v = usePending(t.id, { name: t.name, priority: t.priority, state: t.state, tag_ids: t.tag_ids, assignees: t.assignees, date_deadline: t.date_deadline });
-  const starred = v.priority === "1";
+  const done = isDone(v.state);
   return (
-    <tr className={`row${isDone(v.state) ? " done" : ""}`} onClick={onOpen}>
-      <td><button className={`star${starred ? " on" : ""}`} onClick={(e) => onStar(e, starred)} title="Star">★</button></td>
+    <tr className={`row${done ? " done" : ""}`} onClick={onOpen}>
+      <td><DoneCheck done={done} onToggle={() => onDone(done)} /></td>
       <td className="name">{v.name}</td>
+      <td><Priority value={v.priority} onChange={onPriority} /></td>
       <td>
         <span className={`deadline${t.due === "overdue" ? " overdue" : t.due === "today" ? " today" : ""}`} title={fullDate(v.date_deadline)}>
           {deadlineLabel(v.date_deadline)}

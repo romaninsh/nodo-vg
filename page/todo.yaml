@@ -11,7 +11,7 @@ body:
     children:
       - kind: label
         params:
-          text: "${if record.priority == \"1\" { \"★ \" } else { \"\" }}${record.name}"
+          text: "${record.name}"
           style: heading
       - kind: label
         when: 'record.state == "1_done"'
@@ -31,10 +31,14 @@ body:
           action: |
             let dl = "";
             if record.date_deadline != "" { dl = record.date_deadline.sub_string(0, 16); dl.replace("T", " "); }
-            let f = actions.todo_edit_form(#{ name: record.name, description: record.notes, date_deadline: dl });
+            // Odoo's four priority levels, shown by name.
+            let levels = ["Low", "Medium", "High", "Urgent"];
+            let p = if record.priority == () { 0 } else { parse_int(record.priority.to_string()) };
+            let f = actions.todo_edit_form(#{ name: record.name, description: record.notes, date_deadline: dl, priority: levels[p] });
             // Empty fields are left out of the answer; an emptied field clears the value.
             if !("date_deadline" in f) { f.date_deadline = ""; }
             if !("description" in f) { f.description = ""; }
+            if "priority" in f { f.priority = levels.index_of(f.priority).to_string(); }
             f.id = args.id;
             actions.todo_save(f);
             toast("Saved", "success");
@@ -46,12 +50,6 @@ body:
           action: |
             let r = actions.todo_toggle_done(#{ id: args.id });
             toast(if r.done { "Marked as done" } else { "Opened again" }, "success");
-      - kind: button
-        params:
-          size: sm
-          label: "${if record.priority == \"1\" { \"Unstar\" } else { \"Star\" }}"
-          icon: Star
-          action: 'actions.todo_toggle_star(#{ id: args.id });'
   - kind: row
     children:
       - kind: button

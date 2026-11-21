@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=./action-schema-1.json
 # Add a to-do the way Odoo's To-do does: the task, an assignment to me in my first column
-# (Inbox), and me as a follower. Args: name (required), date_deadline, description.
+# (Inbox), and me as a follower. Args: name (required), date_deadline, description, priority
+# ("0" Low, "1" Medium, "2" High, "3" Urgent; Low when left out).
 kind: script
 label: New to-do
 icon: Plus
@@ -9,7 +10,7 @@ params:
   name: { type: string, label: Title }
   date_deadline: { type: string, label: Deadline, required: false }
   description: { type: string, label: Description, required: false }
-  priority: { type: bool, label: Starred, required: false }
+  priority: { type: string, label: Priority, required: false }
 body: |
   import "todo" as t;
   let name = if args.name == () { "" } else { args.name.to_string() };
@@ -23,7 +24,13 @@ body: |
   let dl = t::deadline(args.date_deadline);
   if dl != () { rec.date_deadline = dl; }
   if args.description != () && args.description != "" { rec.description = args.description; }
-  if args.priority == true || args.priority == "1" { rec.priority = "1"; }
+  if args.priority != () && args.priority != "" {
+    let level = args.priority.to_string();
+    if !["0", "1", "2", "3"].contains(level) {
+      fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)");
+    }
+    rec.priority = level;
+  }
   let id = table("todo").insert(rec);
   table("todo_user").insert(#{ task_id: id, user_id: me, stage_id: inbox.id });
   let p = table("person").get(me);

@@ -6,12 +6,9 @@ icon: CircleCheck
 params:
   id: { type: int }
 body: |
+  import "todo" as t;
   let id = parse_int(args.id.to_string());
-  if table("todo_view").where("id", id).count() == 0
-     || table("todo_user").where("task_id", id).where("user_id", session.uid).count() == 0 {
-    fail("That to-do isn't yours");
-  }
-  let t = table("todo").get(id);
-  let done = t.state == "1_done";
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  let done = table("todo").get(id).state == "1_done";
   table("todo").record(id).set(#{ state: if done { "01_in_progress" } else { "1_done" } }).flash();
   #{ id: id, done: !done }

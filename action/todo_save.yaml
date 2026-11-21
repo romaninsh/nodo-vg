@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=./action-schema-1.json
 # Save a to-do's fields. Args: id, and any of name, description, date_deadline (empty text
-# clears it), priority ("0"/"1" or a bool), state.
+# clears it), priority ("0" Low, "1" Medium, "2" High, "3" Urgent), state.
 kind: script
 label: Save
 icon: Save
@@ -28,7 +28,13 @@ body: |
   }
   if "description" in args { p.description = args.description; }
   if "date_deadline" in args { p.date_deadline = t::deadline(args.date_deadline); }
-  if "priority" in args { p.priority = if args.priority == true || args.priority == "1" { "1" } else { "0" }; }
+  if "priority" in args && args.priority != () {
+    let level = args.priority.to_string();
+    if !["0", "1", "2", "3"].contains(level) {
+      fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)");
+    }
+    p.priority = level;
+  }
   if "state" in args && args.state != () { p.state = args.state; }
   if p.len() > 0 { table("todo").record(id).set(p).flash(); }
   #{ id: id }

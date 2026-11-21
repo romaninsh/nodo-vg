@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Set a to-do's priority to one of Odoo's four levels: "0" Low, "1" Medium, "2" High,
+# "3" Urgent. Args: id, priority.
+kind: script
+label: Priority
+icon: Star
+params:
+  id: { type: int }
+  priority: { type: string, label: Priority }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let level = if args.priority == () { "" } else { args.priority.to_string() };
+  level.trim();
+  if !["0", "1", "2", "3"].contains(level) {
+    fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)");
+  }
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  table("todo").record(id).set(#{ priority: level }).flash();
+  #{ id: id, priority: level }

@@ -51,7 +51,7 @@ actions:
   - todo_save
   - todo_move
   - todo_toggle_done
-  - todo_toggle_star
+  - todo_set_priority
   - todo_set_tags
   - todo_set_assignees
   - todo_archive
