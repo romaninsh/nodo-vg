@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's To-do: a project_task with no project, no parent and not a template. The datasource
+# rule shows each person only the to-dos assigned to them.
+datasource: odoo
+table: project_task
+title: To-do
+columns:
+  id: { type: int, flags: [id, auto], references: { table: todo_view, kind: has_one, name: info } }
+  name: { type: string, label: Title, flags: [title, mandatory, searchable] }
+  description: { type: string, label: Description }
+  date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
+  priority: { type: string, label: Starred, enum: ["0", "1"], default: "0" }
+  state: { type: string, label: Status, enum: [01_in_progress, 02_changes_requested, 03_approved, 04_waiting_normal, 1_done, 1_canceled], default: 01_in_progress }
+  active: { type: bool, label: Active, default: true }
+  project_id: { type: int, flags: [hidden] }
+  parent_id: { type: int, flags: [hidden] }
+  is_template: { type: bool, flags: [hidden] }
+  has_template_ancestor: { type: bool, flags: [hidden] }
+  sequence: { type: int, flags: [hidden] }
+  display_in_project: { type: bool, flags: [hidden] }
+  create_uid: { type: int, flags: [hidden] }
+  write_uid: { type: int, flags: [hidden] }
+  create_date: { type: timestamp, label: Created, flags: [hidden] }
+  write_date: { type: timestamp, label: Last updated }
+  date_last_stage_update: { type: timestamp, flags: [hidden] }
+  date_assign: { type: timestamp, flags: [hidden] }
+  date_end: { type: timestamp, flags: [hidden] }
+  # Dotted columns last: a rule's write check binds values in file order but lists dotted
+  # columns after the stored ones (see FEEDBACK.md).
+  info.tags: { type: string, label: Tags }
+  info.assignees: { type: string, label: Assigned to }
+  info.overdue: { type: bool, label: Overdue }
+references:
+  assignments: { table: todo_user, kind: has_many, foreign_key: task_id }
+hook:
+  # Stamp what Odoo's own create and write stamp, so Odoo shows nodo's rows as its own.
+  normalise: |
+    let uid = if session != () && session.uid != () { session.uid } else { () };
+    if uid != () { record.write_uid = uid; }
+    record.write_date = now();
+    if op == "insert" {
+      record.project_id = ();
+      record.parent_id = ();
+      if record.state == () { record.state = "01_in_progress"; }
+      if record.priority == () { record.priority = "0"; }
+      record.active = true;
+      record.sequence = 10;
+      record.display_in_project = true;
+      record.has_template_ancestor = false;
+      record.create_date = now();
+      record.date_last_stage_update = now();
+      if uid != () { record.create_uid = uid; }
+    }
+    // A description written here is plain text and becomes the HTML Odoo stores, always escaped,
+    // so nothing typed here runs as HTML in Odoo. Only the stored value, saved back unchanged,
+    // stays as it is.
+    let unchanged = stored != () && record.description == stored.description;
+    if record.description != () && record.description != "" && !unchanged {
+      let lines = record.description.split("\n").map(|l| {
+        let t = l; t.replace("&", "&amp;"); t.replace("<", "&lt;"); t.replace(">", "&gt;"); `<p>${t}</p>`
+      });
+      record.description = lines.reduce(|acc, x| acc + x, "");
+    }
+    // Odoo sets date_end when a task closes and clears it when it reopens.
+    let closed = record.state == "1_done" || record.state == "1_canceled";
+    let was_closed = stored != () && (stored.state == "1_done" || stored.state == "1_canceled");
+    if closed && !was_closed { record.date_end = now(); }
+    if !closed && was_closed { record.date_end = (); }
+    record
+  validate: |
+    let n = if record.name == () { "" } else { record.name };
+    n.trim();
+    if n == "" { throw "Give the to-do a title"; }

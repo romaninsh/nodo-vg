@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=./page-schema-1.json
+# One to-do, opened from the board or the list (args: id).
+title: "${record.name}"
+record:
+  table: todo_view
+  id: "${args.id}"
+body:
+  - kind: row
+    align: center
+    justify: between
+    children:
+      - kind: label
+        params:
+          text: "${if record.priority == \"1\" { \"★ \" } else { \"\" }}${record.name}"
+          style: heading
+      - kind: label
+        when: 'record.state == "1_done"'
+        params: { text: Done, icon: CircleCheck }
+      - kind: label
+        when: 'record.active == "false"'
+        params: { text: Archived, icon: Archive, style: muted }
+
+  - kind: row
+    children:
+      - kind: button
+        params:
+          label: Edit
+          icon: Pencil
+          style: primary
+          size: sm
+          action: |
+            let dl = "";
+            if record.date_deadline != "" { dl = record.date_deadline.sub_string(0, 16); dl.replace("T", " "); }
+            let f = actions.todo_edit_form(#{ name: record.name, description: record.notes, date_deadline: dl });
+            // Empty fields are left out of the answer; an emptied field clears the value.
+            if !("date_deadline" in f) { f.date_deadline = ""; }
+            if !("description" in f) { f.description = ""; }
+            f.id = args.id;
+            actions.todo_save(f);
+            toast("Saved", "success");
+      - kind: button
+        params:
+          size: sm
+          label: "${if record.state == \"1_done\" { \"Open again\" } else { \"Mark as done\" }}"
+          icon: CircleCheck
+          action: |
+            let r = actions.todo_toggle_done(#{ id: args.id });
+            toast(if r.done { "Marked as done" } else { "Opened again" }, "success");
+      - kind: button
+        params:
+          size: sm
+          label: "${if record.priority == \"1\" { \"Unstar\" } else { \"Star\" }}"
+          icon: Star
+          action: 'actions.todo_toggle_star(#{ id: args.id });'
+  - kind: row
+    children:
+      - kind: button
+        params:
+          size: sm
+          label: Tags
+          icon: Tags
+          action: |
+            let f = actions.todo_tags_form(#{ tags: record.tag_ids });
+            actions.todo_set_tags(#{ id: args.id, tags: f.tags, password: f.password });
+            toast("Tags saved", "success");
+      - kind: button
+        params:
+          size: sm
+          label: Assignees
+          icon: Users
+          action: |
+            let f = actions.todo_assign_form(#{ users: record.assignee_ids });
+            actions.todo_set_assignees(#{ id: args.id, users: f.users });
+            toast("Assignees saved", "success");
+      - kind: button
+        params:
+          size: sm
+          label: "${if record.active == \"false\" { \"Restore\" } else { \"Archive\" }}"
+          icon: Archive
+          action: 'actions.todo_archive(#{ id: args.id });'
+
+  # Odoo's column bar: my columns, the to-do's current one marked; click one to move it there
+  # (for me only; others keep their own column for it).
+  - kind: divider
+    label: My column
+  - kind: list
+    name: stagebar
+    observe: { script: 'scenery("stage_bar").args(#{ task: args.id })' }
+    # A query table doesn't hear about the move (see FEEDBACK.md), so re-read it.
+    params: { refresh_interval: 2 }
+    action: |
+      if row.here != "yes" {
+        actions.todo_move(#{ id: args.id, stage: row.id });
+        toast("Moved to " + row.name, "success");
+      }
+    item:
+      - kind: label
+        params:
+          text: "${if row.here == \"yes\" { \"●  \" + row.name + \"   (here)\" } else { \"○  \" + row.name }}"
+
+  - kind: divider
+  - kind: column
+    frame: true
+    children:
+      - kind: label
+        params: { text: "Deadline: ${if record.date_deadline == \"\" { \"none\" } else { record.date_deadline.sub_string(0, 10) + \" \" + record.date_deadline.sub_string(11, 5) }}${if record.due == \"overdue\" { \"  (overdue)\" } else { \"\" }}", icon: Calendar }
+      - kind: label
+        params: { text: "Tags: ${if record.tags == \"\" { \"none\" } else { record.tags }}", icon: Tag }
+      - kind: label
+        params: { text: "Assigned to: ${record.assignees}", icon: Users }
+  - kind: divider
+    label: Description
+  - kind: markdown
+    text: "${if record.notes == \"\" { \"_No description._\" } else { record.notes }}"

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Save a to-do's fields. Args: id, and any of name, description, date_deadline (empty text
+# clears it), priority ("0"/"1" or a bool), state.
+kind: script
+label: Save
+icon: Save
+params:
+  id: { type: int }
+  name: { type: string, required: false }
+  description: { type: string, required: false }
+  date_deadline: { type: string, required: false }
+  priority: { type: string, required: false }
+  state: { type: string, required: false }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  if table("todo_view").where("id", id).count() == 0
+     || table("todo_user").where("task_id", id).where("user_id", me).count() == 0 {
+    fail("That to-do isn't yours");
+  }
+  let p = #{};
+  if "name" in args {
+    let n = if args.name == () { "" } else { args.name.to_string() };
+    n.trim();
+    if n == "" { fail("Give the to-do a title"); }
+    p.name = n;
+  }
+  if "description" in args { p.description = args.description; }
+  if "date_deadline" in args { p.date_deadline = t::deadline(args.date_deadline); }
+  if "priority" in args { p.priority = if args.priority == true || args.priority == "1" { "1" } else { "0" }; }
+  if "state" in args && args.state != () { p.state = args.state; }
+  if p.len() > 0 { table("todo").record(id).set(p).flash(); }
+  #{ id: id }

@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=./menu-schema-1.json
+title: nodo
+items:
+  - section: To-do
+    icon: ListChecks
+    children:
+      - { page: board, label: My to-dos, icon: Kanban }
+      - { page: todos, label: List, icon: LayoutList }

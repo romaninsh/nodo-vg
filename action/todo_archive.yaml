@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Archive a to-do (Odoo's "Archive": active = false), or restore it. Args: id.
+kind: script
+label: Archive
+icon: Archive
+params:
+  id: { type: int }
+body: |
+  let id = parse_int(args.id.to_string());
+  if table("todo_view").where("id", id).count() == 0
+     || table("todo_user").where("task_id", id).where("user_id", session.uid).count() == 0 {
+    fail("That to-do isn't yours");
+  }
+  let t = table("todo").get(id);
+  let active = t.active != false;
+  table("todo").record(id).set(#{ active: !active }).flash();
+  #{ id: id, active: !active }

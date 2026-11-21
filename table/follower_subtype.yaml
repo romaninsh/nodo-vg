@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Which message types a follower gets (mail_followers_mail_message_subtype_rel). No id of its
+# own; nodo only adds rows, for the "Discussions" subtype Odoo gives a new follower.
+datasource: odoo
+table: mail_followers_mail_message_subtype_rel
+title: Follower subtype
+id_column: mail_followers_id
+columns:
+  mail_followers_id: { type: int, flags: [id] }
+  mail_message_subtype_id: { type: int }
+deny:
+  actions: [update, delete]

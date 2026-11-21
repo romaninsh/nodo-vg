@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=./datasource-schema-1.json
+description: Odoo's users, for signing in with an Odoo login and password. No row rules here (sign-in needs it that way).
+type: postgres
+url: postgresql://odoo:odoo@localhost:5434/odoo

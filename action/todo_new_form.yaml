@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=./action-schema-1.json
+kind: form
+label: New to-do
+dialog:
+  title: New to-do
+  description: It goes into your Inbox, assigned to you.
+  confirm_label: Add
+  size: sm
+form:
+  fields:
+    - { name: name, type: string, label: Title, placeholder: "e.g. Call the supplier" }
+    - { name: date_deadline, type: timestamp, label: Deadline, required: false }
+    - { name: priority, type: bool, label: Starred, required: false, default: "false" }

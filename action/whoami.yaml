@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Who is signed in (the web app's top bar).
+kind: script
+label: Who am I
+icon: User
+body: |
+  #{ uid: session.uid, name: session.name, login: session.login }

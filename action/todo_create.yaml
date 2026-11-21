@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Add a to-do the way Odoo's To-do does: the task, an assignment to me in my first column
+# (Inbox), and me as a follower. Args: name (required), date_deadline, description.
+kind: script
+label: New to-do
+icon: Plus
+atomic: true
+params:
+  name: { type: string, label: Title }
+  date_deadline: { type: string, label: Deadline, required: false }
+  description: { type: string, label: Description, required: false }
+  priority: { type: bool, label: Starred, required: false }
+body: |
+  import "todo" as t;
+  let name = if args.name == () { "" } else { args.name.to_string() };
+  name.trim();
+  if name == "" { fail("Give the to-do a title"); }
+  let me = session.uid;
+  if me == () { fail("Sign in first"); }
+  let inbox = table("stage").where("user_id", me).sort("sequence", "asc").first();
+  if inbox == () { fail("You have no to-do columns yet. Open To-do in Odoo once to create them."); }
+  let rec = #{ name: name, state: "01_in_progress", priority: "0", date_assign: now() };
+  let dl = t::deadline(args.date_deadline);
+  if dl != () { rec.date_deadline = dl; }
+  if args.description != () && args.description != "" { rec.description = args.description; }
+  if args.priority == true || args.priority == "1" { rec.priority = "1"; }
+  let id = table("todo").insert(rec);
+  table("todo_user").insert(#{ task_id: id, user_id: me, stage_id: inbox.id });
+  let p = table("person").get(me);
+  if p != () {
+    let f = table("follower").insert(#{
+      res_model: "project.task", res_id: id, partner_id: p.partner_id,
+      create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+    });
+    table("follower_subtype").insert(#{ mail_followers_id: f, mail_message_subtype_id: 1 });
+  }
+  #{ id: id }

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's followers (mail_followers). nodo adds the creator of a new to-do, as Odoo does.
+datasource: odoo
+table: mail_followers
+title: Follower
+columns:
+  id: { type: int, flags: [id, auto] }
+  res_model: { type: string, flags: [mandatory] }
+  res_id: { type: int }
+  partner_id: { type: int, flags: [mandatory] }
+  create_uid: { type: int }
+  write_uid: { type: int }
+  create_date: { type: timestamp }
+  write_date: { type: timestamp }
+deny:
+  actions: [update]

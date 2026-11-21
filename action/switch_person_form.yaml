@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=./action-schema-1.json
+kind: form
+label: Switch person
+dialog:
+  title: Who are you?
+  description: nodo shows that person's to-dos and columns. Changes you make are made as them.
+  confirm_label: Switch
+  size: sm
+form:
+  fields:
+    - { name: person, label: Person, widget: dropdown, references: person }

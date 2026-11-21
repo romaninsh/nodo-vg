@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=./page-schema-1.json
+# My to-dos as a board, one column per personal stage. A board's lanes are fixed in YAML, so
+# each person has their own board here (their stage ids), picked by who you are.
+title: To-do
+body:
+  - kind: row
+    justify: between
+    align: center
+    children:
+      - kind: label
+        params:
+          text: "${session.name}'s to-dos"
+          style: heading
+          icon: ListChecks
+      - kind: button
+        params:
+          label: New
+          icon: Plus
+          style: primary
+          action: |
+            let f = actions.todo_new_form();
+            let r = actions.todo_create(f);
+            toast("Added to your Inbox", "success");
+            open_in("sheet", "todo", #{ id: r.id });
+
+  - kind: kanban
+    name: board_mitchell
+    when: 'session.uid == 2'
+    observe: todo_user
+    params:
+      lane: stage_id
+      title: task.name
+      description: task.summary
+      labels: task.tags
+      due: task.date_deadline
+      add_card: false
+      search: true
+      on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'
+      lanes:
+        - { value: "5", label: Inbox }
+        - { value: "6", label: Today }
+        - { value: "7", label: This Week }
+        - { value: "8", label: This Month }
+        - { value: "9", label: Later }
+        - { value: "10", label: Done, color: success }
+        - { value: "11", label: Cancelled, color: muted }
+      collapsed: ["10", "11"]
+
+  - kind: kanban
+    name: board_marc
+    when: 'session.uid == 5'
+    observe: todo_user
+    params:
+      lane: stage_id
+      title: task.name
+      description: task.summary
+      labels: task.tags
+      due: task.date_deadline
+      add_card: false
+      search: true
+      on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'
+      lanes:
+        - { value: "12", label: Inbox }
+        - { value: "13", label: Today }
+        - { value: "14", label: This Week }
+        - { value: "15", label: This Month }
+        - { value: "16", label: Later }
+        - { value: "17", label: Done, color: success }
+        - { value: "18", label: Cancelled, color: muted }
+      collapsed: ["17", "18"]
+
+  - kind: kanban
+    name: board_monica
+    when: 'session.uid == 6'
+    observe: todo_user
+    params:
+      lane: stage_id
+      title: task.name
+      description: task.summary
+      labels: task.tags
+      due: task.date_deadline
+      add_card: false
+      search: true
+      on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'
+      lanes:
+        - { value: "27", label: Inbox }
+        - { value: "28", label: Today }
+        - { value: "29", label: This Week }
+        - { value: "30", label: This Month }
+        - { value: "31", label: Later }
+        - { value: "32", label: Done, color: success }
+        - { value: "33", label: Cancelled, color: muted }
+      collapsed: ["32", "33"]
+
+  - kind: label
+    when: 'session.uid != 2 && session.uid != 5 && session.uid != 6'
+    params:
+      text: "No board is set up for ${session.name} yet. The list shows their to-dos."
+      style: muted

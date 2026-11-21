@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's internal users with their names (res_users + res_partner). Read-only, no passwords.
+datasource: odoo
+title: Person
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Name, flags: [title, searchable] }
+  login: { type: string, label: Login }
+  partner_id: { type: int, flags: [hidden] }
+postgres:
+  rhai: |
+    sql::select().from("res_users")
+        .inner_join("res_partner", "p", sql::expr("p.id = res_users.partner_id"))
+        .expression(sql::expr("res_users.id").alias("id"))
+        .expression(sql::expr("p.name").alias("name"))
+        .expression(sql::expr("res_users.login").alias("login"))
+        .expression(sql::expr("res_users.partner_id").alias("partner_id"))
+        .where(sql::expr("res_users.active AND NOT coalesce(res_users.share, false)"))
+        .order_by(sql::expr("p.name"), "asc")
