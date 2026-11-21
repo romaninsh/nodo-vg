@@ -11,16 +11,16 @@ entities:
       columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date, open_for]
       filter: [name, state, active, priority, due, open_for]
       default_sort: date_deadline
-    # A computed view: re-read so changes (nodo's and Odoo's) show up. The page shows its own
-    # changes at once and lets this catch up.
-    api: { load: instant, refresh: 10 }
+    # A computed view: it listens to the Odoo tables it reads (table/todo_view.yaml), so
+    # changes from nodo and Odoo arrive as they happen.
+    api: { load: instant }
   - name: cards
     observe: todo_user
     read_only: true
     params:
       columns: [task_id, stage_id, task.name, task.priority, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
       filter: [task_id, stage_id]
-    api: { load: instant, refresh: 30 }
+    api: { load: instant }
   - name: stages
     observe: stage
     read_only: true

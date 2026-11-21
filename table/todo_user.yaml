@@ -29,6 +29,9 @@ columns:
   task.notes: { type: string, label: Description }
   task.summary: { type: string, label: Summary }
   stage.name: { type: string, label: Stage }
+# Its own table notifies (the datasource's `notify`); the dotted columns come from these.
+postgres:
+  listen: [project_task, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
 hook:
   normalise: |
     if session != () && session.uid != () {

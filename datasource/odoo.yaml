@@ -2,6 +2,9 @@
 description: Odoo's own database. nodo writes rows the way Odoo does and never changes its structure. Each person sees only their own to-dos, assignments and stages.
 type: postgres
 url: postgresql://odoo:odoo@localhost:5434/odoo
+# The tables nodo shows have NOTIFY triggers (seed/notify.sql), so pages and the web version
+# update as soon as anyone writes, nodo or Odoo, with no refresh timers.
+notify: true
 invariants:
   # Assignments (project_task_user_rel) and personal stages (project_task_type) carry the
   # person in `user_id`: everyone sees and changes only their own.

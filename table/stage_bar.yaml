@@ -13,6 +13,7 @@ columns:
   fold: { type: bool, label: Folded }
   here: { type: string, label: Current }
 postgres:
+  listen: [project_task_type, project_task_user_rel]
   rhai: |
     let task = if "task" in args { args.task } else { "" };
     sql::select().from("project_task_type")

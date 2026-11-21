@@ -85,9 +85,8 @@ body:
     label: My column
   - kind: list
     name: stagebar
+    # stage_bar listens to the stage and assignment tables, so a move shows at once.
     observe: { script: 'scenery("stage_bar").args(#{ task: args.id })' }
-    # A query table doesn't hear about the move (see FEEDBACK.md), so re-read it.
-    params: { refresh_interval: 2 }
     action: |
       if row.here != "yes" {
         actions.todo_move(#{ id: args.id, stage: row.id });

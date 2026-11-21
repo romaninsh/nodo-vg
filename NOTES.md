@@ -207,3 +207,23 @@ test to-dos afterwards.
 - No errors in the browser console or the API's log after the fixes; the API log doesn't
   contain the password. Scenario tests green (3 pass, 1 skipped as before). Everything I
   changed in your data during testing is back as it was.
+
+## Performance (21 Nov 2026)
+
+Measured with `query_log` and `query_stats` on a debug build, the board open in two browser
+tabs and the desktop app on the list. "Before" is with refresh timers (API `refresh: 10` and
+`30`, the desktop sheet's `refresh_interval: 2`) and one card query per board column.
+
+| measure | before | after |
+|---|---|---|
+| queries while idle, per minute | 101 | 6 (the sign-in check re-reading the person) |
+| database time while idle, per minute | 3,172 ms | 16 ms |
+| a board card query (`todo_user` with the to-do's columns) | 64 ms | 10 ms |
+| board queries per open tab | one per column (7) | one |
+| sign-in to a full board | several seconds (debug build hashing the password) | 1.3 s |
+| a change made in Odoo shows in nodo | after 10 to 30 s | the web re-reads at once but shows it one change late (VAN-637); the desktop not checked yet |
+
+What changed: `seed/notify.sql` adds a statement-level trigger per Odoo table nodo shows, the
+datasource has `notify: true`, every query table lists the tables it reads (`postgres: listen:`),
+and every refresh timer is gone. The board reads its cards in one query and groups them by
+column. Sign-in got faster in Vantage itself (its password check now runs at full speed).

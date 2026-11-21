@@ -35,7 +35,7 @@ docker run --name "$NAME-odoo" --network "$NAME" -v "$NAME-files:/var/lib/odoo" 
 
 docker exec "$NAME-db" pg_dump -U odoo -Fc nodo > "$OUT/nodo.dump"
 docker cp "$NAME-odoo:/var/lib/odoo/filestore/nodo" "$OUT/filestore"
-cp Dockerfile "$OUT/"
+cp Dockerfile notify.sql "$OUT/"
 
 docker build -t "$TAG" "$OUT"
 echo "Built $TAG"
