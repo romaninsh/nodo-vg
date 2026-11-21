@@ -134,7 +134,8 @@ jobs:
   # web/team/e2e/stack.sh. Playwright signs in as Marc Demo and changes his to-dos.
   e2e:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Measured: 4 min with Odoo installed from scratch, 1.5 min from the cached seed.
+    timeout-minutes: 8
     permissions:
       contents: read
     services:
