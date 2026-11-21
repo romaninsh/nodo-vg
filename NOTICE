@@ -1,0 +1,11 @@
+nodo-vg is licensed under the MIT License (LICENSE), except as noted below.
+
+The database schema nodo-vg reads and writes, and the demo data in the seed image
+(ghcr.io/romaninsh/nodo-vg-db, built by seed/build.sh), are created by Odoo Community
+Edition 20.0, published by Odoo S.A. under the GNU Lesser General Public License,
+version 3 (https://www.gnu.org/licenses/lgpl-3.0.html). The seed image redistributes
+that data under the same licence. Odoo's source is at https://github.com/odoo/odoo.
+
+nodo-vg contains no Odoo source code; it is written from scratch and shares only the
+database structure. nodo-vg is an independent project. It is not affiliated with, endorsed by or sponsored
+by Odoo S.A. "Odoo" is a trademark of Odoo S.A.
