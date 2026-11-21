@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowRight, ArrowUpRight } from "lucide-react";
 import { ABOUT } from "./about";
 import { COMPARISON, type Mark } from "./comparison";
+import "./splash.css";
 
 // The first thing a browser session sees: what nodo is, that it is a rewrite on Odoo's own
 // database, how much code it took (src/about.ts, measured by scripts/about.py), and how its
@@ -106,10 +108,10 @@ export function Splash() {
             </p>
             <div className="splash-actions">
               <button ref={button} type="button" className="splash-primary" onClick={close}>
-                Explore the demo →
+                Explore the demo <ArrowRight size={16} aria-hidden="true" />
               </button>
               <a className="splash-secondary" href="https://vantage-ui.com/download/" target="_blank" rel="noreferrer">
-                Build your own ↗
+                Build your own <ArrowUpRight size={16} aria-hidden="true" />
               </a>
             </div>
             <button
@@ -117,7 +119,7 @@ export function Splash() {
               className="splash-link"
               onClick={() => document.getElementById("splash-compare")?.scrollIntoView({ behavior: "smooth" })}
             >
-              How it compares with Odoo ↓
+              How it compares with Odoo <ArrowDown size={14} aria-hidden="true" />
             </button>
           </div>
 

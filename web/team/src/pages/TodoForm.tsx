@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
+import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
 import type { Todos } from "../vantage.gen";
-import { auth, avatarColor, call, fromLocalInput, ids, initials, isDone, toLocalInput, useDb, type Outcome } from "../lib";
-import { Priority, TagPills, toast } from "../components";
+import { auth, call, fromLocalInput, ids, isDone, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
+import { Avatar, DateTimePicker, MultiPicker, Priority, toast } from "../ui";
 import { setPending, usePending } from "../pending";
 
 /** One to-do: read it, edit it, set its priority, tag it, assign it, mark it done. */
@@ -104,7 +105,7 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
         <div className="status">
           <button className={`btn${done ? "" : " btn-primary"}`} disabled={busy}
             onClick={() => void run(call(db.run.todo_toggle_done, { id }), () => setPending(id, { state: done ? "01_in_progress" : "1_done" }), done ? "Opened again" : "Marked as done")}>
-            {done ? "↺ Open again" : "✓ Mark as done"}
+            {done ? <><RotateCcw size={14} aria-hidden="true" /> Open again</> : <><Check size={14} aria-hidden="true" /> Mark as done</>}
           </button>
           {done && <span className="badge done">Done</span>}
           {archived && <span className="badge archived">Archived</span>}
@@ -119,22 +120,25 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
             onKeyDown={(e) => { if (e.key === "Enter" && dirty) void save(); }} />
         </div>
         <div className="fields">
-          <label>Assignees</label>
+          <span className="flabel" id="f-assignees">Assignees</span>
           <PeoplePicker selected={peopleIds} meId={me ? String(me.uid) : ""} onChange={(l) => void setPeople(l)} />
-          <label htmlFor="deadline">Deadline</label>
-          <span>
-            <input id="deadline" type="datetime-local" value={deadline} onChange={(e) => { setEditing(true); setDeadline(e.target.value); }} />
-            {deadline && <button className="btn" style={{ marginLeft: 6 }} onClick={() => { setEditing(true); setDeadline(""); }}>Clear</button>}
-            {todo.due === "overdue" && !done && <span className="deadline overdue" style={{ marginLeft: 10 }}>Overdue</span>}
+          <span className="flabel" id="f-deadline">Deadline</span>
+          <span className="deadline-field">
+            <DateTimePicker labelId="f-deadline" value={deadline} onChange={(d) => { setEditing(true); setDeadline(d); }} />
+            {deadline && (
+              <button type="button" className="btn icon" aria-label="Clear the deadline" title="Clear"
+                onClick={() => { setEditing(true); setDeadline(""); }}><X size={14} aria-hidden="true" /></button>
+            )}
+            {todo.due === "overdue" && !done && <span className="deadline overdue">Overdue</span>}
           </span>
-          <label>Tags</label>
+          <span className="flabel" id="f-tags">Tags</span>
           <TagPicker selected={tagIds} onChange={(l) => void setTags(l)} />
         </div>
         <div className="tabs"><span>Description</span></div>
         <textarea className="desc" aria-label="Description" value={notes} placeholder="Add details about this to-do…"
           onChange={(e) => { setEditing(true); setNotes(e.target.value); }} />
         <p className="muted">Title, deadline and description are kept with Save; the priority, tags, assignees and done are saved at once.</p>
-        <button className="btn" onClick={() => navigate(-1)}>← Back</button>
+        <button className="btn" onClick={() => navigate(-1)}><ArrowLeft size={14} aria-hidden="true" /> Back</button>
       </div>
     </>
   );
@@ -180,40 +184,28 @@ const StageBar = observer(({ id }: { id: number }) => {
   );
 });
 
-const TagPicker = observer(({ selected, onChange }: { selected: string[]; onChange: (ids: string[]) => void }) => {
+type PickerProps = { selected: string[]; disabled?: boolean; onChange: (ids: string[]) => void };
+
+/** Tags as Odoo's coloured pills, removable; a search box adds one. */
+const TagPicker = observer(({ selected, disabled, onChange }: PickerProps) => {
   const db = useDb();
   const { items } = useCollection(db.tags.sort("name", "asc"));
+  const color = new Map(items.map((t) => [t.id, t.color]));
   return (
-    <span className="picker">
-      <TagPills tagIds={selected.join(",")} onRemove={(t) => onChange(selected.filter((x) => x !== t))} />
-      <select value="" aria-label="Add a tag" onChange={(e) => e.target.value && onChange([...selected, e.target.value])}>
-        <option value="">Add a tag…</option>
-        {items.filter((t) => !selected.includes(t.id)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
-    </span>
+    <MultiPicker labelId="f-tags" addLabel="Add a tag" placeholder="Add a tag…" disabled={disabled}
+      options={items.map((t) => ({ id: t.id, name: t.name ?? "" }))} selected={selected} onChange={onChange}
+      chipStyle={(o) => ({ background: tagColor(color.get(o.id)), color: tagText(color.get(o.id)) })} />
   );
 });
 
-const PeoplePicker = observer(({ selected, meId, onChange }: { selected: string[]; meId: string; onChange: (ids: string[]) => void }) => {
+/** Assignees with their initials; I can't take myself off (the to-do would leave my list). */
+const PeoplePicker = observer(({ selected, meId, disabled, onChange }: PickerProps & { meId: string }) => {
   const db = useDb();
   const { items } = useCollection(db.people.sort("name", "asc"));
-  const byId = new Map(items.map((p) => [p.id, p]));
   return (
-    <span className="picker">
-      {selected.map((pid) => {
-        const n = byId.get(pid)?.name ?? "…";
-        return (
-          <span key={pid} className="person">
-            <span className="avatar lg" style={{ background: avatarColor(n) }}>{initials(n)}</span>
-            {n}
-            {pid !== meId && <button aria-label={`Unassign ${n}`} onClick={() => onChange(selected.filter((x) => x !== pid))}>×</button>}
-          </span>
-        );
-      })}
-      <select value="" aria-label="Assign someone" onChange={(e) => e.target.value && onChange([...selected, e.target.value])}>
-        <option value="">Assign…</option>
-        {items.filter((p) => !selected.includes(p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-    </span>
+    <MultiPicker labelId="f-assignees" addLabel="Assign someone" placeholder="Assign…" disabled={disabled}
+      options={items.map((p) => ({ id: p.id, name: p.name ?? "" }))} selected={selected} onChange={onChange}
+      removable={(id) => id !== meId}
+      chip={(o) => <><Avatar name={o.name} large />{o.name}</>} />
   );
 });

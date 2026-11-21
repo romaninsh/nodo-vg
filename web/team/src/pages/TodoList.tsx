@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
+import { Input, SearchField, ToggleButton, ToggleButtonGroup, Button } from "react-aria-components";
+import { Search, Star, X } from "lucide-react";
 import { auth, call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
-import { Avatars, DoneCheck, Priority, TagPills, toast, type Level } from "../components";
+import { TagPills, ViewSwitcher } from "../components";
+import { Avatars, DoneCheck, Priority, toast, type Level } from "../ui";
 import { setPending, usePending } from "../pending";
 import type { Todos } from "../vantage.gen";
 
@@ -50,26 +53,26 @@ export const TodoList = observer(() => {
     <>
       <div className="cp">
         <div className="crumbs">My to-dos</div>
-        <input className="search" placeholder="Search…" value={text} onChange={(e) => setText(e.target.value)} />
-        <div className="chips">
-          {FILTERS.map((f) => (
-            <button key={f.key} className={`chip${filter === f.key ? " on" : ""}`} onClick={() => setFilter(f.key)}>{f.label}</button>
-          ))}
-        </div>
+        <SearchField aria-label="Search to-dos" className="search" value={text} onChange={setText}>
+          <Search size={14} aria-hidden="true" />
+          <Input className="search-input" placeholder="Search…" />
+          <Button className="search-clear"><X size={14} aria-hidden="true" /></Button>
+        </SearchField>
+        <ToggleButtonGroup aria-label="Filter" className="chips" selectionMode="single" disallowEmptySelection
+          selectedKeys={[filter]} onSelectionChange={(keys) => { const k = [...keys][0]; if (k) setFilter(k as Filter); }}>
+          {FILTERS.map((f) => <ToggleButton key={f.key} id={f.key} className="chip">{f.label}</ToggleButton>)}
+        </ToggleButtonGroup>
         <div className="grow" />
-        <div className="switcher">
-          <Link to="/" title="Board">▦ Board</Link>
-          <Link to="/list" className="active" title="List">☰ List</Link>
-        </div>
+        <ViewSwitcher current="list" />
       </div>
       {list.error && <p className="alert">{list.error}</p>}
       <div className="list">
         <table>
           <thead>
             <tr>
-              <th style={{ width: 36 }}></th>
+              <th style={{ width: 36 }}><span className="sr-only">Done</span></th>
               <th>To-do</th>
-              <th style={{ width: 40 }} title="Priority">★</th>
+              <th style={{ width: 40 }} title="Priority"><Star size={14} aria-hidden="true" /><span className="sr-only">Priority</span></th>
               <th style={{ width: 150 }}>Deadline</th>
               <th>Tags</th>
               <th>Assigned to</th>
@@ -107,7 +110,7 @@ const Row = observer(({ t, onOpen, onPriority, onDone }: {
         </span>
       </td>
       <td><TagPills tagIds={v.tag_ids} /></td>
-      <td><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
+      <td><span className="people"><Avatars names={v.assignees} /> <span className="muted">{v.assignees}</span></span></td>
     </tr>
   );
 });

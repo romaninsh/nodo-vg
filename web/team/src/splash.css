@@ -1,0 +1,41 @@
+/* The splash: Vantage's own look (near-black, indigo accents), not Odoo's, so it keeps its own values. */
+.splash { position: fixed; inset: 0; z-index: 90; overflow-y: auto; background: #0b0b10; color: #a0a3b5; line-height: normal;
+  background-image: radial-gradient(900px 520px at 80% -10%, #4f46e533, transparent 65%), radial-gradient(700px 480px at 0% 110%, #8b5cf622, transparent 60%);
+  font-family: "Inter", system-ui, -apple-system, sans-serif; display: flex; justify-content: center; padding: 32px 16px; }
+.splash-card { width: 100%; max-width: 1080px; height: fit-content; background: #12131c; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 32px 36px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.splash-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.splash-logo { height: 26px; filter: invert(1); }
+.splash-kicker { margin: 0; font-family: ui-monospace, monospace; font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: #818cf8; }
+.splash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; margin-top: 24px; }
+@media (max-width: 860px) { .splash-grid { grid-template-columns: 1fr; } }
+.splash-intro { display: flex; flex-direction: column; gap: 14px; }
+.splash-intro h1 { margin: 0; color: #ecedf2; font-size: 40px; letter-spacing: -.02em; }
+.splash-intro p { margin: 0; line-height: 1.55; }
+.splash-intro .lead { color: #ecedf2; font-size: 16px; }
+.splash-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.splash-primary, .splash-secondary, .splash-link { display: inline-flex; align-items: center; gap: 6px; }
+.splash-primary { background: #4f46e5; color: #fff; border: 0; border-radius: 8px; padding: 10px 20px; font-weight: 500; box-shadow: 0 0 0 1px #818cf859, 0 4px 24px -8px #6366f199; }
+.splash-primary:hover { background: #6366f1; }
+.splash-secondary { border: 1px solid rgba(255,255,255,.16); color: #ecedf2; border-radius: 8px; padding: 10px 20px; font-weight: 500; }
+.splash-secondary:hover { border-color: #818cf899; }
+.splash-link { align-self: flex-start; background: none; border: 0; padding: 0; color: #a5b4fc; font-size: 13.5px; }
+.splash-link:hover { text-decoration: underline; }
+.splash-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; align-content: center; }
+.splash-stat { background: #181a26; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px 14px; }
+.splash-stat dd { margin: 0; color: #ecedf2; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.splash-stat dt { margin-top: 2px; color: #a5b4fc; font-size: 13px; font-weight: 500; }
+.splash-stat p { margin: 3px 0 0; color: #6e7186; font-size: 12px; line-height: 1.35; }
+.splash-compare { margin-top: 40px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 28px; }
+.splash-compare h2 { margin: 6px 0 16px; color: #ecedf2; font-size: 22px; }
+.splash-compare table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.splash-compare th, .splash-compare td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); line-height: 1.45; }
+.splash-compare thead th { color: #ecedf2; font-weight: 600; border-bottom-color: rgba(255,255,255,.14); }
+.splash-compare tbody th { color: #ecedf2; font-weight: 500; white-space: nowrap; }
+.splash-compare td:last-child { color: #d4d6e0; }
+.mark { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 1px 8px; margin-right: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.mark-ahead { background: #14532d; color: #86efac; }
+.mark-same { background: #1e3a5f; color: #93c5fd; }
+.mark-partly { background: #4a3a10; color: #fcd34d; }
+.mark-different { background: #312e81; color: #c7d2fe; }
+.mark-not-yet { background: #3f1d24; color: #fca5a5; }
+.splash-note { margin: 14px 0 0; font-size: 12px; color: #6e7186; }

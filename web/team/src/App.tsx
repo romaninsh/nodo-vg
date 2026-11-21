@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router";
 import { useConnection } from "@vantage-ui/client/react";
-import { auth, avatarColor, call, initials, useDb } from "./lib";
+import { Grip } from "lucide-react";
+import { auth, call, useDb } from "./lib";
 import { Login } from "./pages/Login";
 import { Board } from "./pages/Board";
 import { TodoList } from "./pages/TodoList";
-import { TodoForm } from "./pages/TodoForm";
-import { Toaster } from "./components";
+import { Avatar, Toaster } from "./ui";
+
+// The form alone needs the date picker, the comboboxes and the tag group: loaded when first opened.
+const TodoForm = lazy(() => import("./pages/TodoForm").then((m) => ({ default: m.TodoForm })));
 import { Splash, openAbout } from "./Splash";
 
 export function App() {
@@ -37,7 +40,7 @@ export function App() {
         {/* the splash shows over the board at /about (a refresh or a shared link) */}
         <Route path="/about" element={<Board />} />
         <Route path="/list" element={<TodoList />} />
-        <Route path="/todo/:id" element={<TodoForm />} />
+        <Route path="/todo/:id" element={<Suspense fallback={<p className="muted pad">Loading…</p>}><TodoForm /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster />
@@ -59,7 +62,7 @@ function TopBar({ onSignedOut }: { onSignedOut: () => void }) {
   };
   return (
     <nav className="navbar">
-      <span className="apps" title="nodo">▦</span>
+      <span className="apps" title="nodo"><Grip size={18} aria-hidden="true" /></span>
       <span className="app">To-do</span>
       <span className="menu">
         <NavLink to="/" end>My to-dos</NavLink>
@@ -69,7 +72,7 @@ function TopBar({ onSignedOut }: { onSignedOut: () => void }) {
       <button className="about" onClick={openAbout}>About</button>
       {me && (
         <span className="user" title={me.login}>
-          <span className="avatar lg" style={{ background: avatarColor(me.name) }}>{initials(me.name)}</span>
+          <Avatar name={me.name} large />
           {me.name}
         </span>
       )}
