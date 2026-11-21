@@ -28,13 +28,22 @@ export const Closed: Story = {
   play: async () => { await expect(screen.getByRole("button", { name: "Apps" })).toHaveAttribute("aria-expanded", "false"); },
 };
 
-/** The apps, the current one ticked; CRM is still to come. */
+/** The apps, the current one ticked. */
 export const Open: Story = {
   play: async ({ userEvent }) => {
     await userEvent.click(screen.getByRole("button", { name: "Apps" }));
     await expect(await screen.findByRole("listbox", { name: "Apps" })).toBeVisible();
-    await expect(screen.getByRole("option", { name: /CRM/ })).toHaveAttribute("aria-disabled", "true");
+    await expect(screen.getByRole("option", { name: /CRM/ })).not.toHaveAttribute("aria-disabled", "true");
     await expect(screen.getByRole("option", { name: /To-do/ })).toHaveFocus();
+  },
+};
+
+/** CRM is listed and picks like any app. */
+export const PickCrm: Story = {
+  play: async ({ userEvent }) => {
+    await userEvent.click(screen.getByRole("button", { name: "Apps" }));
+    await userEvent.click(await screen.findByRole("option", { name: /CRM/ }));
+    await expect(screen.queryByRole("listbox", { name: "Apps" })).toBeNull();
   },
 };
 

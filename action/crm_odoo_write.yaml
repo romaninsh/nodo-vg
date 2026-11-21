@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Change an opportunity's contact, email, phone, salesperson, sales team or tags through Odoo
+# (or company) itself (JSON-RPC `write`, as you): Odoo's save of these runs more than a row write (contact
+# details copied from the customer, email and phone checked and copied back to the contact,
+# followers, the assignment date, the tag link table). Args: id, fields ("partner_id,phone"),
+# and the values named there; empty clears. The password kept with a web sign-in is used.
+kind: script
+label: Save through Odoo
+icon: Send
+params:
+  id: { type: int }
+  fields: { type: string }
+  partner_id: { type: string, required: false }
+  email_from: { type: string, required: false }
+  phone: { type: string, required: false }
+  user_id: { type: string, required: false }
+  team_id: { type: string, required: false }
+  company_id: { type: string, required: false }
+  tag_ids: { type: string, required: false }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  let allowed = ["partner_id", "email_from", "phone", "user_id", "team_id", "company_id", "tag_ids"];
+  let fields = args.fields.to_string().split(",").map(|f| { f.trim(); f }).filter(|f| f != "");
+  if fields.len() == 0 { fail("Nothing to save"); }
+  for f in fields { if !allowed.contains(f) { fail(`Odoo isn't asked to save ${f}`); } }
+  let text = |k| if k in args && args[k] != () { let t = args[k].to_string(); t.trim(); t } else { "" };
+  let id_of = |k| { let t = text.call(k); if t == "" { () } else { parse_int(t) } };
+  let pw = if session.odoo_password != () { session.odoo_password.to_string() } else { "" };
+  if pw == "" { fail("Sign in on the web to save this through Odoo"); }
+  // Odoo's empty value is `false`; tags are replaced as a whole ([6, 0, ids]).
+  let vals = #{};
+  for f in ["partner_id", "user_id", "team_id", "company_id"] {
+    if fields.contains(f) { let v = id_of.call(f); vals[f] = if v == () { false } else { v }; }
+  }
+  for f in ["email_from", "phone"] {
+    if fields.contains(f) { let v = text.call(f); vals[f] = if v == "" { false } else { v }; }
+  }
+  if fields.contains("tag_ids") {
+    vals.tag_ids = [[6, 0, text.call("tag_ids").split(",").filter(|x| x != "").map(|x| parse_int(x))]];
+  }
+  table("odoo_lead_write").insert(#{ id: uuid_v7(), uid: me, password: pw, lead_id: id, vals: vals });
+  // Odoo answers 200 even when it refuses: it took the change when its write stamp moved.
+  let after = table("lead").get(id);
+  if after.write_date == lead.write_date { fail("Odoo didn't accept the change (wrong password?)"); }
+  #{ id: id }

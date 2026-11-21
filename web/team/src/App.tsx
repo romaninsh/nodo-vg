@@ -4,10 +4,16 @@ import { Shell } from "./shell/Shell";
 import { Board } from "./pages/Board";
 import { TodoList } from "./pages/TodoList";
 
-// The form alone needs the date picker, the comboboxes and the tag group: loaded when first opened.
+// The forms need the date picker, the comboboxes and the tag group: loaded when first opened.
+// CRM is its own chunk, loaded when someone opens it.
 const TodoForm = lazy(() => import("./pages/TodoForm").then((m) => ({ default: m.TodoForm })));
+const Pipeline = lazy(() => import("./crm/Pipeline").then((m) => ({ default: m.Pipeline })));
+const OpportunityForm = lazy(() => import("./crm/OpportunityForm").then((m) => ({ default: m.OpportunityForm })));
+const NewOpportunityForm = lazy(() => import("./crm/OpportunityForm").then((m) => ({ default: m.NewOpportunityForm })));
 
-/** nodo: the shell, and the apps inside it. To-do is the only one so far, at the root. */
+const loading = <p className="muted pad">Loading…</p>;
+
+/** nodo: the shell, and the apps inside it: To-do at the root, CRM under /crm. */
 export function App() {
   return (
     <Shell>
@@ -16,7 +22,10 @@ export function App() {
         {/* the splash shows over the board at /about (a refresh or a shared link) */}
         <Route path="/about" element={<Board />} />
         <Route path="/list" element={<TodoList />} />
-        <Route path="/todo/:id" element={<Suspense fallback={<p className="muted pad">Loading…</p>}><TodoForm /></Suspense>} />
+        <Route path="/todo/:id" element={<Suspense fallback={loading}><TodoForm /></Suspense>} />
+        <Route path="/crm" element={<Suspense fallback={loading}><Pipeline /></Suspense>} />
+        <Route path="/crm/new" element={<Suspense fallback={loading}><NewOpportunityForm /></Suspense>} />
+        <Route path="/crm/:id" element={<Suspense fallback={loading}><OpportunityForm /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Shell>

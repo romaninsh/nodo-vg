@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# A click on a CRM tag: pick one of Odoo's twelve colours for it (0 = no colour). Salespeople
+# may change tags in Odoo, so any salesperson may here. Args: id, color.
+kind: script
+label: Tag colour
+icon: Palette
+params:
+  id: { type: int }
+  color: { type: int }
+body: |
+  let rights = table("sales_right").get(session.uid);
+  if rights == () || rights.salesman != true { fail("You have no access to CRM"); }
+  let id = parse_int(args.id.to_string());
+  if table("crm_tag").get(id) == () { fail("That tag doesn't exist"); }
+  table("crm_tag_color").record(id).set(#{ color: parse_int(args.color.to_string()) }).flash();
+  #{ id: id }

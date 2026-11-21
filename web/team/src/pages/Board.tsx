@@ -1,9 +1,8 @@
-import { useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import {
-  DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor,
-  useSensors, type Announcements, type CollisionDetection, type DragEndEvent, type KeyboardCoordinateGetter, type UniqueIdentifier,
+  DndContext, DragOverlay, useDraggable, useDroppable, type Announcements, type DragEndEvent, type UniqueIdentifier,
 } from "@dnd-kit/core";
 import { Button, Form, Input, TextField } from "react-aria-components";
 import { Check, ChevronLeft, Clock, Plus, X } from "lucide-react";
@@ -12,82 +11,10 @@ import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, PriorityStar, toast, type Level } from "../ui";
-
-// ---- drag and drop (dnd-kit) ----
-
-// A press on a control inside a card (priority, done, a link) or in a popover portalled out of
-// it is not the start of a drag.
-const isCardPress = (e: SyntheticEvent) => {
-  const target = e.target as Element;
-  return (e.currentTarget as Element).contains(target) && !target.closest("button, a, input, textarea, [role=option]");
-};
-
-class CardMouseSensor extends MouseSensor {
-  static activators = [{
-    eventName: "onMouseDown" as const,
-    handler: (e: React.MouseEvent) => e.nativeEvent.button === 0 && isCardPress(e),
-  }];
-}
-
-class CardTouchSensor extends TouchSensor {
-  static activators = [{
-    eventName: "onTouchStart" as const,
-    handler: (e: React.TouchEvent) => e.nativeEvent.touches.length <= 1 && isCardPress(e),
-  }];
-}
-
-const centreX = (r: { left: number; width: number }) => r.left + r.width / 2;
-
-/**
- * The mouse drops on the column under the pointer, or under it lower down (a short column
- * still takes a drop below its last card). The keyboard drops on the column nearest the card
- * left to right.
- */
-const columnUnder: CollisionDetection = (args) => {
-  const p = args.pointerCoordinates;
-  if (p) {
-    const hits = pointerWithin(args);
-    if (hits.length) return hits;
-    const below = args.droppableContainers.find((c) => {
-      const r = args.droppableRects.get(c.id);
-      return r && p.x >= r.left && p.x <= r.right && p.y >= r.top;
-    });
-    return below ? [{ id: below.id, data: { droppableContainer: below, value: 0 } }] : [];
-  }
-  let best: { c: (typeof args.droppableContainers)[number]; d: number } | null = null;
-  for (const c of args.droppableContainers) {
-    const r = args.droppableRects.get(c.id);
-    if (!r) continue;
-    const d = Math.abs(centreX(r) - centreX(args.collisionRect));
-    if (!best || d < best.d) best = { c, d };
-  }
-  return best ? [{ id: best.c.id, data: { droppableContainer: best.c, value: best.d } }] : [];
-};
-
-/** Left and right arrows move a picked-up card one column; up and down do nothing. */
-const columnKeys: KeyboardCoordinateGetter = (event, { context, currentCoordinates }) => {
-  const step = event.code === "ArrowRight" ? 1 : event.code === "ArrowLeft" ? -1 : 0;
-  if (!step) return undefined;
-  event.preventDefault();
-  const { collisionRect, droppableRects, droppableContainers } = context;
-  if (!collisionRect) return undefined;
-  const cols = droppableContainers.getEnabled()
-    .map((c) => droppableRects.get(c.id))
-    .filter((r): r is NonNullable<typeof r> => !!r)
-    .sort((a, b) => a.left - b.left);
-  const here = centreX(collisionRect);
-  let at = 0;
-  cols.forEach((r, i) => { if (Math.abs(centreX(r) - here) < Math.abs(centreX(cols[at]!) - here)) at = i; });
-  const next = cols[at + step];
-  if (!next) return currentCoordinates;
-  return { x: centreX(next) - collisionRect.width / 2, y: currentCoordinates.y };
-};
+import { columnUnder, justDropped, markDrop, useBoardSensors } from "../dnd";
 
 const INSTRUCTIONS =
   "Press Enter to open this to-do. To move it to another column, press Space, choose the column with the left and right arrow keys, then press Space to drop it or Escape to cancel.";
-
-// A click that ends a drag is not a click on the card.
-let lastDrop = 0;
 
 /** My to-dos as a board: one column per personal stage (Inbox, Today, …), like Odoo's To-do. */
 export const Board = observer(() => {
@@ -99,14 +26,7 @@ export const Board = observer(() => {
   const pending = usePendingStore();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [dragging, setDragging] = useState<UniqueIdentifier | null>(null);
-  const sensors = useSensors(
-    useSensor(CardMouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(CardTouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: columnKeys,
-      keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space", "Enter"] },
-    }),
-  );
+  const sensors = useBoardSensors();
   if (stages.error) return <p className="alert">{stages.error}</p>;
 
   const first = stages.items[0]?.id;
@@ -123,7 +43,7 @@ export const Board = observer(() => {
 
   const drop = async ({ active, over }: DragEndEvent) => {
     setDragging(null);
-    lastDrop = Date.now();
+    markDrop();
     const card = cardOf(active.id);
     if (!over || !card || card.task_id == null) return;
     const from = stageOf(card);
@@ -257,7 +177,7 @@ const Card = observer(({ card }: { card: Cards }) => {
     disabled: task == null,
     attributes: { role: "group", roleDescription: "draggable to-do" },
   });
-  const openIt = () => { if (task != null && Date.now() - lastDrop > 300) navigate(`/todo/${task}`); };
+  const openIt = () => { if (task != null && !justDropped()) navigate(`/todo/${task}`); };
   const ref = (el: HTMLElement | null) => { setNodeRef(el); setActivatorNodeRef(el); };
   const onKeyDown = (e: ReactKeyboardEvent) => {
     listeners?.onKeyDown?.(e);

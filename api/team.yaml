@@ -2,7 +2,7 @@
 # The team's web version: people sign in with their Odoo login and see only their own to-dos
 # (the datasource rules apply here as on the desktop). Every change goes through an action.
 title: nodo for the team
-description: To-do for the team, signed in with Odoo logins.
+description: To-do and CRM for the team, signed in with Odoo logins.
 entities:
   - name: todos
     observe: todo_view
@@ -43,6 +43,60 @@ entities:
       default_sort: name
     api: { load: instant }
 
+  # CRM. The pipeline reads every card it shows in one query (filtered by salesperson, active,
+  # stage, team) and groups them into columns in the browser. The datasource rule keeps each
+  # person to the opportunities Odoo lets them see. CRM entities load when a CRM page first
+  # reads them (the default, lazy), so signing in to To-do doesn't read them.
+  - name: opportunities
+    observe: opportunity
+    read_only: true
+    params:
+      columns: [name, active, stage_id, user_id, user_name, team_id, team_name, partner_id, customer, contact_name, partner_name, email_from, phone, expected_revenue, probability, automated_probability, priority, tag_ids, won_status, lost_reason_id, lost_reason, date_deadline, date_closed, notes, activity_state, activity_icon, activity_summary, rotting_days, campaign, medium, source, referred, create_date, write_date, company_id, company_name, currency_symbol, currency_position, currency_decimals]
+      filter: [id, name, active, stage_id, user_id, team_id, won_status, rotting_days, activity_state, search_text, switch_teams]
+      default_sort: { column: priority, direction: desc }
+  - name: crm_stages
+    observe: crm_stage
+    read_only: true
+    params:
+      columns: [name, sequence, is_won, fold, rotting_threshold_days, requirements, team_ids]
+      default_sort: sequence
+  - name: crm_tags
+    observe: crm_tag
+    read_only: true
+    params:
+      columns: [name, color]
+      default_sort: name
+  - name: lost_reasons
+    observe: crm_lost_reason
+    read_only: true
+    params:
+      columns: [name]
+  - name: sales_teams
+    observe: sales_team
+    read_only: true
+    params:
+      columns: [name, sequence, leader_id, member_ids]
+      default_sort: sequence
+  - name: customers
+    observe: customer
+    read_only: true
+    params:
+      columns: [name, email, phone, is_company]
+      default_sort: name
+  # The signed-in person's own CRM rights (the datasource rule shows only their row): which
+  # teams they're in, whether they may delete, their company's currency.
+  - name: my_crm
+    observe: sales_right
+    read_only: true
+    params:
+      columns: [salesman, all_docs, manager, company_ids, company_id, team_ids, currency_symbol, currency_position, currency_decimals]
+  - name: companies
+    observe: company
+    read_only: true
+    params:
+      columns: [name]
+      default_sort: name
+
 actions:
   - sign_in
   - sign_out
@@ -55,6 +109,18 @@ actions:
   - todo_set_tags
   - todo_set_assignees
   - todo_archive
+  - crm_create
+  - crm_move
+  - crm_won
+  - crm_lost
+  - crm_restore
+  - crm_save
+  - crm_automated_probability
+  - crm_odoo_write
+  - crm_archive
+  - crm_duplicate
+  - crm_delete
+  - crm_tag_color
 
 auth:
   local:

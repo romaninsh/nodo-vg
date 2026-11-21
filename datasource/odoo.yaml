@@ -8,20 +8,45 @@ notify: true
 invariants:
   # Assignments (project_task_user_rel) and personal stages (project_task_type) carry the
   # person in `user_id`: everyone sees and changes only their own.
+  # CRM opportunities (crm_lead) also carry `user_id`, the salesperson: there the rule is
+  # Odoo's own. A salesperson ("User: Own Documents Only") sees their opportunities and the
+  # unassigned ones, "User: All Documents" and Administrator see all, and anyone without a
+  # Sales group sees none. Groups are read from Odoo, implied groups followed.
   user_id:
     script: |
-      table.where("user_id", session.uid);
-      if table_name == "todo_user" {
-        // To-dos only (no project tasks), and not archived: the board shows what Odoo's does.
-        table.with_condition(sql::expr("task_id IN (SELECT id FROM project_task WHERE project_id IS NULL AND parent_id IS NULL AND is_template IS NOT TRUE AND active IS NOT FALSE)"));
+      if table_name == "lead" || table_name == "opportunity" {
+        let in_group = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = {} UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'sales_team' AND d.res_id = g.gid WHERE d.name IN ";
+        table.with_condition(sql::expr(in_group + "('group_sale_salesman')) AND (user_id = {} OR user_id IS NULL OR " + in_group + "('group_sale_salesman_all_leads', 'group_sale_manager')))", [session.uid, session.uid, session.uid]));
+        // Odoo's multi-company rule: no company, or one of the person's allowed companies.
+        table.with_condition(sql::expr("(company_id IS NULL OR company_id IN (SELECT cid FROM res_company_users_rel WHERE user_id = {}))", [session.uid]));
+      } else {
+        table.where("user_id", session.uid);
+        if table_name == "todo_user" {
+          // To-dos only (no project tasks), and not archived: the board shows what Odoo's does.
+          table.with_condition(sql::expr("task_id IN (SELECT id FROM project_task WHERE project_id IS NULL AND parent_id IS NULL AND is_template IS NOT TRUE AND active IS NOT FALSE)"));
+        }
+        // New assignments come only from the to-do actions (todo_create, todo_set_assignees),
+        // which run under the exceptions below; anything else could assign itself someone
+        // else's to-do.
+        table.before_insert(|record| throw "Assignments are made by adding or assigning a to-do");
+        table.before_update(|record, stored| if record.user_id != session.uid || stored.user_id != session.uid { throw "You can only change your own rows" });
+        table.before_delete(|id, row| if row.user_id != session.uid { throw "You can only remove your own rows" });
       }
-      // New assignments come only from the to-do actions (todo_create, todo_set_assignees),
-      // which run under the exceptions below; anything else could assign itself someone
-      // else's to-do.
-      table.before_insert(|record| throw "Assignments are made by adding or assigning a to-do");
-      table.before_update(|record, stored| if record.user_id != session.uid || stored.user_id != session.uid { throw "You can only change your own rows" });
-      table.before_delete(|id, row| if row.user_id != session.uid { throw "You can only remove your own rows" });
     exceptions:
+      # The CRM actions change opportunities the way Odoo does, in steps the rule's write
+      # check can't follow (and scenario tests can't run SQL rules). Each checks first that the
+      # caller may change that opportunity (lib/crm.rhai can_change, from sales_right).
+      - { type: action, name: crm_move, when: 'session.uid != ()' }
+      - { type: action, name: crm_won, when: 'session.uid != ()' }
+      - { type: action, name: crm_lost, when: 'session.uid != ()' }
+      - { type: action, name: crm_restore, when: 'session.uid != ()' }
+      - { type: action, name: crm_save, when: 'session.uid != ()' }
+      - { type: action, name: crm_automated_probability, when: 'session.uid != ()' }
+      - { type: action, name: crm_odoo_write, when: 'session.uid != ()' }
+      - { type: action, name: crm_create, when: 'session.uid != ()' }
+      - { type: action, name: crm_archive, when: 'session.uid != ()' }
+      - { type: action, name: crm_duplicate, when: 'session.uid != ()' }
+      - { type: action, name: crm_delete, when: 'session.uid != ()' }
       # Assigning a to-do to colleagues writes their assignment rows; the action checks the
       # to-do is yours first.
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }

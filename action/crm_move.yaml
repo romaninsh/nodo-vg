@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Move an opportunity to another pipeline stage (a drag on the board, a click on the form's
+# stage bar). Args: id, stage. Writes what Odoo writes for the same move: the stage, the
+# stage dates (lead hooks), the automated probability for the new stage, the probability too
+# when it was following the automated one, and the scoring tallies when the move wins it or
+# takes it out of Won.
+kind: script
+label: Move to stage
+icon: Kanban
+atomic: true
+params:
+  id: { type: int }
+  stage: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let stage = parse_int(args.stage.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  let s = table("crm_stage").get(stage);
+  if s == () || !crm::stage_for_team(s, lead.team_id) { fail("That stage isn't in this opportunity's pipeline"); }
+  if lead.stage_id != stage {
+    let set = table("crm_setting").get(1);
+    let stages = table("crm_stage").list();
+    let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+    let p = #{ stage_id: stage };
+    let auto = crm::rescore(lead, stage, set, tags, stages, table("pls_frequency").list());
+    if auto != () {
+      p.automated_probability = auto;
+      if lead.active != false && crm::same_probability(lead.probability, lead.automated_probability) { p.probability = auto; }
+    }
+    table("lead").record(id).set(p).flash();
+    for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
+      if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+      else { table("pls_frequency").insert(w); }
+    }
+  }
+  let after = table("lead").get(id);
+  #{ id: id, stage: stage, won: after.won_status == "won", probability: after.probability }

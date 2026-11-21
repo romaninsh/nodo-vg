@@ -1,0 +1,53 @@
+{
+  "crm_stage": [
+    { "id": 1, "name": "New", "sequence": 1, "is_won": false, "fold": false, "rotting_threshold_days": 0, "team_ids": "" },
+    { "id": 2, "name": "Qualified", "sequence": 2, "is_won": false, "fold": false, "rotting_threshold_days": 0, "team_ids": "" },
+    { "id": 3, "name": "Proposition", "sequence": 3, "is_won": false, "fold": false, "rotting_threshold_days": 5, "team_ids": "" },
+    { "id": 4, "name": "Won", "sequence": 70, "is_won": true, "fold": false, "rotting_threshold_days": 0, "team_ids": "" }
+  ],
+  "crm_setting": [
+    { "id": 1, "currency_symbol": "$", "currency_position": "before", "currency_decimals": 2,
+      "pls_fields": "phone_state,email_state,state_id,country_id,source_id,lang_id,tag_ids", "pls_start_date": "2026-11-11" }
+  ],
+  "crm_lost_reason": [
+    { "id": 1, "name": "Too expensive" },
+    { "id": 2, "name": "We don't have people/skills" }
+  ],
+  "sales_right": [
+    { "id": 2, "user_id": 2, "salesman": true, "all_docs": true, "manager": true, "company_ids": ",1,2,", "team_ids": ",1," },
+    { "id": 5, "user_id": 5, "salesman": true, "all_docs": false, "manager": false, "company_ids": ",1,", "team_ids": ",4," },
+    { "id": 6, "user_id": 6, "salesman": false, "all_docs": false, "manager": false, "company_ids": ",1,", "team_ids": ",," }
+  ],
+  "crm_tag": [
+    { "id": 1, "name": "Product", "color": 1 }
+  ],
+  "crm_tag_color": [
+    { "id": 1, "color": 1 }
+  ],
+  "lead": [
+    { "id": 501, "name": "Marc's desks", "type": "opportunity", "active": true, "stage_id": 1, "user_id": 5, "team_id": 1,
+      "priority": "1", "expected_revenue": "8000", "prorated_revenue": "800", "probability": 10.0, "automated_probability": 10.0,
+      "won_status": "pending", "email_state": "correct", "country_id": 233,
+      "create_date": "2026-11-15T09:00:00Z", "date_last_stage_update": "2026-11-15T09:00:00Z", "day_close": 0.0 },
+    { "id": 502, "name": "Mitchell's chairs", "type": "opportunity", "active": true, "stage_id": 2, "user_id": 2, "team_id": 1,
+      "priority": "0", "expected_revenue": "1000", "prorated_revenue": "300", "probability": 30.0, "automated_probability": 12.5,
+      "won_status": "pending", "email_state": "correct",
+      "create_date": "2026-11-15T09:00:00Z", "date_last_stage_update": "2026-11-15T09:00:00Z", "day_close": 0.0 },
+    { "id": 503, "name": "Unassigned lamps", "type": "opportunity", "active": true, "stage_id": 2, "team_id": 1,
+      "priority": "0", "expected_revenue": "500", "prorated_revenue": "100", "probability": 20.0, "automated_probability": 20.0,
+      "won_status": "pending", "create_date": "2026-11-15T09:00:00Z", "day_close": 0.0 },
+    { "id": 504, "name": "Other company's sofas", "type": "opportunity", "active": true, "stage_id": 2, "user_id": 5, "team_id": 1,
+      "company_id": 3, "priority": "0", "expected_revenue": "700", "prorated_revenue": "70", "probability": 10.0, "automated_probability": 10.0,
+      "won_status": "pending", "create_date": "2026-11-15T09:00:00Z", "day_close": 0.0 }
+  ],
+  "lead_tag": [],
+  "pls_frequency": [
+    { "id": 1, "team_id": 1, "variable": "stage_id", "value": "1", "won_count": "1.1", "lost_count": "3.1" },
+    { "id": 2, "team_id": 1, "variable": "stage_id", "value": "2", "won_count": "1.1", "lost_count": "0.1" },
+    { "id": 3, "team_id": 1, "variable": "stage_id", "value": "3", "won_count": "1.1", "lost_count": "0.1" },
+    { "id": 4, "team_id": 1, "variable": "stage_id", "value": "4", "won_count": "1.1", "lost_count": "0.1" },
+    { "id": 5, "team_id": 1, "variable": "email_state", "value": "correct", "won_count": "1.1", "lost_count": "2.1" },
+    { "id": 6, "team_id": 1, "variable": "phone_state", "value": "correct", "won_count": "1.1", "lost_count": "1.1" },
+    { "id": 7, "team_id": 1, "variable": "country_id", "value": "233", "won_count": "1.1", "lost_count": "0.1" }
+  ]
+}

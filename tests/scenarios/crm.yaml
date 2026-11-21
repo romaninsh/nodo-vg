@@ -1,0 +1,267 @@
+fixtures: crm-basics
+vars:
+  desks: { record: lead, id: 501 }
+  chairs: { record: lead, id: 502 }
+  lamps: { record: lead, id: 503 }
+  new_tally: { record: pls_frequency, id: 1 }
+  qualified_tally: { record: pls_frequency, id: 2 }
+  won_tally: { record: pls_frequency, id: 4 }
+  email_tally: { record: pls_frequency, id: 5 }
+  no_phone_tally: { vista: pls_frequency, where: { variable: phone_state, value: "False" } }
+
+scenarios:
+  # A drag on the board writes what Odoo's write() does for a stage change: the stage date,
+  # and the automated probability for the new stage, which the probability follows while it
+  # followed it before.
+  move-stage:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc drags his opportunity from New to Qualified
+        do: { action: crm_move, args: { id: 501, stage: 2 } }
+        assert:
+          - desks.stage_id == 2
+          - date(desks.date_last_stage_update) == date("2026-11-21T09:00:00Z")
+          - desks.automated_probability == 91.67
+          - desks.probability == 91.67
+          - parse_float(desks.prorated_revenue.to_string()) == 7333.6
+          - desks.won_status == "pending"
+          - desks.write_uid == 5
+        what_if: [someone-elses, unassigned, no-sales-rights, manual-probability, other-company]
+
+  someone-elses:
+    steps:
+      - step: Marc tries to move Mitchell's opportunity
+        do: { action: crm_move, args: { id: 502, stage: 3 } }
+        fails: "You can't change this opportunity"
+
+  unassigned:
+    steps:
+      - step: Marc moves an unassigned opportunity, which Odoo lets every salesperson change
+        do: { action: crm_move, args: { id: 503, stage: 3 } }
+        assert:
+          - lamps.stage_id == 3
+
+  no-sales-rights:
+    steps:
+      - step: Monica, who has no Sales access in Odoo, tries to move it
+        as: { app: team, uid: 6, name: Monica Light, login: light }
+        fails: "You can't change this opportunity"
+
+  other-company:
+    steps:
+      - step: Marc's own opportunity in a company he isn't allowed in (Odoo's multi-company rule)
+        do: { action: crm_move, args: { id: 504, stage: 3 } }
+        fails: "You can't change this opportunity"
+
+  manual-probability:
+    steps:
+      - step: Mitchell's own probability (30%) differs from the automated one, so a move keeps it
+        as: { app: team, uid: 2, name: Mitchell Admin, login: admin }
+        do: { action: crm_move, args: { id: 502, stage: 3 } }
+        assert:
+          - chairs.stage_id == 3
+          - chairs.probability == 30.0
+          - chairs.automated_probability != 12.5
+
+  # Won: the won stage at 100%, closed now, and counted as won for every stage in the
+  # scoring tallies; moving it out of Won takes that back.
+  won-and-back:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc marks his opportunity as won
+        do: { action: crm_won, args: { id: 501 } }
+        assert:
+          - result.stage == 4
+          - desks.stage_id == 4
+          - desks.probability == 100.0
+          - desks.automated_probability == 100.0
+          - desks.won_status == "won"
+          - date(desks.date_closed) == date("2026-11-21T09:00:00Z")
+          - parse_float(new_tally.won_count.to_string()) == 2.1
+          - parse_float(won_tally.won_count.to_string()) == 2.1
+          - parse_float(email_tally.won_count.to_string()) == 2.1
+          - parse_float(new_tally.lost_count.to_string()) == 3.1
+          - parse_float(no_phone_tally.first().won_count.to_string()) == 1.1
+        what_if: [won-is-final]
+      - step: A won opportunity's probability can't be changed
+        do: { action: crm_save, args: { id: 501, probability: "50" } }
+        fails: "Only an ongoing opportunity's probability can change"
+      - step: He drags it back to Qualified
+        clock: +1h
+        do: { action: crm_move, args: { id: 501, stage: 2 } }
+        assert:
+          - desks.won_status == "pending"
+          - desks.date_closed == ()
+          - parse_float(new_tally.won_count.to_string()) == 1.1
+          - parse_float(won_tally.won_count.to_string()) == 1.1
+          - desks.probability == desks.automated_probability
+          - desks.probability < 100.0
+
+  won-is-final:
+    steps:
+      - step: Won twice
+        do: |
+          actions.crm_won(#{ id: 501 });
+          actions.crm_won(#{ id: 501 });
+        fails: "This opportunity is already won"
+
+  # Lost: archived, 0%, the reason kept; restore puts it back with the automated probability.
+  lost-and-restored:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc marks his opportunity as lost, too expensive
+        do: { action: crm_lost, args: { id: 501, reason: 1 } }
+        assert:
+          - desks.active == false
+          - desks.won_status == "lost"
+          - desks.lost_reason_id == 1
+          - desks.probability == 0.0
+          - desks.automated_probability == 0.0
+          - date(desks.date_closed) == date("2026-11-21T09:00:00Z")
+          - parse_float(new_tally.lost_count.to_string()) == 4.1
+          - parse_float(qualified_tally.lost_count.to_string()) == 0.1
+          - parse_float(email_tally.lost_count.to_string()) == 3.1
+          - parse_float(no_phone_tally.first().lost_count.to_string()) == 1.1
+        what_if: [no-reason, unknown-reason, lost-twice, won-after-lost]
+      - step: He restores it
+        do: { action: crm_restore, args: { id: 501 } }
+        assert:
+          - desks.active == true
+          - desks.won_status == "pending"
+          - desks.lost_reason_id == ()
+          - desks.date_closed == ()
+          - desks.probability == 26.19
+          - desks.automated_probability == 26.19
+          - parse_float(new_tally.lost_count.to_string()) == 3.1
+          - parse_float(no_phone_tally.first().lost_count.to_string()) == 0.1
+        what_if: [restore-ongoing]
+
+  no-reason:
+    steps:
+      - step: Lost without a reason, which Odoo allows
+        do: { action: crm_lost, args: { id: 501 } }
+        assert:
+          - desks.won_status == "lost"
+          - desks.lost_reason_id == ()
+
+  unknown-reason:
+    steps:
+      - step: A reason that doesn't exist
+        do: { action: crm_lost, args: { id: 501, reason: 99 } }
+        fails: "That lost reason doesn't exist"
+
+  lost-twice:
+    steps:
+      - step: Lost twice
+        do: |
+          actions.crm_lost(#{ id: 501, reason: 1 });
+          actions.crm_lost(#{ id: 501, reason: 1 });
+        fails: "Only an ongoing opportunity can be marked as lost"
+
+  won-after-lost:
+    steps:
+      - step: Lost, then won from the lost list
+        do: |
+          actions.crm_lost(#{ id: 501, reason: 1 });
+          actions.crm_won(#{ id: 501 });
+        assert:
+          - desks.active == true
+          - desks.won_status == "won"
+          - desks.lost_reason_id == ()
+          - parse_float(new_tally.lost_count.to_string()) == 3.1
+          - parse_float(new_tally.won_count.to_string()) == 2.1
+
+  restore-ongoing:
+    steps:
+      - step: Restoring an opportunity that isn't lost
+        do: { action: crm_restore, args: { id: 502 } }
+        as: { app: team, uid: 2, name: Mitchell Admin, login: admin }
+        fails: "Only a lost opportunity can be restored"
+
+  # The form's own fields.
+  save-fields:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc changes the name, revenue, probability, priority and expected closing
+        do: { action: crm_save, args: { id: 501, name: "Marc's 20 desks", expected_revenue: "9000", probability: "40", priority: "3", date_deadline: "2026-12-15" } }
+        assert:
+          - desks.name == "Marc's 20 desks"
+          - parse_float(desks.expected_revenue.to_string()) == 9000.0
+          - desks.probability == 40.0
+          - desks.priority == "3"
+          - desks.date_deadline == "2026-12-15"
+          - parse_float(desks.prorated_revenue.to_string()) == 3600.0
+          - desks.date_closed == ()
+        what_if: [html-notes, out-of-range, no-name]
+
+  html-notes:
+    steps:
+      - step: Notes that look like HTML are stored as text
+        do: { action: crm_save, args: { id: 501, description: "<b>big</b> & urgent" } }
+        assert:
+          - desks.description == "<p>&lt;b&gt;big&lt;/b&gt; &amp; urgent</p>"
+
+  out-of-range:
+    steps:
+      - step: A probability over 100%
+        do: { action: crm_save, args: { id: 501, probability: "120" } }
+        fails: "between 0% and 100%"
+
+  no-name:
+    steps:
+      - step: An empty name
+        do: { action: crm_save, args: { id: 501, name: "  " } }
+        fails: "Give the opportunity a name"
+
+  # The form menu's Archive: out of the pipeline, closed, but not lost; Unarchive puts it back.
+  archive-and-back:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc archives his opportunity
+        do: { action: crm_archive, args: { id: 501, active: false } }
+        assert:
+          - desks.active == false
+          - desks.won_status == "pending"
+          - date(desks.date_closed) == date("2026-11-21T09:00:00Z")
+          - parse_float(new_tally.lost_count.to_string()) == 3.1
+        what_if: [delete-needs-admin]
+      - step: He unarchives it; the probability follows the automated one again, which clears the closing date (as in Odoo)
+        do: { action: crm_archive, args: { id: 501, active: true } }
+        assert:
+          - desks.active == true
+          - desks.won_status == "pending"
+          - desks.date_closed == ()
+          - desks.automated_probability == 26.19
+          - desks.probability == 26.19
+
+  delete-needs-admin:
+    steps:
+      - step: Marc, a salesperson, tries to delete it (only Sales administrators may in Odoo)
+        do: { action: crm_delete, args: { id: 501 } }
+        fails: "Only a Sales administrator can delete opportunities"
+
+  tag-colour:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    steps:
+      - step: Marc gives a tag another colour
+        do: { action: crm_tag_color, args: { id: 1, color: 10 } }
+        assert:
+          - table("crm_tag_color").get(1).color == 10
+        what_if: [no-such-colour, tag-colour-no-rights]
+
+  no-such-colour:
+    steps:
+      - step: A colour Odoo doesn't have
+        do: { action: crm_tag_color, args: { id: 1, color: 12 } }
+        fails: "A tag colour is one of Odoo's twelve"
+
+  tag-colour-no-rights:
+    steps:
+      - step: Monica, with no Sales access, tries it
+        as: { app: team, uid: 6, name: Monica Light, login: light }
+        fails: "You have no access to CRM"

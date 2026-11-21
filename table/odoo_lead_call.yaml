@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Insert-only: each row is one call of a crm.lead method through Odoo's JSON-RPC, as the person
+# whose login and password it carries: `copy` (Duplicate: Odoo's copy rules decide what the copy
+# keeps) and `unlink` (Delete: Odoo also detaches meetings and removes messages and
+# followers). Odoo answers 200 even when it refuses, so the caller reads the result back.
+datasource: odoo_rpc
+title: Odoo opportunity call
+columns:
+  id: { type: string, flags: [id] }
+  uid: { type: int }
+  password: { type: string }
+  method: { type: string }
+  lead_id: { type: int }
+api:
+  read: false
+  endpoint: /jsonrpc
+  insert:
+    method: POST
+    body: |
+      #{
+        jsonrpc: "2.0",
+        method: "call",
+        id: 1,
+        params: #{
+          service: "object",
+          method: "execute_kw",
+          args: ["odoo", record.uid, record.password, "crm.lead", record.method, [[record.lead_id]]]
+        }
+      }

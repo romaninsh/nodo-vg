@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Sales teams that run a pipeline (crm_team with use_opportunities), with their leader and
+# members as "2,5" id lists.
+datasource: odoo
+title: Sales team
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Sales team, flags: [title] }
+  sequence: { type: int, label: Order }
+  leader_id: { type: int, label: Team leader }
+  member_ids: { type: string, label: Members }
+postgres:
+  listen: [crm_team, crm_team_member]
+  rhai: |
+    sql::select().from("crm_team")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(sequence, 0)").alias("sequence"))
+        .expression(sql::expr("user_id").alias("leader_id"))
+        .expression(sql::expr("coalesce((SELECT string_agg(m.user_id::text, ',' ORDER BY m.user_id) FROM crm_team_member m WHERE m.crm_team_id = crm_team.id AND m.active IS NOT FALSE), '')").alias("member_ids"))
+        .where(sql::expr("active IS NOT FALSE AND use_opportunities"))
+        .order_by(sql::expr("sequence, id"), "asc")

@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Opportunities with everything the pipeline cards and the form show, in one query: the
+# customer as Odoo names it, salesperson and team names, tag ids, the next activity's state
+# and icon, and how many days a card has been rotting in its stage. Read-only; changes go
+# through `lead` and the CRM actions. The datasource rule narrows it to what the signed-in
+# person may see in Odoo (their own and unassigned ones, or all with "All Documents").
+datasource: odoo
+title: Opportunity
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Opportunity, flags: [title, searchable] }
+  active: { type: bool, label: Active }
+  stage_id: { type: int, label: Stage }
+  user_id: { type: int, label: Salesperson }
+  user_name: { type: string, label: Salesperson name }
+  team_id: { type: int, label: Sales team }
+  team_name: { type: string, label: Sales team name }
+  partner_id: { type: int, label: Contact }
+  customer: { type: string, label: Customer, flags: [searchable] }
+  contact_name: { type: string, label: Contact name, flags: [searchable] }
+  partner_name: { type: string, label: Company name, flags: [searchable] }
+  email_from: { type: string, label: Email, flags: [searchable] }
+  phone: { type: string, label: Phone }
+  expected_revenue: { type: float, label: Expected revenue }
+  probability: { type: float, label: Probability }
+  automated_probability: { type: float, label: Automated probability }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  tag_ids: { type: string, label: Tag ids }
+  won_status: { type: string, label: Won/Lost, enum: [won, lost, pending] }
+  lost_reason_id: { type: int, label: Lost reason }
+  lost_reason: { type: string, label: Lost reason name }
+  date_deadline: { type: date, label: Expected closing }
+  date_closed: { type: timestamp, label: Closed }
+  notes: { type: string, label: Notes }
+  # Odoo's activity_state: overdue, today or planned for the most urgent open activity.
+  activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
+  activity_icon: { type: string, label: Activity type icon }
+  activity_summary: { type: string, label: Next activity }
+  rotting_days: { type: int, label: Days rotting }
+  campaign: { type: string, label: Campaign }
+  medium: { type: string, label: Medium }
+  source: { type: string, label: Source }
+  referred: { type: string, label: Referred by }
+  create_date: { type: timestamp, label: Created on }
+  write_date: { type: timestamp, label: Last updated on }
+  # What Odoo's "Opportunity" search box matches, in one column: the name, the contact, the
+  # company name and the email.
+  search_text: { type: string, label: Search }
+  # The sales teams whose pipeline shows it, as ",1,4,": its own team, or, with no team, every
+  # team whose stages hold its stage (all teams for a shared stage). Odoo's team switcher
+  # shows `team_id = T OR (no team AND stage in T's stages)`.
+  switch_teams: { type: string, label: Pipelines }
+  company_id: { type: int, label: Company }
+  company_name: { type: string, label: Company name }
+  # Its company's currency (Odoo's company_currency); empty without a company, and the page
+  # then uses the signed-in person's company currency.
+  currency_symbol: { type: string, label: Currency }
+  currency_position: { type: string, label: Symbol position }
+  currency_decimals: { type: int, label: Decimals }
+postgres:
+  listen: [crm_lead, crm_tag_rel, crm_stage, crm_stage_crm_team_rel, crm_lost_reason, crm_team, mail_activity, res_partner, res_users]
+  rhai: |
+    sql::select().from("crm_lead")
+        .field("id")
+        .field("name")
+        .expression(sql::expr("coalesce(active, true)").alias("active"))
+        .field("stage_id")
+        .field("user_id")
+        .expression(sql::expr("(SELECT p.name FROM res_users u JOIN res_partner p ON p.id = u.partner_id WHERE u.id = crm_lead.user_id)").alias("user_name"))
+        .field("team_id")
+        .expression(sql::expr("(SELECT coalesce(t.name->>'en_US', t.name->>(SELECT k FROM jsonb_object_keys(t.name) k LIMIT 1)) FROM crm_team t WHERE t.id = crm_lead.team_id)").alias("team_name"))
+        .field("partner_id")
+        .expression(sql::expr("coalesce((SELECT coalesce(p.complete_name, p.name) FROM res_partner p WHERE p.id = crm_lead.partner_id), nullif(contact_name, ''), nullif(partner_name, ''))").alias("customer"))
+        .field("contact_name")
+        .field("partner_name")
+        .field("email_from")
+        .field("phone")
+        .expression(sql::expr("coalesce(expected_revenue, 0)::float8").alias("expected_revenue"))
+        .expression(sql::expr("coalesce(probability, 0)").alias("probability"))
+        .expression(sql::expr("coalesce(automated_probability, 0)").alias("automated_probability"))
+        .expression(sql::expr("coalesce(priority, '0')").alias("priority"))
+        .expression(sql::expr("(SELECT string_agg(r.tag_id::text, ',' ORDER BY r.tag_id) FROM crm_tag_rel r WHERE r.lead_id = crm_lead.id)").alias("tag_ids"))
+        .field("won_status")
+        .field("lost_reason_id")
+        .expression(sql::expr("(SELECT coalesce(r.name->>'en_US', r.name->>(SELECT k FROM jsonb_object_keys(r.name) k LIMIT 1)) FROM crm_lost_reason r WHERE r.id = crm_lead.lost_reason_id)").alias("lost_reason"))
+        .field("date_deadline")
+        .field("date_closed")
+        .expression(sql::expr("btrim(replace(replace(replace(replace(replace(left(trim(regexp_replace(regexp_replace(coalesce(description, ''), '<(br|/p|/li|/div)[^>]*>', E'\\n', 'gi'), '<[^>]*>', '', 'g')), 4000), '&lt;', '<'), '&gt;', '>'), '&nbsp;', ' '), '&quot;', '\"'), '&amp;', '&'), E' \\n')").alias("notes"))
+        .expression(sql::expr("(SELECT CASE min(sign(a.date_deadline - (now() AT TIME ZONE coalesce(a.user_tz, 'UTC'))::date)) WHEN -1 THEN 'overdue' WHEN 0 THEN 'today' WHEN 1 THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE)").alias("activity_state"))
+        .expression(sql::expr("(SELECT t.icon FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_icon"))
+        .expression(sql::expr("(SELECT coalesce(nullif(a.summary, ''), coalesce(t.name->>'en_US', '')) || ' · ' || to_char(a.date_deadline, 'YYYY-MM-DD') FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_summary"))
+        .expression(sql::expr("coalesce((SELECT CASE WHEN s.rotting_threshold_days > 0 AND crm_lead.won_status = 'pending' AND coalesce(crm_lead.date_last_stage_update, crm_lead.create_date) + make_interval(days => s.rotting_threshold_days) < (now() AT TIME ZONE 'UTC') THEN extract(day FROM (now() AT TIME ZONE 'UTC') - coalesce(crm_lead.date_last_stage_update, crm_lead.create_date))::int END FROM crm_stage s WHERE s.id = crm_lead.stage_id), 0)").alias("rotting_days"))
+        .expression(sql::expr("(SELECT coalesce(c.title->>'en_US', c.name) FROM utm_campaign c WHERE c.id = crm_lead.campaign_id)").alias("campaign"))
+        .expression(sql::expr("(SELECT m.name FROM utm_medium m WHERE m.id = crm_lead.medium_id)").alias("medium"))
+        .expression(sql::expr("(SELECT s.name FROM utm_source s WHERE s.id = crm_lead.source_id)").alias("source"))
+        .field("referred")
+        .field("create_date")
+        .field("write_date")
+        .expression(sql::expr("concat_ws(' ', name, contact_name, partner_name, email_from, (SELECT coalesce(p.complete_name, p.name) FROM res_partner p WHERE p.id = crm_lead.partner_id))").alias("search_text"))
+        .expression(sql::expr("CASE WHEN team_id IS NOT NULL THEN ',' || team_id || ',' WHEN NOT EXISTS (SELECT 1 FROM crm_stage_crm_team_rel r WHERE r.crm_stage_id = crm_lead.stage_id) THEN ',' || coalesce((SELECT string_agg(t.id::text, ',') FROM crm_team t WHERE t.use_opportunities AND t.active IS NOT FALSE), '') || ',' ELSE ',' || (SELECT string_agg(r.crm_team_id::text, ',') FROM crm_stage_crm_team_rel r WHERE r.crm_stage_id = crm_lead.stage_id) || ',' END").alias("switch_teams"))
+        .field("company_id")
+        .expression(sql::expr("(SELECT c.name FROM res_company c WHERE c.id = crm_lead.company_id)").alias("company_name"))
+        .expression(sql::expr("(SELECT cur.symbol FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = crm_lead.company_id)").alias("currency_symbol"))
+        .expression(sql::expr("(SELECT cur.position FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = crm_lead.company_id)").alias("currency_position"))
+        .expression(sql::expr("(SELECT cur.decimal_places FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = crm_lead.company_id)").alias("currency_decimals"))
+        .where(sql::expr("type = 'opportunity'"))
+        .order_by(sql::expr("priority DESC, id"), "desc")

@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Contacts an opportunity can be for (res_partner, active), named as Odoo names them
+# ("Azure Interior, Brandon Freeman"). Read-only: picking one is saved through Odoo, which
+# fills the opportunity's contact details from it.
+datasource: odoo
+title: Customer
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Contact, flags: [title, searchable] }
+  email: { type: string, label: Email, flags: [searchable] }
+  phone: { type: string, label: Phone }
+  is_company: { type: bool, label: Company }
+postgres:
+  listen: [res_partner]
+  rhai: |
+    sql::select().from("res_partner")
+        .field("id")
+        .expression(sql::expr("coalesce(complete_name, name)").alias("name"))
+        .field("email")
+        .field("phone")
+        .expression(sql::expr("coalesce(is_company, false)").alias("is_company"))
+        .where(sql::expr("active IS NOT FALSE AND coalesce(complete_name, name) IS NOT NULL"))
+        .order_by(sql::expr("2"), "asc")

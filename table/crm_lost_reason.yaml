@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Why an opportunity was lost (crm_lost_reason). Translated JSON names, so read-only; archived
+# reasons are left out, as Odoo's lost dialog leaves them out.
+datasource: odoo
+title: Lost reason
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Lost reason, flags: [title] }
+postgres:
+  listen: [crm_lost_reason]
+  rhai: |
+    sql::select().from("crm_lost_reason")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .where(sql::expr("active IS NOT FALSE"))
+        .order_by(sql::ident("id"), "asc")

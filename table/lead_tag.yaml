@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's CRM tag links (crm_tag_rel), read only: its key is the pair, which Vantage can't
+# write (FEEDBACK.md), so tag changes go through Odoo (crm_odoo_write). The tag stands in for
+# the id; always narrow to one lead: table("lead_tag").where("lead_id", id).
+datasource: odoo
+table: crm_tag_rel
+title: CRM tag link
+id_column: tag_id
+columns:
+  tag_id: { type: int, flags: [id], label: Tag }
+  lead_id: { type: int, label: Opportunity }
+deny:
+  actions: [insert, update, delete]

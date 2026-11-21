@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The form menu's Duplicate: Odoo's own copy (JSON-RPC `copy`, as you), so its copy rules decide
+# what the new opportunity keeps (no stage, probability or closing date carried over; assigned
+# now). Args: id. Returns the copy's id, read back from the database.
+kind: script
+label: Duplicate
+icon: Copy
+params:
+  id: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  let pw = if session.odoo_password != () { session.odoo_password.to_string() } else { "" };
+  if pw == "" { fail("Sign in on the web to duplicate an opportunity"); }
+  let last = table("lead").sort("id", "desc").first();
+  let floor = if last == () { 0 } else { last.id };
+  table("odoo_lead_call").insert(#{ id: uuid_v7(), uid: me, password: pw, method: "copy", lead_id: id });
+  let made = table("lead").where("create_uid", me).sort("id", "desc").first();
+  if made == () || made.id <= floor { fail("Odoo didn't duplicate the opportunity (wrong password?)"); }
+  #{ id: made.id }

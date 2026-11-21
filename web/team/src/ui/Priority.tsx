@@ -3,8 +3,11 @@ import { Button, ListBox, ListBoxItem, Popover, Select, SelectValue } from "reac
 import { Check } from "lucide-react";
 import { Hint } from "./Hint";
 
-/** Odoo's four priority levels, stored as "0".."3". */
+/** Odoo's four priority levels, stored as "0".."3" (To-do's names). */
 export const PRIORITY_LABELS = ["Low", "Medium", "High", "Urgent"] as const;
+/** CRM stores the same four levels and names the top one "Very High" (Odoo shows three stars). */
+export const CRM_PRIORITY_LABELS = ["Low", "Medium", "High", "Very High"] as const;
+type Labels = readonly [string, string, string, string];
 export type Level = "0" | "1" | "2" | "3";
 const levelOf = (v: string | null | undefined) => Math.min(3, Math.max(0, Number(v ?? "0") || 0));
 
@@ -38,22 +41,23 @@ export function PriorityStar({ level, size = 18 }: { level: number; size?: numbe
 const stop = (e: SyntheticEvent) => e.stopPropagation();
 
 /**
- * A to-do's priority as one star. A click, Enter, Space or an arrow key opens the four levels;
+ * A record's priority as one star. A click, Enter, Space or an arrow key opens the four levels;
  * picking one calls `onChange`. Focus, keyboard, Esc and clicks outside come from React Aria's
- * Select.
+ * Select. `labels` names the levels (To-do's by default, `CRM_PRIORITY_LABELS` for CRM).
  */
-export function Priority({ value, onChange, size = 18, disabled }: {
+export function Priority({ value, onChange, size = 18, disabled, labels = PRIORITY_LABELS }: {
   value: string | null | undefined;
   onChange: (level: Level) => void;
   size?: number;
   disabled?: boolean;
+  labels?: Labels;
 }) {
   const level = levelOf(value);
   return (
     <span className="prio" onClick={stop} onPointerDown={stop} onMouseDown={stop} onTouchStart={stop} onKeyDown={stop}>
       <Select aria-label="Priority" className="prio-select" isDisabled={disabled} selectedKey={String(level)}
         onSelectionChange={(k) => { if (k != null && String(k) !== String(level)) onChange(String(k) as Level); }}>
-        <Hint text={`Priority: ${PRIORITY_LABELS[level]}`}>
+        <Hint text={`Priority: ${labels[level]}`}>
           <Button className="prio-btn">
             <PriorityStar level={level} size={size} />
             <SelectValue className="sr-only" />
@@ -61,7 +65,7 @@ export function Priority({ value, onChange, size = 18, disabled }: {
         </Hint>
         <Popover className="popover" placement="bottom start" offset={4}>
           <ListBox className="menu">
-            {PRIORITY_LABELS.map((label, n) => (
+            {labels.map((label, n) => (
               <ListBoxItem key={label} id={String(n)} textValue={label} className="menu-item">
                 {({ isSelected }) => (
                   <>

@@ -52,7 +52,7 @@ test("the app switcher lists the apps and takes you to To-do", async ({ page }) 
   await page.getByRole("navigation", { name: "To-do" }).getByRole("link", { name: "List" }).click();
   await expect(page).toHaveURL(/\/list$/);
   await page.getByRole("button", { name: "Apps" }).click();
-  await expect(page.getByRole("option", { name: /CRM/ })).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("option", { name: /CRM/ })).not.toHaveAttribute("aria-disabled", "true");
   await page.getByRole("option", { name: /To-do/ }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator("section.col").first()).toBeVisible();

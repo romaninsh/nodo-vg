@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# CRM tags (crm_tag), not the To-do's project tags. Translated JSON names, so read-only.
+datasource: odoo
+title: CRM tag
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Tag, flags: [title, searchable] }
+  color: { type: int, label: Colour }
+postgres:
+  listen: [crm_tag]
+  rhai: |
+    sql::select().from("crm_tag")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(color, 0)").alias("color"))
+        .order_by(sql::expr("2"), "asc")

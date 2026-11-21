@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# What each person may do in CRM, from Odoo's own groups (implied groups followed):
+# `salesman` = Sales "User: Own Documents Only" or more; `all_docs` = "User: All Documents"
+# or Administrator; `manager` = Administrator, the only Sales group that may delete
+# opportunities. Someone with none has no CRM. Also their allowed companies and the sales
+# teams they are a member of. Read by the CRM actions (which check the same as the row rule on
+# opportunities) and by the web pipeline; `user_id` makes the datasource rule show each person
+# only their own row.
+datasource: odoo
+title: Sales rights
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  user_id: { type: int, flags: [hidden] }
+  salesman: { type: bool, label: Salesperson }
+  all_docs: { type: bool, label: Sees every opportunity }
+  manager: { type: bool, label: Sales administrator }
+  company_ids: { type: string, label: Allowed companies }
+  company_id: { type: int, label: Current company }
+  team_ids: { type: string, label: Member of teams }
+  # The current company's currency: what an opportunity with no company is shown in.
+  currency_symbol: { type: string, label: Currency }
+  currency_position: { type: string, label: Symbol position }
+  currency_decimals: { type: int, label: Decimals }
+postgres:
+  listen: [crm_team_member]
+  rhai: |
+    let in_group = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = res_users.id UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'sales_team' AND d.res_id = g.gid WHERE d.name IN ";
+    sql::select().from("res_users")
+        .expression(sql::expr("res_users.id").alias("id"))
+        .expression(sql::expr("res_users.id").alias("user_id"))
+        .expression(sql::expr(in_group + "('group_sale_salesman'))").alias("salesman"))
+        .expression(sql::expr(in_group + "('group_sale_salesman_all_leads', 'group_sale_manager'))").alias("all_docs"))
+        .expression(sql::expr(in_group + "('group_sale_manager'))").alias("manager"))
+        .expression(sql::expr("',' || coalesce((SELECT string_agg(r.cid::text, ',' ORDER BY r.cid) FROM res_company_users_rel r WHERE r.user_id = res_users.id), '') || ','").alias("company_ids"))
+        .expression(sql::expr("res_users.company_id").alias("company_id"))
+        .expression(sql::expr("',' || coalesce((SELECT string_agg(m.crm_team_id::text, ',' ORDER BY m.crm_team_id) FROM crm_team_member m WHERE m.user_id = res_users.id AND m.active IS NOT FALSE), '') || ','").alias("team_ids"))
+        .expression(sql::expr("(SELECT cur.symbol FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = res_users.company_id)").alias("currency_symbol"))
+        .expression(sql::expr("(SELECT cur.position FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = res_users.company_id)").alias("currency_position"))
+        .expression(sql::expr("(SELECT cur.decimal_places FROM res_company c JOIN res_currency cur ON cur.id = c.currency_id WHERE c.id = res_users.company_id)").alias("currency_decimals"))
+        .where(sql::expr("res_users.share IS NOT TRUE"))

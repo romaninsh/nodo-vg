@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Insert-only: each row is one `crm.lead.write` call through Odoo's JSON-RPC, as the person
+# whose login and password it carries. Used for the fields whose save in Odoo runs more than a
+# row write: the contact (fills name, email, phone and address from it), email and phone
+# (normalised, checked, copied to the contact), salesperson and team (followers, assignment
+# date), and tags (a link table Vantage can't write). `vals` is the map of fields to write,
+# built by the crm_odoo_write action. Odoo answers 200 even when it refuses, so the caller
+# reads the result back.
+datasource: odoo_rpc
+title: Odoo opportunity write
+columns:
+  id: { type: string, flags: [id] }
+  uid: { type: int }
+  password: { type: string }
+  lead_id: { type: int }
+  vals: {}
+api:
+  read: false
+  endpoint: /jsonrpc
+  insert:
+    method: POST
+    body: |
+      #{
+        jsonrpc: "2.0",
+        method: "call",
+        id: 1,
+        params: #{
+          service: "object",
+          method: "execute_kw",
+          args: ["odoo", record.uid, record.password, "crm.lead", "write", [[record.lead_id], record.vals]]
+        }
+      }

@@ -197,7 +197,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Times in my time zone | user's zone | computer's zone | browser's zone | done |
 | Phone layout | yes: menu behind a ☰, columns swiped one at a time, form fields stacked, New and search as icons | n/a | columns swiped one at a time, form fields stacked, About and Sign out as icons, finger-sized targets; the list drops its tags and people columns | partly (no ☰ menu, no New or search on the phone board) |
 | Share from the phone into To-do | yes | no | no | won't (phone app only) |
-| Switch apps from the top bar | every installed app | n/a | To-do; CRM listed, greyed out until it is built | partly |
+| Switch apps from the top bar | every installed app | n/a | To-do and CRM | partly |
 | Keyboard shortcuts (priority, chatter, add to-do) | yes | no | no | not yet |
 
 ### Next blocks

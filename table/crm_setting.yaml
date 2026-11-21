@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# One row (id 1) of CRM settings from Odoo: the predictive lead scoring setup (which fields
+# count, from which creation date), and the first company's currency (unused by the pages,
+# which take each opportunity's company currency, or the person's own company's).
+datasource: odoo
+title: CRM settings
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  currency_symbol: { type: string, label: Currency }
+  currency_position: { type: string, label: Symbol position }
+  currency_decimals: { type: int, label: Decimals }
+  pls_fields: { type: string, label: Scoring fields }
+  pls_start_date: { type: string, label: Scoring since }
+postgres:
+  # Settings change once in a blue moon and these tables have no NOTIFY trigger: listening
+  # (to silence) keeps the API from re-reading the row every 10 seconds. A changed currency or
+  # scoring setup shows after the app reloads.
+  listen: [res_company, ir_config_parameter]
+  rhai: |
+    sql::select().from("res_company")
+        .expression(sql::expr("1").alias("id"))
+        .expression(sql::expr("(SELECT c.symbol FROM res_currency c WHERE c.id = res_company.currency_id)").alias("currency_symbol"))
+        .expression(sql::expr("(SELECT c.position FROM res_currency c WHERE c.id = res_company.currency_id)").alias("currency_position"))
+        .expression(sql::expr("(SELECT coalesce(c.decimal_places, 2) FROM res_currency c WHERE c.id = res_company.currency_id)").alias("currency_decimals"))
+        .expression(sql::expr("coalesce((SELECT value FROM ir_config_parameter WHERE key = 'crm.pls_fields'), '')").alias("pls_fields"))
+        .expression(sql::expr("coalesce((SELECT value FROM ir_config_parameter WHERE key = 'crm.pls_start_date'), '')").alias("pls_start_date"))
+        .order_by(sql::ident("id"), "asc")
+        .limit(1, 0)

@@ -74,6 +74,17 @@ export const NextMonth: Story = {
   },
 };
 
+/** A date only (CRM's Expected Closing): no time segments; the value is "YYYY-MM-DD". */
+export const DateOnly: Story = {
+  args: { value: "2026-12-15", dateOnly: true },
+  play: async ({ args, userEvent }) => {
+    await expect(screen.queryByRole("spinbutton", { name: /hour/i })).toBeNull();
+    await userEvent.click(calendarButton());
+    await userEvent.click(await screen.findByRole("button", { name: /December 18, 2026/ }));
+    await expect(args.onChange).toHaveBeenCalledWith("2026-12-18");
+  },
+};
+
 /** Typed segments: the hour goes up with the arrow key. */
 export const TypeTheTime: Story = {
   play: async ({ args, userEvent }) => {

@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The form menu's Delete, for Sales administrators only (Odoo's salesperson groups may create
+# and change opportunities but not delete them). Odoo's own unlink (JSON-RPC, as you) also
+# detaches meetings and removes the messages and followers. Args: id.
+kind: script
+label: Delete
+icon: Trash2
+params:
+  id: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let rights = table("sales_right").get(me);
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, rights, me) { fail("You can't change this opportunity"); }
+  if rights.manager != true { fail("Only a Sales administrator can delete opportunities"); }
+  let pw = if session.odoo_password != () { session.odoo_password.to_string() } else { "" };
+  if pw == "" { fail("Sign in on the web to delete an opportunity"); }
+  table("odoo_lead_call").insert(#{ id: uuid_v7(), uid: me, password: pw, method: "unlink", lead_id: id });
+  if table("lead").get(id) != () { fail("Odoo didn't delete the opportunity (wrong password?)"); }
+  #{ id: id }

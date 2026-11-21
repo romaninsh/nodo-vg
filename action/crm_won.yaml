@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Odoo's "Won": a lost (archived) opportunity is restored first, then it moves to the won
+# stage after its current one (or the nearest before it) at 100%. Args: id.
+kind: script
+label: Won
+icon: Trophy
+atomic: true
+params:
+  id: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  if lead.won_status == "won" { fail("This opportunity is already won"); }
+  let set = table("crm_setting").get(1);
+  let stages = table("crm_stage").list();
+  let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+  // Odoo's unarchive first: back in the pipeline, lost reason cleared, scoring recomputed.
+  if lead.active == false {
+    table("lead").record(id).set(#{ active: true, lost_reason_id: () }).flash();
+    for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
+      if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+      else { table("pls_frequency").insert(w); }
+    }
+    let auto = crm::rescore(table("lead").get(id), (), set, tags, stages, table("pls_frequency").list());
+    if auto != () {
+      let p = #{ automated_probability: auto };
+      if crm::same_probability(lead.probability, lead.automated_probability) { p.probability = auto; }
+      table("lead").record(id).set(p).flash();
+    }
+    lead = table("lead").get(id);
+  }
+  let target = crm::won_stage(stages.filter(|s| crm::stage_for_team(s, lead.team_id)), lead.stage_id);
+  if target == () { fail("This pipeline has no Won stage"); }
+  table("lead").record(id).set(#{ stage_id: target, probability: 100.0 }).flash();
+  for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
+    if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+    else { table("pls_frequency").insert(w); }
+  }
+  #{ id: id, stage: target }

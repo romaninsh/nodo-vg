@@ -308,6 +308,123 @@ textarea.desc:focus { outline: none; border-color: var(--brand); box-shadow: var
 .login .demo-logins .muted { margin-right: var(--sp-1); font-size: var(--fs-sm); }
 .login .demo-logins .chip:hover { border-color: var(--brand); color: var(--brand); }
 
+/* ---- shared controls added for CRM ---- */
+/* column bar: activity segments as Odoo draws them (green planned, orange today, red overdue, grey none) */
+.colbar { flex: 1; display: flex; height: 10px; border-radius: var(--radius-pill); overflow: hidden; background: var(--bs-gray-300); gap: 1px; min-width: 60px; }
+.colbar-empty { flex: 1; }
+.colbar-seg { border: 0; padding: 0; min-width: 6px; cursor: pointer; outline: none; }
+.colbar-seg.ok { background: var(--ok); }
+.colbar-seg.warn { background: var(--warn); }
+.colbar-seg.danger { background: var(--danger); }
+.colbar-seg.none { background: var(--bs-gray-400); }
+.colbar-seg[data-dim] { opacity: .35; }
+.colbar-seg[data-focus-visible] { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* next activity icon on a card */
+.activity { display: inline-flex; color: var(--bs-gray-700); }
+.activity.none { color: var(--bs-gray-500); }
+.activity.planned { color: var(--ok); }
+.activity.today { color: var(--warn); }
+.activity.overdue { color: var(--danger); }
+/* corner ribbon (Won, Lost, Archived) */
+.ribbon { position: absolute; top: 0; right: 0; width: 90px; height: 90px; overflow: hidden; pointer-events: none; z-index: 1; }
+.ribbon span { position: absolute; top: 18px; right: -30px; width: 130px; transform: rotate(45deg); text-align: center; color: var(--bs-white);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .04em; padding: 2px 0; box-shadow: var(--shadow-sm); }
+.ribbon.ok span { background: var(--ok); }
+.ribbon.danger span { background: var(--danger); }
+.ribbon.muted span { background: var(--bs-gray-600); }
+/* money: the symbol beside an underlined amount box */
+.money { display: inline-flex; align-items: center; gap: var(--sp-1); border-bottom: 1px solid var(--border); }
+.money:focus-within { border-bottom-color: var(--brand); }
+.money.after { flex-direction: row-reverse; }
+.money-input { border: 0; outline: none; font: inherit; padding: var(--sp-1) 0; width: 9em; background: transparent; color: var(--text); font-variant-numeric: tabular-nums; }
+.money[data-invalid] { border-bottom-color: var(--danger); }
+/* badge choices (lost reasons) */
+.badges { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.badge-choice { border: 1px solid var(--border); background: var(--bs-gray-200); border-radius: var(--radius-sm); padding: var(--sp-1) var(--sp-2); cursor: pointer; outline: none; }
+.badge-choice[data-hovered] { background: var(--bs-gray-300); }
+.badge-choice[data-selected] { background: var(--brand); border-color: var(--brand); color: var(--bs-white); }
+.badge-choice[data-focus-visible] { box-shadow: var(--focus-ring); }
+/* a many2one field */
+.onepicker { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+/* dialogs (React Aria Modal) */
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; z-index: 50; }
+.modal { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); width: min(600px, calc(100vw - 2rem)); outline: none; }
+.dialog { padding: var(--sp-3); outline: none; display: flex; flex-direction: column; gap: var(--sp-3); }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; }
+.dialog-head h2 { margin: 0; font-size: var(--fs-h5); font-weight: var(--fw-medium); }
+.dialog-foot { display: flex; gap: var(--sp-2); padding-top: var(--sp-2); }
+/* tabs (React Aria Tabs) */
+.tablist { display: flex; border-bottom: 1px solid var(--border); margin: var(--sp-3) 0 var(--sp-2); }
+.tab { padding: var(--sp-1) var(--sp-3); border: 1px solid transparent; border-bottom: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; color: var(--brand); cursor: pointer;
+  margin-bottom: -1px; outline: none; }
+.tab[data-selected] { border-color: var(--border); background: var(--surface); color: var(--text); }
+.tab[data-focus-visible] { box-shadow: var(--focus-ring); }
+
+/* stage bar extras: the rotting pill on the current stage, and the phone's one-button form */
+.stage-badge { margin-left: var(--sp-1); background: var(--danger); color: var(--bs-white); border-radius: var(--radius-pill); font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold); padding: 0 var(--sp-1); }
+.stagebar-compact { display: none; }
+.stage-compact-btn { gap: var(--sp-1); }
+/* tag colour picker: the pill is the button; the swatches are a grid */
+.tagpick { display: inline-flex; }
+.tag-btn { border: 0; cursor: pointer; font: inherit; font-size: var(--fs-sm); outline: none; }
+.tag-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.chip-tag:has(.chip-color) { padding: 0 var(--sp-1) 0 0; }
+.chip-tag .chip-color { background: transparent; color: inherit; padding: 0 var(--sp-1) 0 var(--sp-2); border-radius: var(--radius-pill); }
+.swatch-dialog { outline: none; padding: var(--sp-2); }
+.swatches { display: grid; grid-template-columns: repeat(6, 26px); gap: var(--sp-1); outline: none; }
+.swatch { width: 26px; height: 26px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  outline: none; border: 1px solid rgba(0, 0, 0, .1); }
+.swatch[data-focus-visible] { box-shadow: 0 0 0 2px var(--brand); }
+
+/* ---- CRM pipeline ---- */
+.team-btn { gap: var(--sp-2); border: 0; font-size: var(--fs-h6); }
+.board.crm .col h3 { margin-bottom: var(--sp-1); }
+.col-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.col-total { font-weight: var(--fw-semibold); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rot-count { background: var(--danger); color: var(--bs-white); border-radius: var(--radius-pill); font-size: var(--fs-xs); font-weight: var(--fw-semibold); min-width: 20px;
+  text-align: center; padding: 1px var(--sp-1); border: 2px solid transparent; cursor: pointer; font-family: inherit; line-height: 1.4; outline: none; }
+.rot-count[data-selected] { border-color: var(--bs-danger-text-emphasis); box-shadow: 0 0 0 2px var(--bs-danger-bg-subtle); }
+.rot-count[data-focus-visible] { outline: 2px solid var(--brand); outline-offset: 1px; }
+.crm-card { position: relative; overflow: hidden; }
+.crm-card .title { font-size: var(--fs-h6); font-weight: var(--fw-medium); }
+.crm-card .revenue { margin-top: 2px; font-variant-numeric: tabular-nums; }
+.crm-card .customer { display: flex; align-items: center; gap: var(--sp-2); margin-top: 2px; }
+.crm-card .customer .avatar { margin-left: 0; width: 20px; height: 20px; border: 0; }
+.crm-card .bottom { margin-top: var(--sp-2); gap: var(--sp-2); }
+.crm-card .bottom .grow, .cp-grow { flex: 1; }
+.crm-card .owner { display: inline-flex; }
+.rot { background: var(--danger); color: var(--bs-white); border-radius: var(--radius-pill); font-size: var(--fs-xs); font-weight: var(--fw-semibold); padding: 0 var(--sp-2); }
+.team-badge { background: var(--bs-gray-200); border-radius: var(--radius-pill); font-size: var(--fs-sm); padding: 0 var(--sp-2); }
+.crm-quick { display: flex; flex-direction: column; gap: var(--sp-2); }
+.crm-quick .combo, .crm-quick .combo-field { display: flex; width: 100%; }
+.crm-quick .combo-input { flex: 1; min-width: 0; }
+.crm-quick .input { border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: var(--sp-1) 0; }
+.crm-quick .input:focus { box-shadow: none; }
+.quick-money { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.crm-quick .row .grow { flex: 1; }
+
+/* ---- CRM form ---- */
+.sheet-body { position: relative; }
+.crm-sheet .titlerow { padding-right: 70px; }
+.revenue-row { display: flex; align-items: flex-end; gap: var(--sp-3); margin-top: var(--sp-3); flex-wrap: wrap; }
+.revenue-row .flabel { display: block; font-weight: var(--fw-medium); color: var(--bs-gray-700); margin-bottom: 2px; }
+.revenue-row .money-input { font-size: var(--fs-h5); }
+.revenue-row .at { font-size: var(--fs-h5); font-weight: var(--fw-medium); padding-bottom: var(--sp-1); }
+.prob { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-h5); }
+.prob input { width: 4.5em; font: inherit; border: 0; border-bottom: 1px solid var(--border); padding: var(--sp-1) 0; background: transparent; color: var(--text); }
+.prob input:focus { outline: none; border-bottom-color: var(--brand); }
+.prob input:disabled { border-bottom-color: transparent; }
+.auto-prob { display: inline-flex; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--muted); font-size: var(--fs-sm); padding: 2px var(--sp-1);
+  border-radius: var(--radius-sm); }
+.auto-prob[data-hovered] { color: var(--brand); background: var(--brand-hover); }
+.crm-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--sp-5); }
+.crm-groups .fields { grid-template-columns: 130px minmax(0, 1fr); }
+.crm-groups > * { min-width: 0; }
+.line-input { width: 100%; font: inherit; border: 0; border-bottom: 1px solid var(--border); padding: var(--sp-1) 0; min-width: 0; background: transparent; color: var(--text); }
+.line-input:focus { outline: none; border-bottom-color: var(--brand); }
+.group-title { font-weight: var(--fw-semibold); text-transform: uppercase; font-size: var(--fs-sm); color: var(--bs-gray-700); }
+
 /* ---- touch: fingers need bigger targets than a mouse (about 40px, Apple asks for 44) ---- */
 @media (pointer: coarse) {
   .prio-btn { padding: 9px; margin: -8px; }
@@ -322,6 +439,8 @@ textarea.desc:focus { outline: none; border-color: var(--brand); box-shadow: var
   .cal-nav { padding: var(--sp-2); }
   .icon-btn { padding: 8px; margin: -6px 0; }
   .chip { line-height: 2.2; }
+  .colbar { height: 14px; }
+  .badge-choice { padding: var(--sp-2) var(--sp-3); }
 }
 
 /* ---- phones (Bootstrap's sm breakpoint and below) ---- */
@@ -361,5 +480,21 @@ textarea.desc:focus { outline: none; border-color: var(--brand); box-shadow: var
 
   .login form { width: 100%; padding: var(--sp-4); border-radius: 0; }
   .toast { left: var(--sp-3); }
+
+  /* CRM: the filters scroll sideways under the search; the form's two groups stack. */
+  .cp .chips { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; order: 4; }
+  .cp .chip { flex: none; }
+  .crm-groups { grid-template-columns: minmax(0, 1fr); }
+  .crm-groups .fields { grid-template-columns: minmax(0, 1fr); }
+  .crm-sheet .titlerow { padding-right: 40px; }
+  .revenue-row { gap: var(--sp-2); }
+  .revenue-row .money-input { width: 7em; }
+  .modal { width: calc(100vw - 1rem); }
+  .overlay { padding-top: 6vh; }
+  /* The form on a phone, as Odoo's: the stage bar becomes "> Stage" opening the list, and only
+     the main button stays (Lost is in the gear menu). */
+  .crm-sheet .stagebar { display: none; }
+  .crm-sheet .stagebar-compact { display: inline-flex; }
+  .crm-sheet .status .secondary { display: none; }
 }
 

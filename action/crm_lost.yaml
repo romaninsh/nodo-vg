@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Odoo's "Mark as Lost": the opportunity is archived with its lost reason (optional) and 0%
+# probability, which makes it lost; the scoring tallies count it as lost. Args: id, reason.
+kind: script
+label: Lost
+icon: CircleX
+atomic: true
+params:
+  id: { type: int }
+  reason: { type: int, required: false }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  if lead.won_status != "pending" || lead.active == false { fail("Only an ongoing opportunity can be marked as lost"); }
+  let reason = if "reason" in args && args.reason != () && args.reason.to_string() != "" { parse_int(args.reason.to_string()) } else { () };
+  if reason != () && table("crm_lost_reason").get(reason) == () { fail("That lost reason doesn't exist"); }
+  table("lead").record(id).set(#{ active: false, lost_reason_id: reason, probability: 0.0, automated_probability: 0.0 }).flash();
+  let set = table("crm_setting").get(1);
+  let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+  for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, table("crm_stage").list(), table("pls_frequency").list()) {
+    if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+    else { table("pls_frequency").insert(w); }
+  }
+  #{ id: id, reason: reason }

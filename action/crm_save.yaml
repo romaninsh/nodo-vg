@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Save an opportunity's own fields. Args: id, and any of name, expected_revenue, probability
+# (only while ongoing, as on Odoo's form), priority ("0" Low, "1" Medium, "2" High, "3" Very
+# High), date_deadline ("YYYY-MM-DD", empty clears it), description (plain text).
+kind: script
+label: Save
+icon: Save
+params:
+  id: { type: int }
+  name: { type: string, required: false }
+  expected_revenue: { type: string, required: false }
+  probability: { type: string, required: false }
+  priority: { type: string, required: false }
+  date_deadline: { type: string, required: false }
+  description: { type: string, required: false }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  let p = #{};
+  if "name" in args && args.name != () {
+    let n = args.name.to_string();
+    n.trim();
+    if n == "" { fail("Give the opportunity a name"); }
+    p.name = n;
+  }
+  if "expected_revenue" in args && args.expected_revenue != () {
+    let t = args.expected_revenue.to_string();
+    t.trim();
+    p.expected_revenue = if t == "" { 0.0 } else { crm::num(t) };
+  }
+  if "probability" in args && args.probability != () {
+    let v = crm::round2(crm::num(args.probability));
+    if v < 0.0 || v > 100.0 { fail("The probability of closing the deal should be between 0% and 100%"); }
+    if !crm::same_probability(v, lead.probability) {
+      if lead.won_status != "pending" { fail("Only an ongoing opportunity's probability can change"); }
+      p.probability = v;
+    }
+  }
+  if "priority" in args && args.priority != () {
+    let level = args.priority.to_string();
+    if !["0", "1", "2", "3"].contains(level) { fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Very High)"); }
+    p.priority = level;
+  }
+  if "date_deadline" in args && args.date_deadline != () {
+    let d = args.date_deadline.to_string();
+    d.trim();
+    p.date_deadline = if d == "" { () } else { date(d.sub_string(0, 10)) };
+  }
+  if "description" in args && args.description != () { p.description = args.description.to_string(); }
+  // An ongoing opportunity stays ongoing whatever its probability, so the scoring tallies
+  // (which follow won and lost) don't change here.
+  if p.len() > 0 { table("lead").record(id).set(p).flash(); }
+  #{ id: id }

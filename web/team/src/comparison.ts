@@ -26,6 +26,12 @@ export const COMPARISON: Row[] = [
     mark: "partly",
   },
   {
+    area: "Predictive lead scoring",
+    odoo: "CRM's probability from a naive Bayes over won and lost tallies per team, updated on every win and loss",
+    nodo: "The same calculation and the same tally updates, rewritten in Rhai; checked against Odoo's own results on the same opportunity",
+    mark: "same",
+  },
+  {
     area: "Sign-in",
     odoo: "Database sessions, pbkdf2-sha512 password hashes, two-factor",
     nodo: "The same hashes checked against Odoo's users; sessions in server memory, so a restart signs everyone out; no two-factor",
@@ -34,7 +40,7 @@ export const COMPARISON: Row[] = [
   {
     area: "Access control",
     odoo: "Groups, model access rights and record rules",
-    nodo: "Each API lists its tables, columns and actions; row rules in SQL keep people to their own to-dos. Odoo's groups aren't read",
+    nodo: "Each API lists its tables, columns and actions; row rules in SQL keep people to their own to-dos, and to the opportunities Odoo's Sales groups allow. Other groups aren't read",
     mark: "partly",
   },
   {
@@ -64,13 +70,13 @@ export const COMPARISON: Row[] = [
   {
     area: "Chatter, activities, email",
     odoo: "Messages, followers and scheduled activities on every record",
-    nodo: "Followers are written so Odoo's chatter stays right; nothing of it is shown in nodo",
+    nodo: "Followers are written so Odoo's chatter stays right; nothing of it is shown in nodo, and nodo's changes leave no line in it",
     mark: "not yet",
   },
   {
     area: "Many-to-many links",
     odoo: "Link tables written by the ORM",
-    nodo: "Vantage can't write a link table without an id column yet; tags are saved through Odoo's own API",
+    nodo: "Vantage can't write a link table without an id column yet; tags are saved through Odoo's own API, as are new opportunities and contact details, whose save runs Odoo's own library code",
     mark: "not yet",
   },
   {

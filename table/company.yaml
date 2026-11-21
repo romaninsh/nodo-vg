@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's companies (res_company), for the opportunity's Company field. Read-only.
+datasource: odoo
+title: Company
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Company, flags: [title] }
+postgres:
+  listen: [res_company]
+  rhai: |
+    sql::select().from("res_company")
+        .field("id")
+        .field("name")
+        .where(sql::expr("active IS NOT FALSE"))
+        .order_by(sql::ident("name"), "asc")

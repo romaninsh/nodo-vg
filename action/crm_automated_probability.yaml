@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The form's "use the automated probability" button: recompute Odoo's scoring for the
+# opportunity and set its probability to it. Args: id.
+kind: script
+label: Automated probability
+icon: Sparkles
+params:
+  id: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  if lead.won_status != "pending" { fail("Only an ongoing opportunity's probability can change"); }
+  let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+  let auto = crm::rescore(lead, (), table("crm_setting").get(1), tags, table("crm_stage").list(), table("pls_frequency").list());
+  let a = if auto != () { auto } else { crm::num(lead.automated_probability) };
+  table("lead").record(id).set(#{ automated_probability: a, probability: a }).flash();
+  #{ id: id, probability: a }

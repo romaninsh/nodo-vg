@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The form menu's Archive and Unarchive. Args: id, active (false archives, true unarchives).
+# Archive is Odoo's plain archive: out of the pipeline with an "Archived" ribbon, closing date
+# set, not lost. Unarchive is Odoo's: back in, lost reason cleared, scored again (the
+# probability follows when it followed the automated one), and a lost one counts as lost no
+# more in the scoring tallies.
+kind: script
+label: Archive
+icon: Archive
+atomic: true
+params:
+  id: { type: int }
+  active: { type: bool }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  let want = args.active == true || args.active.to_string() == "true";
+  if want == (lead.active != false) { return #{ id: id, active: want }; }
+  if !want {
+    table("lead").record(id).set(#{ active: false }).flash();
+  } else {
+    let set = table("crm_setting").get(1);
+    let stages = table("crm_stage").list();
+    let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+    table("lead").record(id).set(#{ active: true, lost_reason_id: () }).flash();
+    for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
+      if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+      else { table("pls_frequency").insert(w); }
+    }
+    let auto = crm::rescore(table("lead").get(id), (), set, tags, stages, table("pls_frequency").list());
+    if auto != () {
+      let p = #{ automated_probability: auto };
+      if crm::same_probability(lead.probability, lead.automated_probability) { p.probability = auto; }
+      // Odoo's unarchive assigns the probability outside a compute, which is a write: a
+      // probability above 0 clears the closing date, here through the lead hook as there.
+      table("lead").record(id).set(p).flash();
+    }
+  }
+  #{ id: id, active: want }

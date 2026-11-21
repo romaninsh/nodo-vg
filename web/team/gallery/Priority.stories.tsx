@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, screen, waitFor } from "storybook/test";
-import { Priority, PriorityStar, PRIORITY_LABELS, type Level } from "../src/ui";
+import { CRM_PRIORITY_LABELS, Priority, PriorityStar, PRIORITY_LABELS, type Level } from "../src/ui";
 
 type Args = Parameters<typeof Priority>[0];
 
@@ -42,6 +42,16 @@ export const Stars: Story = {
       ))}
     </div>
   ),
+};
+
+/** CRM names the top level "Very High" (Odoo's three stars); the same star style. */
+export const CrmLevels: Story = {
+  args: { value: "3", labels: CRM_PRIORITY_LABELS },
+  play: async ({ userEvent }) => {
+    await expect(star(/Very High/)).toBeVisible();
+    await userEvent.click(star(/Very High/));
+    await expect(await screen.findByRole("option", { name: "Very High" })).toHaveAttribute("aria-selected", "true");
+  },
 };
 
 export const Disabled: Story = {

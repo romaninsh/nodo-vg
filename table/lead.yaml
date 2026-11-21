@@ -1,0 +1,120 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's leads and opportunities (crm_lead), for writing. nodo changes opportunities the way
+# Odoo's own save does: the hooks below hold what Odoo's crm.lead write() stamps on the same
+# row (stage dates, won and lost, closing date, prorated revenue). The predictive probability
+# and its frequency table need other tables, so the CRM actions do those (lib/crm.rhai).
+# New opportunities are created through Odoo itself (crm_create), so nodo never inserts here.
+datasource: odoo
+table: crm_lead
+title: Opportunity
+columns:
+  id: { type: int, flags: [id, auto] }
+  name: { type: string, label: Opportunity, flags: [title, mandatory, searchable] }
+  type: { type: string, label: Type, enum: [lead, opportunity] }
+  active: { type: bool, label: Active }
+  stage_id: { type: int, label: Stage }
+  user_id: { type: int, label: Salesperson }
+  team_id: { type: int, label: Sales team }
+  company_id: { type: int, label: Company }
+  partner_id: { type: int, label: Contact }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  expected_revenue: { type: decimal, label: Expected revenue }
+  prorated_revenue: { type: decimal, label: Prorated revenue }
+  recurring_revenue: { type: decimal, label: Recurring revenue }
+  recurring_revenue_monthly: { type: decimal, label: Expected MRR }
+  recurring_revenue_monthly_prorated: { type: decimal, label: Prorated MRR }
+  recurring_revenue_prorated: { type: decimal, label: Prorated recurring revenue }
+  probability: { type: float, label: Probability }
+  automated_probability: { type: float, label: Automated probability }
+  won_status: { type: string, label: Won/Lost, enum: [won, lost, pending] }
+  lost_reason_id: { type: int, label: Lost reason }
+  date_deadline: { type: date, label: Expected closing }
+  date_closed: { type: timestamp, label: Closed }
+  date_last_stage_update: { type: timestamp, label: Last stage update }
+  day_close: { type: float, label: Days to close }
+  description: { type: string, label: Notes }
+  color: { type: int, label: Colour }
+  # The predictive scoring reads these (crm.pls_fields); nodo never writes them.
+  phone_state: { type: string, label: Phone quality }
+  email_state: { type: string, label: Email quality }
+  state_id: { type: int, label: State }
+  country_id: { type: int, label: Country }
+  source_id: { type: int, label: Source }
+  lang_id: { type: int, label: Language }
+  create_uid: { type: int, label: Created by }
+  write_uid: { type: int, label: Last updated by }
+  create_date: { type: timestamp, label: Created on }
+  write_date: { type: timestamp, label: Last updated on }
+deny:
+  actions: [insert, delete]
+hook:
+  normalise: |
+    if session != () && session.uid != () { record.write_uid = session.uid; }
+    record.write_date = now();
+    // Notes written here are plain text and become the HTML Odoo stores, always escaped, so
+    // nothing typed in nodo runs as HTML in Odoo. A stored value saved back unchanged stays.
+    let unchanged = stored != () && record.description == stored.description;
+    if record.description != () && record.description != "" && !unchanged {
+      let lines = record.description.split("\n").map(|l| {
+        let t = l; t.replace("&", "&amp;"); t.replace("<", "&lt;"); t.replace(">", "&gt;"); `<p>${t}</p>`
+      });
+      record.description = lines.reduce(|acc, x| acc + x, "");
+    }
+    record
+  # Odoo's crm.lead write(), on the fields a save actually changes (`patch`), then the stored
+  # computed fields that depend on them.
+  before_patch: |
+    import "crm" as crm;
+    let won_ids = table("crm_stage").list().filter(|s| s.is_won == true).map(|s| s.id.to_string());
+    let is_won = |sid| sid != () && won_ids.contains(sid.to_string());
+    let stage_updated = "stage_id" in patch && patch.stage_id != stored.stage_id;
+    let to_won = false;
+    if stage_updated {
+      patch.date_last_stage_update = now();
+      // Odoo also adds the time spent in the old stage to duration_tracking, a jsonb column
+      // Vantage can't write yet (FEEDBACK.md); Odoo's stage bar then shows old durations.
+      if is_won.call(patch.stage_id) {
+        patch.active = true;
+        patch.probability = 100.0;
+        patch.automated_probability = 100.0;
+        to_won = true;
+      }
+    }
+    let prob_written = "probability" in patch;
+    let prob = if prob_written { patch.probability } else { 0.0 };
+    let archiving = "active" in patch && patch.active == false;
+    if (prob_written && prob >= 100.0) || archiving {
+      // Moving between two won stages keeps the first closing date.
+      // Odoo stamps the closing date to the second (fields.Datetime.now()).
+      if !(to_won && is_won.call(stored.stage_id)) { patch.date_closed = date(now().format("%Y-%m-%d %H:%M:%S")); }
+    } else if (prob_written && prob > 0.0) || (stage_updated && !to_won && !prob_written) {
+      if stored.date_closed != () { patch.date_closed = (); }
+    }
+    // Stored computed fields, on the row as it will be.
+    let r = stored;
+    for k in patch.keys() { r[k] = patch[k]; }
+    let won = crm::num(r.probability) == 100.0 && is_won.call(r.stage_id);
+    let status = if won { "won" } else if r.active == false && crm::num(r.probability) == 0.0 { "lost" } else { "pending" };
+    if status != stored.won_status { patch.won_status = status; }
+    let p = crm::num(r.probability);
+    let prorated = crm::round2(crm::num(r.expected_revenue) * p / 100.0);
+    if prorated != crm::num(stored.prorated_revenue) { patch.prorated_revenue = prorated; }
+    let mrr_p = crm::num(r.recurring_revenue_monthly) * p / 100.0;
+    if mrr_p != crm::num(stored.recurring_revenue_monthly_prorated) { patch.recurring_revenue_monthly_prorated = mrr_p; }
+    let rec_p = crm::num(r.recurring_revenue) * p / 100.0;
+    if rec_p != crm::num(stored.recurring_revenue_prorated) { patch.recurring_revenue_prorated = rec_p; }
+    if "date_closed" in patch {
+      // Odoo stores an empty Days to Close as 0.
+      patch.day_close = if patch.date_closed == () || r.create_date == () { 0.0 } else { abs(days_between(r.create_date, patch.date_closed)).to_float() };
+    }
+    patch
+  validate: |
+    let n = if record.name == () { "" } else { record.name };
+    n.trim();
+    if n == "" { throw "Give the opportunity a name"; }
+    let p = if record.probability == () { 0.0 } else { record.probability };
+    if p < 0.0 || p > 100.0 { throw "The probability of closing the deal should be between 0% and 100%"; }
+    if record.stage_id != () && p != 100.0 {
+      let s = table("crm_stage").get(record.stage_id);
+      if s != () && s.is_won == true { throw "A lead in a Won stage cannot be lost. Move it to another stage first."; }
+    }

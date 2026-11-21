@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's predictive lead scoring tallies (crm_lead_scoring_frequency): per sales team and per
+# (field, value), how many leads were won and lost. Odoo adds to them when a lead is won or
+# lost and takes away when it is reopened; nodo's won, lost and restore do the same.
+datasource: odoo
+table: crm_lead_scoring_frequency
+title: Scoring frequency
+columns:
+  id: { type: int, flags: [id, auto] }
+  variable: { type: string, label: Field, flags: [mandatory] }
+  value: { type: string, label: Value }
+  team_id: { type: int, label: Sales team }
+  won_count: { type: decimal, label: Won }
+  lost_count: { type: decimal, label: Lost }
+  create_uid: { type: int, label: Created by }
+  write_uid: { type: int, label: Last updated by }
+  create_date: { type: timestamp, label: Created on }
+  write_date: { type: timestamp, label: Last updated on }
+deny:
+  actions: [delete]
+hook:
+  normalise: |
+    if session != () && session.uid != () {
+      record.write_uid = session.uid;
+      if op == "insert" { record.create_uid = session.uid; }
+    }
+    record.write_date = now();
+    if op == "insert" { record.create_date = now(); }
+    record

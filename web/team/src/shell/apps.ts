@@ -19,7 +19,7 @@ export const APPS: NodoApp[] = [
     id: "todo", name: "To-do", icon: ListTodo, colour: "#9c5789", home: "/", ready: true,
     menu: [{ to: "/", label: "My to-dos", end: true }, { to: "/list", label: "List" }],
   },
-  { id: "crm", name: "CRM", icon: Handshake, colour: "#2a7e91", home: "/crm", ready: false, menu: [] },
+  { id: "crm", name: "CRM", icon: Handshake, colour: "#2a7e91", home: "/crm", ready: true, menu: [{ to: "/crm", label: "Pipeline" }] },
 ];
 
 /** The app a path belongs to: the one with the longest matching home, To-do otherwise. */

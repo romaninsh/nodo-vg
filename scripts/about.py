@@ -25,7 +25,10 @@ VANTAGE_FEATURES = [
     "Sign-ins kept in the server's memory, so nothing is added to Odoo's database",
     "Odoo's password hashes (passlib pbkdf2-sha512) checked and written",
 ]
-VANTAGE_ISSUES = 5  # reported while building To-do, each with a workaround in the app
+# Reported in FEEDBACK.md: 5 while building To-do, 5 for CRM (no jsonb column type, insert-only
+# REST bodies without statements or a response, no actions inside atomic, record refs on query
+# tables not following changes). All but the jsonb one have a workaround in the app.
+VANTAGE_ISSUES = 10
 
 
 def merged_prs():

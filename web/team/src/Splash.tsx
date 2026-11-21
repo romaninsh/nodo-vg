@@ -99,7 +99,7 @@ export function Splash() {
           <div className="splash-intro">
             <h1 id="splash-title">nodo</h1>
             <p className="lead">
-              To-do for teams whose data lives in Odoo Community 20, rewritten from scratch with Vantage and running
+              To-do and CRM for teams whose data lives in Odoo Community 20, rewritten from scratch with Vantage and running
               on Odoo's own database. Sign in with your Odoo login; Odoo keeps working on the same data.
             </p>
             <p>

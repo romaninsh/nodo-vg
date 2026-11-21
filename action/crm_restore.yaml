@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Odoo's "Restore" on a lost opportunity: back in the pipeline, lost reason cleared, and the
+# probability set to the automated one for its stage; the lost count comes off the scoring
+# tallies. Args: id.
+kind: script
+label: Restore
+icon: RotateCcw
+atomic: true
+params:
+  id: { type: int }
+body: |
+  import "crm" as crm;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  let lead = table("lead").get(id);
+  if !crm::can_change(lead, table("sales_right").get(me), me) { fail("You can't change this opportunity"); }
+  if lead.won_status != "lost" { fail("Only a lost opportunity can be restored"); }
+  let set = table("crm_setting").get(1);
+  let stages = table("crm_stage").list();
+  let tags = table("lead_tag").where("lead_id", id).list().map(|t| t.tag_id);
+  // As in Odoo: unarchive (the lost count comes off the tallies), then score it again with
+  // the tallies as they are now, and take that probability.
+  table("lead").record(id).set(#{ active: true, lost_reason_id: () }).flash();
+  for w in crm::pls_writes(table("lead").get(id), lead.won_status, set, tags, stages, table("pls_frequency").list()) {
+    if "id" in w { table("pls_frequency").record(w.id).set(#{ won_count: w.won_count, lost_count: w.lost_count }).flash(); }
+    else { table("pls_frequency").insert(w); }
+  }
+  let now_lead = table("lead").get(id);
+  let auto = crm::rescore(now_lead, (), set, tags, stages, table("pls_frequency").list());
+  let p = #{};
+  if auto != () { p.automated_probability = auto; }
+  p.probability = if auto != () { auto } else { crm::num(now_lead.automated_probability) };
+  table("lead").record(id).set(p).flash();
+  #{ id: id }

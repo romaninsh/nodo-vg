@@ -32,11 +32,14 @@ let store: Record<string, Entry> = {};
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
-export function setPending(id: string | number, patch: TodoPatch) {
+/** Any other record's just-saved fields (CRM keys its records "crm:<id>"). */
+export type Patch = Record<string, string | number | boolean | null>;
+
+export function setPending(id: string | number, patch: TodoPatch | Patch) {
   const key = String(id);
   const before: Record<string, unknown> = store[key]?.patch ?? {};
   const contested = Object.entries(patch).some(([k, v]) => k in before && String(before[k] ?? "") !== String(v ?? ""));
-  store = { ...store, [key]: { patch: { ...before, ...patch }, at: Date.now(), contested } };
+  store = { ...store, [key]: { patch: { ...before, ...patch } as TodoPatch, at: Date.now(), contested } };
   emit();
 }
 
@@ -52,10 +55,12 @@ const subscribe = (l: () => void) => {
  */
 export const usePendingStore = (): PendingStore => useSyncExternalStore(subscribe, () => store);
 
-export function pendingValue<K extends keyof TodoPatch>(all: PendingStore, id: string | number | null | undefined, key: K): TodoPatch[K] | undefined {
+export function pendingValue<K extends keyof TodoPatch>(all: PendingStore, id: string | number | null | undefined, key: K): TodoPatch[K] | undefined;
+export function pendingValue(all: PendingStore, id: string | number | null | undefined, key: string): unknown;
+export function pendingValue(all: PendingStore, id: string | number | null | undefined, key: string): unknown {
   const e = id == null ? undefined : all[String(id)];
   if (!e || Date.now() - e.at > 60_000 || !(key in e.patch)) return undefined;
-  return e.patch[key];
+  return (e.patch as Record<string, unknown>)[key];
 }
 
 /** The server's values with this page's unsaved-to-the-view changes on top. */

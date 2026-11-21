@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# CRM pipeline stages (crm_stage). Odoo keeps the name as translated JSON, so this is
+# read-only. `team_ids` lists the sales teams a stage is limited to ("" = every team).
+datasource: odoo
+title: Stage
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Stage, flags: [title] }
+  sequence: { type: int, label: Order }
+  is_won: { type: bool, label: Won stage }
+  fold: { type: bool, label: Folded }
+  rotting_threshold_days: { type: int, label: Days to rot }
+  requirements: { type: string, label: Requirements }
+  team_ids: { type: string, label: Teams }
+postgres:
+  listen: [crm_stage, crm_stage_crm_team_rel]
+  rhai: |
+    sql::select().from("crm_stage")
+        .field("id")
+        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(sequence, 0)").alias("sequence"))
+        .expression(sql::expr("coalesce(is_won, false)").alias("is_won"))
+        .expression(sql::expr("coalesce(fold, false)").alias("fold"))
+        .expression(sql::expr("coalesce(rotting_threshold_days, 0)").alias("rotting_threshold_days"))
+        .field("requirements")
+        .expression(sql::expr("coalesce((SELECT string_agg(r.crm_team_id::text, ',' ORDER BY r.crm_team_id) FROM crm_stage_crm_team_rel r WHERE r.crm_stage_id = crm_stage.id), '')").alias("team_ids"))
+        .order_by(sql::expr("sequence, 2, id"), "asc")

@@ -2,7 +2,8 @@
 
 Business apps for teams whose data lives in an Odoo Community 20.0 database, built from scratch
 with [Vantage](https://vantage-ui.com). nodo works on the same database, unchanged, so Odoo and nodo
-can run side by side on the same data. The first app is To-do.
+can run side by side on the same data. The apps so far are To-do and CRM (the pipeline, the
+opportunity form, won and lost; `docs/crm.md` lists what's there and what isn't yet).
 
 ![The same to-dos in Odoo (left) and nodo (right), read from one database](docs/screenshots/board.png)
 

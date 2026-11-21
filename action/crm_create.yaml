@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The pipeline's quick create: a new opportunity, created by Odoo itself (JSON-RPC `create`, as
+# you) so it gets everything Odoo's create fills in. Args: name (required), partner_id,
+# email_from, phone, expected_revenue, priority, stage (the column it was added in), team.
+# Returns the new opportunity's id, read back from the database.
+kind: script
+label: New opportunity
+icon: Plus
+params:
+  name: { type: string }
+  partner_id: { type: string, required: false }
+  email_from: { type: string, required: false }
+  phone: { type: string, required: false }
+  expected_revenue: { type: string, required: false }
+  priority: { type: string, required: false }
+  stage: { type: string, required: false }
+  team: { type: string, required: false }
+body: |
+  import "crm" as crm;
+  let me = session.uid;
+  let rights = table("sales_right").get(me);
+  if rights == () || rights.salesman != true { fail("You have no access to CRM"); }
+  let text = |k| if k in args && args[k] != () { let t = args[k].to_string(); t.trim(); t } else { "" };
+  let name = text.call("name");
+  if name == "" { fail("Give the opportunity a name"); }
+  let pw = if session.odoo_password != () { session.odoo_password.to_string() } else { "" };
+  if pw == "" { fail("Sign in on the web to add an opportunity"); }
+  // Only what was given: a field left out gets Odoo's own default (team, stage, salesperson).
+  let vals = #{ type: "opportunity", name: name };
+  if text.call("partner_id") != "" { vals.partner_id = parse_int(text.call("partner_id")); }
+  if text.call("email_from") != "" { vals.email_from = text.call("email_from"); }
+  if text.call("phone") != "" { vals.phone = text.call("phone"); }
+  if text.call("expected_revenue") != "" { vals.expected_revenue = crm::num(text.call("expected_revenue")); }
+  let level = text.call("priority");
+  if level != "" {
+    if !["0", "1", "2", "3"].contains(level) { fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Very High)"); }
+    vals.priority = level;
+  }
+  if text.call("stage") != "" {
+    let s = parse_int(text.call("stage"));
+    if table("crm_stage").get(s) == () { fail("That stage doesn't exist"); }
+    vals.stage_id = s;
+  }
+  if text.call("team") != "" { vals.team_id = parse_int(text.call("team")); }
+  let last = table("lead").sort("id", "desc").first();
+  let floor = if last == () { 0 } else { last.id };
+  table("odoo_lead_create").insert(#{ id: uuid_v7(), uid: me, password: pw, vals: vals });
+  let made = table("lead").where("create_uid", me).where("name", name).sort("id", "desc").first();
+  if made == () || made.id <= floor { fail("Odoo didn't create the opportunity (wrong password?)"); }
+  #{ id: made.id }

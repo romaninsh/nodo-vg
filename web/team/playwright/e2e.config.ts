@@ -36,5 +36,11 @@ export default defineConfig({
       dependencies: ["phone"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
+    {
+      name: "crm",
+      testMatch: "crm.spec.ts",
+      dependencies: ["desktop"],
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+    },
   ],
 });

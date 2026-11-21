@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# CRM tags (crm_tag) for changing a tag's colour, the one plain column of the tag nodo writes
+# (Odoo's colour picker on a tag writes only `color`). The name is translated JSON and stays
+# read-only (table/crm_tag.yaml).
+datasource: odoo
+table: crm_tag
+title: CRM tag colour
+columns:
+  id: { type: int, flags: [id, auto] }
+  color: { type: int, label: Colour }
+  write_uid: { type: int, label: Last updated by }
+  write_date: { type: timestamp, label: Last updated on }
+deny:
+  actions: [insert, delete]
+hook:
+  normalise: |
+    if session != () && session.uid != () { record.write_uid = session.uid; }
+    record.write_date = now();
+    record
+  validate: |
+    if record.color == () || record.color < 0 || record.color > 11 { throw "A tag colour is one of Odoo's twelve (0 to 11)"; }
