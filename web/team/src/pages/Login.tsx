@@ -1,9 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { auth, call, useDb, type Me } from "../lib";
+import { useSettings } from "../settings";
+
+/** Odoo's demo accounts, offered only when settings turn `demoLogins` on. */
+const DEMO_ACCOUNTS = [
+  { name: "Mitchell Admin", login: "admin", password: "admin" },
+  { name: "Marc Demo", login: "demo", password: "demo" },
+];
 
 /** Sign in with your Odoo login and password. */
 export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   const db = useDb();
+  const { demoLogins } = useSettings();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -42,6 +50,26 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
         <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn btn-primary" disabled={busy || !login || !password}>{busy ? "Signing in…" : "Log in"}</button>
         {error && <div className="err" role="alert">{error}</div>}
+        {demoLogins && (
+          <div className="demo-logins">
+            <span className="muted">Demo accounts</span>
+            {DEMO_ACCOUNTS.map((a) => (
+              <button
+                key={a.login}
+                type="button"
+                className="chip"
+                title={`Fill in ${a.login} / ${a.password}`}
+                onClick={() => {
+                  setLogin(a.login);
+                  setPassword(a.password);
+                  setError("");
+                }}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        )}
       </form>
     </div>
   );
