@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=./api-schema-1.json
+# The team's web version: people sign in with their Odoo login and see only their own to-dos
+# (the datasource rules apply here as on the desktop). Every change goes through an action.
+title: nodo for the team
+description: To-do for the team, signed in with Odoo logins.
+entities:
+  - name: todos
+    observe: todo_view
+    read_only: true
+    params:
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date, open_for]
+      filter: [name, state, active, priority, due, open_for]
+      default_sort: date_deadline
+    # A computed view: re-read so changes (nodo's and Odoo's) show up. The page shows its own
+    # changes at once and lets this catch up.
+    api: { load: instant, refresh: 10 }
+  - name: cards
+    observe: todo_user
+    read_only: true
+    params:
+      columns: [task_id, stage_id, task.name, task.priority, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
+      filter: [task_id, stage_id]
+    api: { load: instant, refresh: 30 }
+  - name: stages
+    observe: stage
+    read_only: true
+    params:
+      columns: [name, sequence, fold]
+      default_sort: sequence
+    api: { load: instant }
+  - name: tags
+    observe: tag
+    read_only: true
+    params:
+      columns: [name, color]
+      default_sort: name
+    api: { load: instant }
+  - name: people
+    observe: person
+    read_only: true
+    params:
+      columns: [name]
+      default_sort: name
+    api: { load: instant }
+
+actions:
+  - sign_in
+  - sign_out
+  - whoami
+  - todo_create
+  - todo_save
+  - todo_move
+  - todo_toggle_done
+  - todo_toggle_star
+  - todo_set_tags
+  - todo_set_assignees
+  - todo_archive
+
+auth:
+  local:
+    session:
+      sign_in: [sign_in]
