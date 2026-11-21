@@ -14,7 +14,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build --quiet -o storybook-static",
     "test:gallery": "vitest run --project gallery",
-    "test:visual": "playwright test -c playwright/gallery.config.ts"
+    "test:visual": "playwright test -c playwright/gallery.config.ts",
+    "test:e2e": "playwright test -c playwright/e2e.config.ts"
   },
   "overrides": {
     "@joshwooding/vite-plugin-react-docgen-typescript": "0.9.1"
