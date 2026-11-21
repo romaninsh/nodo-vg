@@ -1,4 +1,4 @@
 # yaml-language-server: $schema=./datasource-schema-1.json
-description: Odoo's own JSON-RPC endpoint (the running Odoo at :8069). Used only for changes the database tables can't take from Vantage (tag links), made as the signed-in person.
+description: Odoo's own JSON-RPC endpoint (the running Odoo at :8069). Used only for changes the database tables can't take from Vantage (tag links, contact details, HTML descriptions Odoo must clean), made as the signed-in person.
 type: api-client
 url: http://localhost:8069

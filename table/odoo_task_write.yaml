@@ -1,7 +1,10 @@
 # yaml-language-server: $schema=./table-schema-1.json
 # Insert-only: each row is one `project.task.write` call through Odoo's JSON-RPC, as the
-# person whose login and password it carries. Odoo answers 200 even when it refuses, so the
-# caller reads the result back from the database.
+# person whose login and password it carries. Used for what Vantage can't write itself (the
+# tag link table) and for what Odoo must check on the way in: the description, an HTML field
+# that Odoo's write cleans (`html_sanitize`). `vals` is the map of fields to write, built by
+# the calling action. Odoo answers 200 even when it refuses, so the caller reads the result
+# back from the database.
 datasource: odoo_rpc
 title: Odoo task write
 columns:
@@ -9,7 +12,7 @@ columns:
   uid: { type: int }
   password: { type: string }
   task_id: { type: int }
-  tag_ids: { type: string }
+  vals: {}
 api:
   read: false
   endpoint: /jsonrpc
@@ -23,9 +26,6 @@ api:
         params: #{
           service: "object",
           method: "execute_kw",
-          args: [
-            "odoo", record.uid, record.password, "project.task", "write",
-            [[record.task_id], #{ tag_ids: [[6, 0, record.tag_ids.split(",").filter(|x| x != "").map(|x| parse_int(x))]] }]
-          ]
+          args: ["odoo", record.uid, record.password, "project.task", "write", [[record.task_id], record.vals]]
         }
       }

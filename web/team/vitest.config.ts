@@ -19,7 +19,11 @@ export default mergeConfig(viteConfig, defineConfig({
         // Bundled up front: a dependency Vite finds mid-run reloads the page and leaves a second
         // copy of React behind ("Cannot read properties of null (reading 'useState')").
         optimizeDeps: {
-          include: ["react", "react-dom", "react-router", "react-aria-components", "lucide-react", "@internationalized/date", "@vantage-ui/client/react"],
+          include: [
+            "react", "react-dom", "react-router", "react-aria-components", "lucide-react", "@internationalized/date", "@vantage-ui/client/react",
+            "dompurify", "@tiptap/react", "@tiptap/react/menus", "@tiptap/starter-kit", "@tiptap/extension-list", "@tiptap/extension-table",
+            "@tiptap/extension-text-style", "@tiptap/extensions", "@tiptap/suggestion",
+          ],
         },
         test: {
           name: "gallery",

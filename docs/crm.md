@@ -59,6 +59,8 @@ for To-do's tags), and nodo reads the row back to see that Odoo took it:
 - **Salesperson and sales team**: the new salesperson becomes a follower, the assignment date
   is set and the team follows the salesperson.
 - **Tags**: `crm_tag_rel` has no id column.
+- **Internal Notes**: HTML, which Odoo's write cleans with `html_sanitize`; nodo's editor saves
+  them through Odoo and shows what Odoo kept.
 
 ## 3. Who sees what
 
@@ -189,7 +191,7 @@ running on the same database as Mitchell Admin. The desktop app has no CRM pages
 | Priority beside it | yes | yes | done |
 | Tags: pick existing | yes | yes, saved through Odoo | done |
 | Tags: create one | yes | no | not yet |
-| Notes as rich text | yes | plain text, formatting lost on save | partly |
+| Notes as rich text | yes | rich-text editor, saved through Odoo (see Notes below) | partly (no images) |
 | Extra info: marketing (campaign, medium, source, referred) | yes | shown, not editable | partly |
 | Extra info: company and contact details (debug mode) | yes | no | not yet |
 | Extra info: Company (multi-company) | yes | yes, saved through Odoo | done |
@@ -205,6 +207,39 @@ running on the same database as Mitchell Admin. The desktop app has no CRM pages
 | Phone layout: stage bar as "> Stage", extra buttons in a menu | yes | yes (Lost moves to the gear menu) | done |
 | Phone layout: smart buttons behind a grid button | yes | no smart buttons yet | not yet |
 | Merge with similar opportunities | yes | no | not yet |
+
+### Notes (rich text)
+
+Internal Notes (`crm_lead.description`, an Odoo `html` field) in Odoo's editor compared with the
+web's `RichText` control (Tiptap's MIT core), on the same throwaway opportunity, 2026-11-21. The
+notes are saved through `crm_odoo_write` (Odoo's own `crm.lead.write`, which cleans the HTML
+with `html_sanitize`), read back and shown as Odoo kept them; the browser cleans them again with
+DOMPurify before showing them. A plain-text `description` sent to `crm_save` is escaped by the
+`lead` hook, so nodo never stores HTML in the column itself.
+
+| feature | Odoo | nodo | status |
+|---|---|---|---|
+| Bold, italic, underline, strikethrough, inline code | yes | yes, toolbar and Ctrl+B / I / U | done |
+| Headings, plain text | Heading 1–3 from "/", 1–6 from the toolbar | Heading 1–3 from "/", 1–6 kept when loaded | done |
+| Bulleted, numbered and check lists, nested | yes | yes; checklists stored as Odoo's `o_checklist` | done |
+| Quote, code block, separator | yes | yes | done |
+| Links: add, edit, remove; typed URLs become links | yes | yes (toolbar, Ctrl+K, "/" Link) | done |
+| Tables: insert, add and delete rows and columns | yes, with handles on the table | insert from "/"; rows and columns from "/" inside a table | partly (no handles, no cell colours or borders) |
+| Text colour and highlight | full palette, gradients, theme colours | 7 colours each; Odoo's theme colour classes shown and kept | partly |
+| Floating toolbar on a selection | yes | yes; Alt+F10 reaches it from the keyboard | done |
+| "/" command menu | yes, 40-odd commands | 11 commands, plus 5 table ones inside a table | partly |
+| Markdown shortcuts (`#`, `>`, `-`, `1.`, `[ ]`, three backticks) | yes | yes | done |
+| Undo and redo | yes | yes (Ctrl+Z, Ctrl+Shift+Z) | done |
+| Paste HTML from another page | yes, cleaned | yes, cleaned in the browser, then by Odoo on save | done |
+| Saved HTML cleaned by Odoo's `html_sanitize` | yes | yes, through Odoo's own write | done |
+| Font size, font family, text style dropdown | yes | no | not yet |
+| Text alignment, text direction | yes | no | not yet |
+| Images, icons, videos, file upload | yes | no; notes holding them stay read-only with a note | not yet |
+| Columns, toggle list, banners, monospace block | yes | no; read-only with a note when present | not yet |
+| Date and time chips, emoji picker, stars, signature, button, table of contents | yes | no | not yet |
+| Move blocks by their drag handle | yes | no | not yet |
+| Saves by itself when you leave the field | yes | with the form's Save | partly |
+| Generate or rewrite text with AI | yes (Odoo's IAP service) | no | won't (paid service) |
 
 ### Won and lost
 

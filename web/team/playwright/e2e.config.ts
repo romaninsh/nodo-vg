@@ -42,5 +42,13 @@ export default defineConfig({
       dependencies: ["desktop"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
+    // Saves through Odoo itself, so it needs a running Odoo beside the server (the dev stack:
+    // NODO_URL=<the team API's URL> npx playwright test -c playwright/e2e.config.ts e2e/richtext.spec.ts).
+    // Skipped when there is none, as on e2e/stack.sh.
+    {
+      name: "richtext",
+      testMatch: "richtext.spec.ts",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+    },
   ],
 });

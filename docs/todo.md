@@ -42,6 +42,22 @@ timestamps in the machine's zone: the demo deadline stored as `16:01` shows as `
 Brussels machine, as in Odoo. Dates and times of day never shift. `create_date`/`write_date`
 can now be set in the `normalise` hook (§1).
 
+## 3. Rich-text descriptions
+
+`description` is an Odoo `html` field: Odoo's write cleans it with `html_sanitize` (no scripts,
+event handlers or `javascript:` links). So nodo never stores HTML in the column itself:
+
+- **The web's editor saves through Odoo.** `todo_set_description` checks the to-do is yours,
+  sends the HTML to Odoo's own `project.task.write` (JSON-RPC, as you, with the password a web
+  sign-in keeps; `table/odoo_task_write.yaml`), reads the row back and returns what Odoo kept.
+- **Everything else is text.** A description written straight to `project_task` (the desktop's
+  Edit dialog, `todo_create`) is escaped by the `normalise` hook, so it is stored as text.
+- **Shown cleaned twice.** The API sends the stored HTML (`todo_view.description`); the browser
+  cleans it again with DOMPurify before showing or editing it.
+- **What the editor can't hold stays untouched.** A description with images, columns, banners
+  or Odoo's embedded blocks would lose them on a save from nodo, so it is shown read-only with a
+  note to change it in Odoo.
+
 ## Feature inventory
 
 Odoo 20's To-do compared with nodo on 2026-11-21, from Odoo's source and both running apps
@@ -105,13 +121,44 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Tags: create a new one here | yes | no | no | not yet |
 | Tags: click one to change its colour | yes | no | no | not yet |
 | Deadline with date and time, red when past | yes | typed in the Edit dialog, "(overdue)" | picker, Clear, Overdue mark | done |
-| Description as rich text (bold, lists, checklists, links, images, / commands) | yes | shown as text, edited as plain text | plain text box | partly (formatting lost on save) |
+| Description as rich text (bold, lists, checklists, links, images, / commands) | yes | shown as text, edited as plain text | rich-text editor, saved through Odoo (see Description below) | partly (desktop plain; no images on the web) |
 | Description edited by several people at once, whiteboard | yes | no | no | not yet |
 | Description version history, restore an old one | yes | no | no | not yet |
 | Saving | saves by itself when you leave | dialog Save | Save/Discard for text, the rest at once | partly |
 | Archived mark | red ribbon | "Archived" label | badge | done |
 | Previous / next to-do (2 / 10) | yes | no | no | not yet |
 | Back to the board | breadcrumb | close the sheet | breadcrumb and Back | done |
+
+### Description (rich text)
+
+Odoo's editor (`html_editor`, the `html` field widget) compared with the web's `RichText`
+control (Tiptap's MIT core) on the same throwaway to-do, 2026-11-21. The desktop shows the
+description as text and edits it as plain text, which its hook stores escaped.
+
+| feature | Odoo | nodo desktop | nodo web | status |
+|---|---|---|---|---|
+| Bold, italic, underline, strikethrough, inline code | yes | no | yes, toolbar and Ctrl+B / I / U | partly (desktop) |
+| Headings, plain text | Heading 1–3 from "/", 1–6 from the toolbar | no | Heading 1–3 from "/", 1–6 kept when loaded | partly (desktop) |
+| Bulleted, numbered and check lists, nested | yes | no | yes; checklists stored as Odoo's `o_checklist` | partly (desktop) |
+| Quote, code block, separator | yes | no | yes | partly (desktop) |
+| Links: add, edit, remove; typed URLs become links | yes | no | yes (toolbar, Ctrl+K, "/" Link) | partly (desktop) |
+| Tables: insert, add and delete rows and columns | yes, with handles on the table | no | insert from "/"; rows and columns from "/" inside a table | partly (no handles, no cell colours or borders) |
+| Text colour and highlight | full palette, gradients, theme colours | no | 7 colours each; Odoo's theme colour classes shown and kept | partly |
+| Floating toolbar on a selection | yes | no | yes; Alt+F10 reaches it from the keyboard | partly (desktop) |
+| "/" command menu | yes, 40-odd commands | no | 11 commands, plus 5 table ones inside a table | partly |
+| Markdown shortcuts (`#`, `>`, `-`, `1.`, `[ ]`, three backticks) | yes | no | yes | partly (desktop) |
+| Undo and redo | yes | no | yes (Ctrl+Z, Ctrl+Shift+Z) | partly (desktop) |
+| Paste HTML from another page | yes, cleaned | plain text | yes, cleaned in the browser, then by Odoo on save | partly (desktop) |
+| Saved HTML cleaned by Odoo's `html_sanitize` | yes | escaped as text by the hook | yes, written through Odoo's own JSON-RPC write | done |
+| Shown HTML cleaned in the browser | n/a | n/a | yes, DOMPurify, colours only in `style` | done |
+| Font size, font family, text style dropdown | yes | no | no | not yet |
+| Text alignment, text direction ("Switch direction") | yes | no | no | not yet |
+| Images, icons, videos, file upload ("Media", "Upload a file") | yes | no | no; a description holding them stays read-only with a note | not yet |
+| Columns (2, 3, 4), toggle list, banners, monospace block | yes | no | no; read-only with a note when present | not yet |
+| Date and time chips, emoji picker, stars, signature, button, table of contents | yes | no | no | not yet |
+| Embedded whiteboard | yes | no | no | not yet |
+| Move blocks by their drag handle | yes | no | no | not yet |
+| Generate or rewrite text with AI | yes (Odoo's IAP service) | no | no | won't (paid service) |
 
 ### Search and filters
 
@@ -213,7 +260,8 @@ as a whole: `partly` when one side lacks it or both have only part of it.
    for a new person; desktop board reading columns from the database.
 4. **Tags**: create tags (form and #tag), change colours, colours on the desktop, search
    and group by tag.
-5. **Rich description**: formatting kept on save, then version history.
+5. **Rich description**: formatting is kept on the web (the editor saves through Odoo); next
+   images and the other blocks in the Description table, the desktop, then version history.
 6. **Faster capture**: quick add on the desktop board, deadline in web quick add, #tag,
    @person and ! keywords, a New button on the web.
 7. **List power**: group by column, priority, deadline and tags; edit in place; select rows

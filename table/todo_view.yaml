@@ -20,6 +20,9 @@ columns:
   overdue: { type: bool, label: Overdue }
   due: { type: string, label: Due, enum: [overdue, today, soon, later] }
   notes: { type: string, label: Description }
+  # The stored HTML as Odoo cleaned it, for the web's rich-text editor (which cleans it again
+  # before showing it).
+  description: { type: string, label: Description (HTML) }
   summary: { type: string, label: Summary }
   write_date: { type: timestamp, label: Last updated }
   # Who still has it open, as ",2,7,": not done or cancelled, and not sitting in that person's
@@ -43,6 +46,7 @@ postgres:
         .expression(sql::expr("(date_deadline IS NOT NULL AND date_deadline < (now() AT TIME ZONE 'UTC') AND state NOT IN ('1_done', '1_canceled'))").alias("overdue"))
         .expression(sql::expr("CASE WHEN date_deadline IS NULL OR state IN ('1_done', '1_canceled') THEN NULL WHEN date_deadline < (now() AT TIME ZONE 'UTC') THEN 'overdue' WHEN date_deadline::date = (now() AT TIME ZONE 'UTC')::date THEN 'today' WHEN date_deadline < (now() AT TIME ZONE 'UTC') + interval '7 days' THEN 'soon' ELSE 'later' END").alias("due"))
         .expression(sql::expr("btrim(replace(replace(replace(replace(replace(left(trim(regexp_replace(regexp_replace(coalesce(description, ''), '<(br|/p|/li|/div)[^>]*>', E'\\n', 'gi'), '<[^>]*>', '', 'g')), 2000), '&lt;', '<'), '&gt;', '>'), '&nbsp;', ' '), '&quot;', '\"'), '&amp;', '&'), E' \\n')").alias("notes"))
+        .field("description")
         .expression(sql::expr("nullif(left(trim(regexp_replace(regexp_replace(replace(replace(coalesce(description, ''), '&nbsp;', ' '), '&amp;', '&'), '<[^>]*>', ' ', 'g'), '\\s+', ' ', 'g')), 120), '')").alias("summary"))
         .field("write_date")
         .expression(sql::expr("CASE WHEN state IN ('1_done', '1_canceled') THEN ',' ELSE ',' || coalesce((SELECT string_agg(ur.user_id::text, ',' ORDER BY ur.user_id) FROM project_task_user_rel ur LEFT JOIN project_task_type s ON s.id = ur.stage_id WHERE ur.task_id = project_task.id AND s.fold IS NOT TRUE), '') || ',' END").alias("open_for"))

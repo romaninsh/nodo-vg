@@ -16,6 +16,8 @@ export type TodoPatch = Partial<{
   assignees: string;
   date_deadline: string | null;
   notes: string;
+  /** The description's HTML, as Odoo stored it. */
+  description: string;
   /** My board column for it, as text (a drop on the board). */
   stage_id: string;
 }>;

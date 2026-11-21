@@ -33,6 +33,9 @@ columns:
   date_deadline: { type: date, label: Expected closing }
   date_closed: { type: timestamp, label: Closed }
   notes: { type: string, label: Notes }
+  # The stored HTML as Odoo cleaned it, for the web's rich-text editor (which cleans it again
+  # before showing it).
+  description: { type: string, label: Notes (HTML) }
   # Odoo's activity_state: overdue, today or planned for the most urgent open activity.
   activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
   activity_icon: { type: string, label: Activity type icon }
@@ -87,6 +90,7 @@ postgres:
         .field("date_deadline")
         .field("date_closed")
         .expression(sql::expr("btrim(replace(replace(replace(replace(replace(left(trim(regexp_replace(regexp_replace(coalesce(description, ''), '<(br|/p|/li|/div)[^>]*>', E'\\n', 'gi'), '<[^>]*>', '', 'g')), 4000), '&lt;', '<'), '&gt;', '>'), '&nbsp;', ' '), '&quot;', '\"'), '&amp;', '&'), E' \\n')").alias("notes"))
+        .field("description")
         .expression(sql::expr("(SELECT CASE min(sign(a.date_deadline - (now() AT TIME ZONE coalesce(a.user_tz, 'UTC'))::date)) WHEN -1 THEN 'overdue' WHEN 0 THEN 'today' WHEN 1 THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE)").alias("activity_state"))
         .expression(sql::expr("(SELECT t.icon FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_icon"))
         .expression(sql::expr("(SELECT coalesce(nullif(a.summary, ''), coalesce(t.name->>'en_US', '')) || ' · ' || to_char(a.date_deadline, 'YYYY-MM-DD') FROM mail_activity a LEFT JOIN mail_activity_type t ON t.id = a.activity_type_id WHERE a.res_model = 'crm.lead' AND a.res_id = crm_lead.id AND a.active IS NOT FALSE ORDER BY a.date_deadline, a.id LIMIT 1)").alias("activity_summary"))

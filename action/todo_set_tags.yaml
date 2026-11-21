@@ -24,9 +24,10 @@ body: |
   let pw = if session.odoo_password != () { session.odoo_password.to_string() }
     else if "password" in args && args.password != () { args.password.to_string() } else { "" };
   if pw == "" { fail("Odoo asks for your password to save tag changes"); }
+  // Odoo replaces the tags as a whole: [6, 0, ids].
   table("odoo_task_write").insert(#{
     id: uuid_v7(), uid: session.uid, password: pw, task_id: id,
-    tag_ids: wanted.map(|x| x.to_string()).reduce(|a, b| if a == "" { b } else { a + "," + b }, ""),
+    vals: #{ tag_ids: [[6, 0, wanted]] },
   });
   let now_has = table("todo_tag").where("project_task_id", id).list().map(|r| r.project_tags_id);
   if now_has.len() != wanted.len() { fail("Odoo didn't accept the change (wrong password?)"); }

@@ -72,3 +72,6 @@ invariants:
       - { type: action, name: todo_set_priority, when: 'session.uid != ()' }
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       - { type: action, name: todo_archive, when: 'session.uid != ()' }
+      # Writes nothing here: it checks the to-do is assigned to the caller, then hands the
+      # description to Odoo's own write and reads the row back.
+      - { type: action, name: todo_set_description, when: 'session.uid != ()' }

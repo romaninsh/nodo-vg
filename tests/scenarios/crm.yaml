@@ -205,6 +205,36 @@ scenarios:
         assert:
           - desks.description == "<p>&lt;b&gt;big&lt;/b&gt; &amp; urgent</p>"
 
+  # Rich notes are HTML: the form sends them to Odoo's own write (html_sanitize cleans them),
+  # never to the column. The test copies have no Odoo to answer, so the save is refused and the
+  # column stays as it was; the cleaned result was checked live and in web/team/e2e.
+  rich-notes:
+    session: { app: team, uid: 5, name: Marc Demo, login: demo, odoo_password: secret }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Marc saves formatted notes on his opportunity, which only Odoo's own write may store
+        do: { action: crm_odoo_write, args: { id: 501, fields: "description", description: "<p><b>big</b> deal</p><script>alert(1)</script>" } }
+        fails: "Odoo didn't accept the change"
+        what_if: [rich-notes-someone-elses, rich-notes-too-long]
+      - step: nodo wrote nothing to the column itself
+        assert:
+          - desks.description == ()
+
+  rich-notes-someone-elses:
+    steps:
+      - step: Marc tries to change the notes of Mitchell's opportunity
+        do: { action: crm_odoo_write, args: { id: 502, fields: "description", description: "<p>mine</p>" } }
+        fails: "You can't change this opportunity"
+
+  rich-notes-too-long:
+    steps:
+      - step: Notes over 200,000 characters
+        do: |
+          let s = "<p>";
+          for i in 0..20001 { s += "0123456789"; }
+          actions.crm_odoo_write(#{ id: 501, fields: "description", description: s });
+        fails: "The notes are too long to save"
+
   out-of-range:
     steps:
       - step: A probability over 100%

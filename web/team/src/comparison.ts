@@ -63,9 +63,9 @@ export const COMPARISON: Row[] = [
   },
   {
     area: "Rich text",
-    odoo: "HTML editor for descriptions",
-    nodo: "Plain text; saving a description in nodo drops its formatting",
-    mark: "not yet",
+    odoo: "HTML editor for descriptions: toolbar on a selection, \"/\" commands, images, columns, banners, AI",
+    nodo: "Tiptap editor with the same formatting, lists, checklists, tables, colours and links, saved through Odoo's own write; no images, columns or banners yet",
+    mark: "partly",
   },
   {
     area: "Chatter, activities, email",

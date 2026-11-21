@@ -5,6 +5,7 @@ import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
 import type { Todos } from "../vantage.gen";
 import { auth, call, fromLocalInput, ids, isDone, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
 import { Avatar, DateTimePicker, MultiPicker, Priority, toast } from "../ui";
+import { RichText } from "../ui/RichText";
 import { setPending, usePending } from "../pending";
 
 /** One to-do: read it, edit it, set its priority, tag it, assign it, mark it done. */
@@ -31,9 +32,9 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
     tag_ids: todo.tag_ids ?? "",
     assignee_ids: todo.assignee_ids ?? "",
     date_deadline: todo.date_deadline,
-    notes: todo.notes ?? "",
+    description: todo.description ?? "",
   });
-  const saved = { name: v.name ?? "", deadline: toLocalInput(v.date_deadline), notes: v.notes ?? "" };
+  const saved = { name: v.name ?? "", deadline: toLocalInput(v.date_deadline), notes: v.description ?? "" };
   const [name, setName] = useState(saved.name);
   const [deadline, setDeadline] = useState(saved.deadline);
   const [notes, setNotes] = useState(saved.notes);
@@ -64,12 +65,17 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
     return out.ok;
   };
 
-  const save = () => {
+  const save = async () => {
     const dl = fromLocalInput(deadline);
-    return run(call(db.run.todo_save, { id, name, date_deadline: dl, description: notes }), () => {
-      setPending(id, { name, date_deadline: dl || null, notes });
-      setEditing(false);
-    }, "Saved");
+    if (!(await run(call(db.run.todo_save, { id, name, date_deadline: dl }), () => setPending(id, { name, date_deadline: dl || null })))) return;
+    // The description is HTML: Odoo's own write cleans and stores it, and sends back what it kept.
+    if (notes !== saved.notes) {
+      const ok = await run(call<{ id: number; description: string }, { description: string | null }>(db.run.todo_set_description, { id, description: notes })
+        .then((o) => { if (o.ok) setPending(id, { description: o.value.description ?? "" }); return o; }));
+      if (!ok) return;
+    }
+    setEditing(false);
+    toast("Saved");
   };
   const discard = () => {
     setName(saved.name);
@@ -135,8 +141,8 @@ const Editor = observer(({ todo }: { todo: Todos }) => {
           <TagPicker selected={tagIds} onChange={(l) => void setTags(l)} />
         </div>
         <div className="tabs"><span>Description</span></div>
-        <textarea className="desc" aria-label="Description" value={notes} placeholder="Add details about this to-do…"
-          onChange={(e) => { setEditing(true); setNotes(e.target.value); }} />
+        <RichText label="Description" value={notes} placeholder="Add details about this to-do… Type / for commands."
+          onChange={(html) => { setEditing(true); setNotes(html); }} />
         <p className="muted">Title, deadline and description are kept with Save; the priority, tags, assignees and done are saved at once.</p>
         <button className="btn" onClick={() => navigate(-1)}><ArrowLeft size={14} aria-hidden="true" /> Back</button>
       </div>

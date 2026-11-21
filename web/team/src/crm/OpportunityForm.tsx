@@ -10,6 +10,7 @@ import {
   Avatar, CRM_PRIORITY_LABELS, DateTimePicker, MoneyField, MultiPicker, OnePicker, Priority, Ribbon, StageBar, TagColorPopover, toast,
   type Level,
 } from "../ui";
+import { RichText } from "../ui/RichText";
 import { crmKey, leadCurrency, stageForTeam, useCurrency, useMyCrm } from "./lib";
 import { LostDialog } from "./LostDialog";
 
@@ -52,10 +53,11 @@ const Editor = observer(({ opp }: { opp: Opportunities }) => {
     partner_id: opp.partner_id == null ? "" : String(opp.partner_id),
     team_id: opp.team_id == null ? "" : String(opp.team_id),
     company_id: opp.company_id == null ? "" : String(opp.company_id),
+    description: opp.description ?? "",
   });
   const saved: Fields = {
     name: opp.name ?? "", revenue: opp.expected_revenue ?? 0, probability: pct(opp.probability),
-    deadline: opp.date_deadline ?? "", notes: opp.notes ?? "", email: opp.email_from ?? "", phone: opp.phone ?? "",
+    deadline: opp.date_deadline ?? "", notes: v.description ?? "", email: opp.email_from ?? "", phone: opp.phone ?? "",
   };
   const [f, setF] = useState<Fields>(saved);
   const [editing, setEditing] = useState(false);
@@ -101,16 +103,22 @@ const Editor = observer(({ opp }: { opp: Opportunities }) => {
   };
 
   const save = async () => {
-    const args: { id: number; name?: string; expected_revenue?: string; probability?: string; date_deadline?: string; description?: string } = { id };
+    const args: { id: number; name?: string; expected_revenue?: string; probability?: string; date_deadline?: string } = { id };
     if (f.name !== saved.name) args.name = f.name;
     if (f.revenue !== saved.revenue) args.expected_revenue = String(f.revenue);
     if (f.probability !== saved.probability) args.probability = f.probability;
     if (f.deadline !== saved.deadline) args.date_deadline = f.deadline;
-    if (f.notes !== saved.notes) args.description = f.notes;
     if (Object.keys(args).length > 1 && !(await run(call(db.run.crm_save, args)))) return;
-    // Email and phone are saved through Odoo, which checks them and copies them to the contact.
-    const odoo = [f.email !== saved.email && "email_from", f.phone !== saved.phone && "phone"].filter(Boolean) as string[];
-    if (odoo.length && !(await run(call(db.run.crm_odoo_write, { id, fields: odoo.join(","), email_from: f.email, phone: f.phone })))) return;
+    // Email and phone are saved through Odoo, which checks them and copies them to the contact;
+    // the notes too, which are HTML that Odoo's write cleans (it sends back what it kept).
+    const odoo = [f.email !== saved.email && "email_from", f.phone !== saved.phone && "phone", f.notes !== saved.notes && "description"]
+      .filter(Boolean) as string[];
+    if (odoo.length) {
+      type Args = { id: number; fields: string; email_from: string; phone: string; description: string };
+      const out = await call<Args, { description?: string | null }>(db.run.crm_odoo_write, { id, fields: odoo.join(","), email_from: f.email, phone: f.phone, description: f.notes });
+      if (!(await run(Promise.resolve(out)))) return;
+      if (out.ok && odoo.includes("description")) setPending(key, { description: out.value.description ?? "" });
+    }
     setEditing(false);
     toast("Saved");
   };
@@ -258,7 +266,7 @@ const Editor = observer(({ opp }: { opp: Opportunities }) => {
               <Tab id="extra" className="tab">Extra Info</Tab>
             </TabList>
             <TabPanel id="notes">
-              <textarea className="desc" aria-label="Notes" value={f.notes} placeholder="Add a description…" onChange={(e) => edit({ notes: e.target.value })} />
+              <RichText label="Notes" value={f.notes} placeholder="Add a description… Type / for commands." onChange={(html) => edit({ notes: html })} />
             </TabPanel>
             <TabPanel id="extra">
               <div className="crm-groups">

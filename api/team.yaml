@@ -8,7 +8,7 @@ entities:
     observe: todo_view
     read_only: true
     params:
-      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date, open_for]
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, description, summary, write_date, open_for]
       filter: [name, state, active, priority, due, open_for]
       default_sort: date_deadline
     # A computed view: it listens to the Odoo tables it reads (table/todo_view.yaml), so
@@ -51,7 +51,7 @@ entities:
     observe: opportunity
     read_only: true
     params:
-      columns: [name, active, stage_id, user_id, user_name, team_id, team_name, partner_id, customer, contact_name, partner_name, email_from, phone, expected_revenue, probability, automated_probability, priority, tag_ids, won_status, lost_reason_id, lost_reason, date_deadline, date_closed, notes, activity_state, activity_icon, activity_summary, rotting_days, campaign, medium, source, referred, create_date, write_date, company_id, company_name, currency_symbol, currency_position, currency_decimals]
+      columns: [name, active, stage_id, user_id, user_name, team_id, team_name, partner_id, customer, contact_name, partner_name, email_from, phone, expected_revenue, probability, automated_probability, priority, tag_ids, won_status, lost_reason_id, lost_reason, date_deadline, date_closed, notes, description, activity_state, activity_icon, activity_summary, rotting_days, campaign, medium, source, referred, create_date, write_date, company_id, company_name, currency_symbol, currency_position, currency_decimals]
       filter: [id, name, active, stage_id, user_id, team_id, won_status, rotting_days, activity_state, search_text, switch_teams]
       default_sort: { column: priority, direction: desc }
   - name: crm_stages
@@ -107,6 +107,7 @@ actions:
   - todo_toggle_done
   - todo_set_priority
   - todo_set_tags
+  - todo_set_description
   - todo_set_assignees
   - todo_archive
   - crm_create

@@ -93,6 +93,43 @@ scenarios:
           - monicas.state == "01_in_progress"
           - monicas.date_end == ()
 
+  # A rich description is HTML: it goes to Odoo's own write (which cleans it with
+  # html_sanitize), never into the column from nodo. The test copies have no Odoo to answer, so
+  # the save is refused and the column stays as it was; the cleaned result was checked on the
+  # live app and in the e2e spec (web/team/e2e/richtext.spec.ts).
+  rich-description:
+    session: { app: team, uid: 6, name: Monica Light, login: light, odoo_password: secret }
+    clock: 2026-11-21T09:00:00Z
+    steps:
+      - step: Monica saves a formatted description, which only Odoo's own write may store
+        do: { action: todo_set_description, args: { id: 900, description: "<p><strong>Call</strong> the supplier</p><img src=x onerror=alert(1)>" } }
+        fails: "Odoo didn't accept the change"
+        what_if: [description-not-yours, description-no-password, description-too-long]
+      - step: nodo wrote nothing to the column itself
+        assert:
+          - monicas.description == ()
+
+  description-not-yours:
+    steps:
+      - step: Marc tries to change the description of Monica's to-do
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, odoo_password: secret }
+        fails: "That to-do isn't yours"
+
+  description-no-password:
+    steps:
+      - step: A session without the Odoo password a web sign-in keeps
+        as: { app: team, uid: 6, name: Monica Light, login: light }
+        fails: "Sign in on the web to save the description through Odoo"
+
+  description-too-long:
+    steps:
+      - step: A description over 200,000 characters
+        do: |
+          let s = "<p>";
+          for i in 0..20001 { s += "0123456789"; }
+          actions.todo_set_description(#{ id: 900, description: s });
+        fails: "The description is too long to save"
+
   columns-stay-private:
     session: { app: team, uid: 5, name: Marc Demo, login: demo }
     steps:

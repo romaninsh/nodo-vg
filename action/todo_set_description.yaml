@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Save a to-do's description as rich text (HTML from the web's editor). Args: id, description
+# (HTML; empty clears it). The HTML never goes into the column from here: Odoo's own write
+# (JSON-RPC, as the signed-in person) cleans it with `html_sanitize` and stores it, and the
+# stored value is read back and returned. Needs the password a web sign-in keeps.
+kind: script
+label: Save description
+icon: Save
+params:
+  id: { type: int }
+  description: { type: string, required: false }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let me = session.uid;
+  if !t::assigned(table("todo_view").get(id), me) { fail("That to-do isn't yours"); }
+  let html = if "description" in args && args.description != () { args.description.to_string() } else { "" };
+  html.trim();
+  if html.len() > 200000 { fail("The description is too long to save"); }
+  let pw = if session.odoo_password != () { session.odoo_password.to_string() } else { "" };
+  if pw == "" { fail("Sign in on the web to save the description through Odoo"); }
+  let before = table("todo").get(id);
+  table("odoo_task_write").insert(#{
+    id: uuid_v7(), uid: me, password: pw, task_id: id,
+    vals: #{ description: if html == "" { false } else { html } },
+  });
+  // Odoo answers 200 even when it refuses: it took the change when its write stamp moved.
+  let after = table("todo").get(id);
+  if after.write_date == before.write_date { fail("Odoo didn't accept the change (wrong password?)"); }
+  #{ id: id, description: after.description }
