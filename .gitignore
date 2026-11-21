@@ -1,0 +1,43 @@
+# --- managed by Vantage: generated files (do not edit this block)
+#
+# Vantage rewrites these on every open, from the running build.
+# Commit them and they go stale, and every version bump becomes a
+# diff nobody wrote.
+*/*-schema-*.json
+*/README.md
+/AGENTS.md
+
+# Machine-local, not content: the install record an app keeps so it
+# can update itself, the row caches, the credentials files (each
+# profile's, like `.env.prod`; `.env.example` lists their names and is
+# committed), and the local data files the connect wizard placed (CSV,
+# SQLite), and third-party reference material copied in for the agent
+# (`refs/`).
+manifest.yaml
+.cache/
+.env
+.env.*
+!.env.example
+data/
+/refs/
+.DS_Store
+# --- end managed by Vantage
+
+# browser-automation snapshots and screenshots (they can show real pages)
+/.playwright-mcp/
+
+# Skill copies Vantage installs and refreshes in every project it opens, and the local MCP address.
+.agents/
+.claude/
+.mcp.json
+
+# Working notes from the agent that built the app; NOTES.md is the handover that stays.
+/BRIEF.md
+/FEEDBACK.md
+/PROGRESS.md
+
+# Build output.
+node_modules/
+dist/
+test-results/
+playwright-report/

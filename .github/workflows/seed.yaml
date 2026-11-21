@@ -1,0 +1,116 @@
+# The demo database, rebuilt every night. `build` installs Odoo Community with the apps in
+# seed/modules.txt and their demo data (seed/build.sh) and pushes the Postgres image
+# ghcr.io/romaninsh/nodo-vg-db. `reseed` loads the same data into Cloud SQL (database `nodo` on
+# wow-plan-pg) for the live demo. Odoo dates its demo records from the install day, so the nightly
+# rebuild keeps the demo current, and visitors' edits are wiped like on Odoo's own demo.
+# On a pull request that touches the seed, only `build` runs, without pushing.
+# Auth for `reseed`: Workload Identity Federation as github-nodo-vg (vantage-terraform's module
+# "nodo_vg_gcp"); the database URL comes from Secret Manager.
+name: seed
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'seed/**'
+      - '.github/workflows/seed.yaml'
+
+permissions: {}
+
+concurrency:
+  group: seed-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/romaninsh/nodo-vg-db
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Build the image
+        run: seed/build.sh "$IMAGE:$GITHUB_SHA"
+
+      # The data, not just a running server: apps installed, demo records present.
+      - name: Smoke check
+        run: |
+          docker run -d --name seed "$IMAGE:$GITHUB_SHA"
+          for _ in $(seq 30); do docker exec seed pg_isready -U odoo -d nodo -q && break; sleep 1; done
+          q() { docker exec seed psql -U odoo -d nodo -Atc "$1"; }
+          modules="$(q "select count(*) from ir_module_module where state = 'installed'")"
+          products="$(q "select count(*) from product_template")"
+          leads="$(q "select count(*) from crm_lead")"
+          echo "installed modules: $modules, products: $products, crm leads: $leads"
+          [ "$modules" -ge 150 ] && [ "$products" -ge 100 ] && [ "$leads" -ge 20 ]
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          day="$(date -u +%Y-%m-%d)"
+          docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:$day"
+          docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:latest"
+          docker push "$IMAGE:$day"
+          docker push "$IMAGE:latest"
+
+  reseed:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    env:
+      PROJECT: inlaid-agility-461020-e4
+      INSTANCE: inlaid-agility-461020-e4:europe-west2:wow-plan-pg
+      PROXY_VERSION: v2.28.0
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/129027965449/locations/global/workloadIdentityPools/golf/providers/nodo-vg-main
+          service_account: github-nodo-vg@inlaid-agility-461020-e4.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      # The URL is the runtime's own (host=/cloudsql/<instance>), so the proxy serves the same
+      # socket path Cloud Run mounts.
+      - name: Connect to Cloud SQL
+        run: |
+          url="$(gcloud secrets versions access latest --secret nodo-vg-pg-url --project "$PROJECT")"
+          echo "::add-mask::$url"
+          echo "PG_URL=$url" >> "$GITHUB_ENV"
+          curl -fsSL -o cloud-sql-proxy \
+            "https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/${PROXY_VERSION}/cloud-sql-proxy.linux.amd64"
+          chmod +x cloud-sql-proxy
+          sudo mkdir -p /cloudsql && sudo chown "$USER" /cloudsql
+          ./cloud-sql-proxy --unix-socket /cloudsql "$INSTANCE" > proxy.log 2>&1 &
+          for _ in $(seq 30); do [ -S "/cloudsql/$INSTANCE/.s.PGSQL.5432" ] && exit 0; sleep 1; done
+          cat proxy.log; exit 1
+
+      # pg_trgm stays: only cloudsqlsuperuser may create or drop it, so it was created once by hand
+      # and the dump leaves it out. DROP OWNED clears everything else the nodo user owns.
+      - name: Load the seed into Cloud SQL
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker run -d --name seed "$IMAGE:latest"
+          for _ in $(seq 30); do docker exec seed pg_isready -U odoo -d nodo -q && break; sleep 1; done
+          docker exec seed pg_dump -U odoo -Fc --no-owner --no-privileges --exclude-extension=pg_trgm nodo > nodo.dump
+          pg() { docker run --rm -i -v /cloudsql:/cloudsql -v "$PWD:/work" -w /work postgres:17 "$@"; }
+          pg psql "$PG_URL" -v ON_ERROR_STOP=1 -c 'DROP OWNED BY nodo'
+          pg pg_restore --no-owner --no-privileges --exit-on-error -d "$PG_URL" nodo.dump
+          pg psql "$PG_URL" -Atc "select count(*) from product_template"
