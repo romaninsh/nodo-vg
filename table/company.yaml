@@ -1,16 +1,24 @@
 # yaml-language-server: $schema=./table-schema-1.json
 # Odoo's companies (res_company), for the opportunity's Company field. Read-only.
+#
+# Each person sees the companies they are allowed in (Odoo's company rule), and only with Sales
+# rights. One row per company and per person allowed to see it, with that person in `user_id`,
+# which the datasource's `user_id` rule narrows to the signed-in person.
 datasource: odoo
 title: Company
 id_column: id
 columns:
   id: { type: int, flags: [id] }
   name: { type: string, label: Company, flags: [title] }
+  user_id: { type: int, flags: [hidden] }
 postgres:
   listen: [res_company]
   rhai: |
+    let salesman = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = u.id UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'sales_team' AND d.res_id = g.gid WHERE d.name = 'group_sale_salesman')";
     sql::select().from("res_company")
-        .field("id")
-        .field("name")
-        .where(sql::expr("active IS NOT FALSE"))
-        .order_by(sql::ident("name"), "asc")
+        .inner_join("res_users", "u", sql::expr("u.active AND u.share IS NOT TRUE AND " + salesman + " AND res_company.id IN (SELECT r.cid FROM res_company_users_rel r WHERE r.user_id = u.id)"))
+        .expression(sql::expr("res_company.id").alias("id"))
+        .expression(sql::expr("res_company.name").alias("name"))
+        .expression(sql::expr("u.id").alias("user_id"))
+        .where(sql::expr("res_company.active IS NOT FALSE"))
+        .order_by(sql::expr("2"), "asc")

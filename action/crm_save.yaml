@@ -29,11 +29,16 @@ body: |
   if "expected_revenue" in args && args.expected_revenue != () {
     let t = args.expected_revenue.to_string();
     t.trim();
-    p.expected_revenue = if t == "" { 0.0 } else { crm::num(t) };
+    // crm::num refuses anything that isn't a finite number ("NaN", "Infinity", "1e999").
+    let r = 0.0;
+    try { r = crm::num(t); } catch { fail("The expected revenue must be a number"); }
+    p.expected_revenue = r;
   }
   if "probability" in args && args.probability != () {
-    let v = crm::round2(crm::num(args.probability));
-    if v < 0.0 || v > 100.0 { fail("The probability of closing the deal should be between 0% and 100%"); }
+    let v = 0.0;
+    try { v = crm::round2(crm::num(args.probability)); } catch { fail("The probability must be a number between 0% and 100%"); }
+    // Written so that NaN, which compares false with everything, fails it too.
+    if !crm::within(v, 0.0, 100.0) { fail("The probability of closing the deal should be between 0% and 100%"); }
     if !crm::same_probability(v, lead.probability) {
       if lead.won_status != "pending" { fail("Only an ongoing opportunity's probability can change"); }
       p.probability = v;

@@ -1,15 +1,27 @@
 // Shared helpers for CRM: the lead hooks and the CRM actions. Helpers see only their arguments.
 
-// A number from a decimal column (read back as text), a float or an int; () is 0.
+// A number from a decimal column (read back as text), a float, an int or text a caller typed;
+// () and "" are 0. Anything that isn't a finite number (text, "NaN", "Infinity", "1e999")
+// throws: NaN compares false with everything, so a range check written as `v < 0 || v > 100`
+// would let it through.
 fn num(v) {
     if v == () { return 0.0; }
     let t = type_of(v);
-    if t == "f64" || t == "f32" { return v; }
-    if t == "i64" || t == "i32" { return v.to_float(); }
-    let s = v.to_string();
-    s.trim();
-    if s == "" { 0.0 } else { parse_float(s) }
+    let x = 0.0;
+    if t == "f64" || t == "f32" { x = v; }
+    else if t == "i64" || t == "i32" { x = v.to_float(); }
+    else {
+        let s = v.to_string();
+        s.trim();
+        if s == "" { return 0.0; }
+        try { x = parse_float(s); } catch { throw `"${s}" isn't a number`; }
+    }
+    if !x.is_finite() { throw `"${v}" isn't a number`; }
+    x
 }
+
+// Whether a number lies within [lo, hi], written so NaN is out of range too.
+fn within(x, lo, hi) { x >= lo && x <= hi }
 
 fn round2(x) { (x * 100.0).round() / 100.0 }
 

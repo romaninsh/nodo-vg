@@ -2,6 +2,14 @@
 # Contacts an opportunity can be for (res_partner, active), named as Odoo names them
 # ("Azure Interior, Brandon Freeman"). Read-only: picking one is saved through Odoo, which
 # fills the opportunity's contact details from it.
+#
+# Who sees which contact: only people with Sales rights (this is CRM's contact list), and
+# within that Odoo's res.partner company rule: internal users' contacts, contacts with no
+# company, and contacts of a company that is (a parent of) one of the person's allowed
+# companies. The query returns one row per contact and per person allowed to see it, with that
+# person in `user_id`; the datasource's `user_id` rule then keeps each person to their own
+# rows. (A table can't have its own row rule, so the rule's existing `user_id` narrowing does
+# the scoping.)
 datasource: odoo
 title: Customer
 id_column: id
@@ -11,14 +19,19 @@ columns:
   email: { type: string, label: Email, flags: [searchable] }
   phone: { type: string, label: Phone }
   is_company: { type: bool, label: Company }
+  user_id: { type: int, flags: [hidden] }
 postgres:
   listen: [res_partner]
   rhai: |
+    let salesman = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = u.id UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'sales_team' AND d.res_id = g.gid WHERE d.name = 'group_sale_salesman')";
+    let company_rule = "(res_partner.partner_share IS NOT TRUE OR res_partner.company_id IS NULL OR EXISTS (SELECT 1 FROM res_company_users_rel r JOIN res_company a ON a.id = r.cid JOIN res_company c ON c.id = res_partner.company_id WHERE r.user_id = u.id AND a.parent_path LIKE c.parent_path || '%'))";
     sql::select().from("res_partner")
-        .field("id")
-        .expression(sql::expr("coalesce(complete_name, name)").alias("name"))
-        .field("email")
-        .field("phone")
-        .expression(sql::expr("coalesce(is_company, false)").alias("is_company"))
-        .where(sql::expr("active IS NOT FALSE AND coalesce(complete_name, name) IS NOT NULL"))
+        .inner_join("res_users", "u", sql::expr("u.active AND u.share IS NOT TRUE AND " + salesman + " AND " + company_rule))
+        .expression(sql::expr("res_partner.id").alias("id"))
+        .expression(sql::expr("coalesce(res_partner.complete_name, res_partner.name)").alias("name"))
+        .expression(sql::expr("res_partner.email").alias("email"))
+        .expression(sql::expr("res_partner.phone").alias("phone"))
+        .expression(sql::expr("coalesce(res_partner.is_company, false)").alias("is_company"))
+        .expression(sql::expr("u.id").alias("user_id"))
+        .where(sql::expr("res_partner.active IS NOT FALSE AND coalesce(res_partner.complete_name, res_partner.name) IS NOT NULL"))
         .order_by(sql::expr("2"), "asc")

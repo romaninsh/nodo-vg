@@ -112,8 +112,18 @@ hook:
     let n = if record.name == () { "" } else { record.name };
     n.trim();
     if n == "" { throw "Give the opportunity a name"; }
-    let p = if record.probability == () { 0.0 } else { record.probability };
-    if p < 0.0 || p > 100.0 { throw "The probability of closing the deal should be between 0% and 100%"; }
+    // Range checks written so that NaN (which compares false with everything) fails them, and
+    // infinities are refused: Postgres would store them in a float or numeric column.
+    let p = if record.probability == () { 0.0 } else { parse_float(record.probability.to_string()) };
+    if !(p >= 0.0 && p <= 100.0) { throw "The probability of closing the deal should be between 0% and 100%"; }
+    for col in ["expected_revenue", "automated_probability", "recurring_revenue"] {
+      let v = record[col];
+      if v != () {
+        let x = 0.0;
+        try { x = parse_float(v.to_string()); } catch { throw `${col} must be a number`; }
+        if !x.is_finite() { throw `${col} must be a number`; }
+      }
+    }
     if record.stage_id != () && p != 100.0 {
       let s = table("crm_stage").get(record.stage_id);
       if s != () && s.is_won == true { throw "A lead in a Won stage cannot be lost. Move it to another stage first."; }

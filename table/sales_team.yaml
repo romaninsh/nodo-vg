@@ -1,6 +1,10 @@
 # yaml-language-server: $schema=./table-schema-1.json
 # Sales teams that run a pipeline (crm_team with use_opportunities), with their leader and
 # members as "2,5" id lists.
+#
+# Only for people with Sales rights, and within Odoo's team company rule (no company, or one of
+# the person's allowed companies). One row per team and per person allowed to see it, with that
+# person in `user_id`, which the datasource's `user_id` rule narrows to the signed-in person.
 datasource: odoo
 title: Sales team
 id_column: id
@@ -10,14 +14,19 @@ columns:
   sequence: { type: int, label: Order }
   leader_id: { type: int, label: Team leader }
   member_ids: { type: string, label: Members }
+  user_id: { type: int, flags: [hidden] }
 postgres:
   listen: [crm_team, crm_team_member]
   rhai: |
+    let salesman = "EXISTS (WITH RECURSIVE g(gid) AS (SELECT gid FROM res_groups_users_rel WHERE uid = u.id UNION SELECT i.hid FROM g JOIN res_groups_implied_rel i ON i.gid = g.gid) SELECT 1 FROM g JOIN ir_model_data d ON d.model = 'res.groups' AND d.module = 'sales_team' AND d.res_id = g.gid WHERE d.name = 'group_sale_salesman')";
+    let company_rule = "(crm_team.company_id IS NULL OR crm_team.company_id IN (SELECT r.cid FROM res_company_users_rel r WHERE r.user_id = u.id))";
     sql::select().from("crm_team")
-        .field("id")
-        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
-        .expression(sql::expr("coalesce(sequence, 0)").alias("sequence"))
-        .expression(sql::expr("user_id").alias("leader_id"))
+        .inner_join("res_users", "u", sql::expr("u.active AND u.share IS NOT TRUE AND " + salesman + " AND " + company_rule))
+        .expression(sql::expr("crm_team.id").alias("id"))
+        .expression(sql::expr("coalesce(crm_team.name->>'en_US', crm_team.name->>(SELECT k FROM jsonb_object_keys(crm_team.name) k LIMIT 1))").alias("name"))
+        .expression(sql::expr("coalesce(crm_team.sequence, 0)").alias("sequence"))
+        .expression(sql::expr("crm_team.user_id").alias("leader_id"))
         .expression(sql::expr("coalesce((SELECT string_agg(m.user_id::text, ',' ORDER BY m.user_id) FROM crm_team_member m WHERE m.crm_team_id = crm_team.id AND m.active IS NOT FALSE), '')").alias("member_ids"))
-        .where(sql::expr("active IS NOT FALSE AND use_opportunities"))
-        .order_by(sql::expr("sequence, id"), "asc")
+        .expression(sql::expr("u.id").alias("user_id"))
+        .where(sql::expr("crm_team.active IS NOT FALSE AND crm_team.use_opportunities"))
+        .order_by(sql::expr("3, 1"), "asc")
