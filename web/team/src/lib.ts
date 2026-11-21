@@ -51,15 +51,6 @@ export const tagText = (c: number | null | undefined) => ((c ?? 0) === 0 || c ==
 export const ids = (s: string | null | undefined) =>
   (s ?? "").split(",").map((x) => x.trim()).filter((x) => x !== "");
 
-export function initials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]![0] : "")).toUpperCase();
-}
-
-const AVATAR = ["#714B67", "#2C8397", "#D6145F", "#30C381", "#9365B8", "#F4A460", "#475577"];
-export const avatarColor = (name: string) =>
-  AVATAR[[...name].reduce((a, ch) => a + ch.charCodeAt(0), 0) % AVATAR.length]!;
-
 /** A UTC instant from the API, shown in this browser's time zone, the way Odoo shows a deadline. */
 export function deadlineLabel(iso: string | null | undefined) {
   if (!iso) return "";

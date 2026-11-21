@@ -9,3 +9,7 @@ that data under the same licence. Odoo's source is at https://github.com/odoo/od
 nodo-vg contains no Odoo source code; it is written from scratch and shares only the
 database structure. nodo-vg is an independent project. It is not affiliated with, endorsed by or sponsored
 by Odoo S.A. "Odoo" is a trademark of Odoo S.A.
+
+The web frontend (web/team) bundles third-party packages under their own permissive
+licences, listed in web/team/package-lock.json: among them React Aria Components and
+@internationalized/date (Apache License 2.0, Adobe), dnd-kit (MIT) and Lucide icons (ISC).
