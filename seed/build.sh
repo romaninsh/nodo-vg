@@ -25,7 +25,7 @@ for _ in $(seq 60); do docker exec "$NAME-db" pg_isready -U odoo -q && break; sl
 docker exec "$NAME-db" pg_isready -U odoo -q
 
 DB_NETWORK="$NAME" DB_HOST="$NAME-db" DB_PORT=5432 ./install.sh "$OUT"
-cp Dockerfile notify.sql "$OUT/"
+cp Dockerfile notify.sql link_ids.sql "$OUT/"
 
 docker build -t "$TAG" "$OUT"
 echo "Built $TAG"

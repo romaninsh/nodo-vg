@@ -1,11 +1,16 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# Odoo's tag links (project_tags_project_task_rel). The table has no id of its own (its key is
-# the pair), so the tag column stands in for it. Always narrow to one to-do first:
-#   table("todo_tag").where("project_task_id", t).insert(...) / .delete(tag)
+# Odoo's tag links (project_tags_project_task_rel). Odoo's table has only the pair; nodo added a
+# serial `v_id` (seed/link_ids.sql) as a stopgap until Vantage can insert into a table whose id
+# is computed from the pair (vantage-ui spec 2026-11-25-nodo-direct-writes-feedback, F-1).
+# Reach it through a to-do's `tags`, which narrows every read and write to that to-do:
+#   table("todo").where("id", t).ref("tags").insert(#{ project_tags_id: g })
+# The pair is Odoo's primary key, so insert only tags the to-do doesn't have yet.
 datasource: odoo
 table: project_tags_project_task_rel
 title: Tag link
-id_column: project_tags_id
+id_column: v_id
+deny: { actions: [delete_all] }
 columns:
-  project_tags_id: { type: int, flags: [id, auto], label: Tag }
+  v_id: { type: int, flags: [id, auto] }
   project_task_id: { type: int, label: To-do }
+  project_tags_id: { type: int, label: Tag }

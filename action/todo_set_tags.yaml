@@ -1,34 +1,22 @@
 # yaml-language-server: $schema=./action-schema-1.json
-# Replace a to-do's tags. Args: id (the to-do), tags (a list of tag ids, or "1,5" text),
-# password (optional: the person's Odoo password). A web sign-in keeps the password typed at
-# sign-in with the session on the server (`session.odoo_password`), which is always used, so a
-# password sent with the call is ignored there; the desktop has no sign-in, so its Tags dialog
-# asks for it.
-#
-# Odoo's tag link table has no id column, and Vantage can't add rows to such a table (see
-# FEEDBACK.md). So the change goes through Odoo itself (JSON-RPC `write`, as the person), and
-# is then read back from the database to confirm Odoo took it.
+# Replace a to-do's tags. Args: id (the to-do), tags (a list of tag ids, or "1,5" text).
+# Odoo keeps tags as rows in project_tags_project_task_rel and tracks nothing else for them, so
+# this writes those rows directly: links not in the list go, missing ones are added.
 kind: script
 label: Set tags
 icon: Tag
 params:
   id: { type: int }
   tags: { type: string, required: false }
-  password: { type: string, required: false }
 body: |
   import "todo" as t;
   let id = parse_int(args.id.to_string());
-  if table("todo").get(id) == () { fail("That to-do isn't yours"); }
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
   let wanted = t::ids(args.tags);
-  // A web session's own password wins: a caller can't send other passwords to test them.
-  let pw = if session.odoo_password != () { session.odoo_password.to_string() }
-    else if "password" in args && args.password != () { args.password.to_string() } else { "" };
-  if pw == "" { fail("Odoo asks for your password to save tag changes"); }
-  table("odoo_task_write").insert(#{
-    id: uuid_v7(), uid: session.uid, password: pw, task_id: id,
-    tag_ids: wanted.map(|x| x.to_string()).reduce(|a, b| if a == "" { b } else { a + "," + b }, ""),
-  });
-  let now_has = table("todo_tag").where("project_task_id", id).list().map(|r| r.project_tags_id);
-  if now_has.len() != wanted.len() { fail("Odoo didn't accept the change (wrong password?)"); }
-  for g in wanted { if !now_has.contains(g) { fail("Odoo didn't accept the change (wrong password?)"); } }
-  #{ id: id, tags: now_has.len() }
+  let links = table("todo").where("id", id).ref("tags");
+  let has = [];
+  for l in links.list() {
+    if wanted.contains(l.project_tags_id) { has.push(l.project_tags_id); } else { links.delete(l.v_id); }
+  }
+  for g in wanted { if !has.contains(g) { links.insert(#{ project_tags_id: g }); } }
+  #{ id: id, tags: wanted.len() }

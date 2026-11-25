@@ -8,4 +8,3 @@ dialog:
 form:
   fields:
     - { name: tags, label: Tags, widget: checklist, references: tag, required: false }
-    - { name: password, type: string, label: Your Odoo password, masked: true, required: false, placeholder: "Odoo saves tag changes, so it asks who you are" }

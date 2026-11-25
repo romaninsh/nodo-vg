@@ -33,6 +33,7 @@ columns:
   info.overdue: { type: bool, label: Overdue }
 references:
   assignments: { table: todo_user, kind: has_many, foreign_key: task_id }
+  tags: { table: todo_tag, kind: has_many, foreign_key: project_task_id }
 hook:
   # Stamp what Odoo's own create and write stamp, so Odoo shows nodo's rows as its own.
   normalise: |

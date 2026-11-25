@@ -59,7 +59,7 @@ body:
           icon: Tags
           action: |
             let f = actions.todo_tags_form(#{ tags: record.tag_ids });
-            actions.todo_set_tags(#{ id: args.id, tags: f.tags, password: f.password });
+            actions.todo_set_tags(#{ id: args.id, tags: f.tags });
             toast("Tags saved", "success");
       - kind: button
         params:
