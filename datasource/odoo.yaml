@@ -47,3 +47,7 @@ invariants:
       - { type: action, name: todo_set_priority, when: 'session.uid != ()' }
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       - { type: action, name: todo_archive, when: 'session.uid != ()' }
+      # This rule's SQL condition can't run in scenario tests (the in-memory copies don't
+      # evaluate SQL; gaps spec TEST-1), so the tag action checks the to-do is the caller's
+      # itself, like the actions above, and its tests run.
+      - { type: action, name: todo_set_tags, when: 'session.uid != ()' }

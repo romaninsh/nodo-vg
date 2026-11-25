@@ -17,9 +17,8 @@ body: |
   if u.active != true || u.share == true { fail("This account can't use nodo"); }
   let p = table("person").get(id);
   let name = if p == () { login } else { p.name };
-  // The password stays with the sign-in on the server (memory only) for tag saves through Odoo.
   // Memory session fields have no column type: store the id as a number, or the rules compare
   // Odoo's integer user_id with text.
   let uid = parse_int(id.to_string());
-  let token = session.create(id, #{ uid: uid, name: name, login: login, odoo_password: args.password.to_string() });
+  let token = session.create(id, #{ uid: uid, name: name, login: login });
   #{ token: token, uid: uid, name: name, login: login }

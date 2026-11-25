@@ -20,8 +20,5 @@ session:
     uid: {}
     name: {}
     login: {}
-    # The Odoo password typed at sign-in, kept with the sign-in on the server so nodo can save
-    # tags through Odoo as you. Secret: actions read it; no page, grid or API shows it.
-    odoo_password: { secret: true }
   signed_out: [sign_in]
   desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin" }'

@@ -105,7 +105,6 @@ test to-dos afterwards.
 
 - `datasource/odoo.yaml`: the connection to Odoo's database and the "only your own rows" rules.
 - `datasource/odoo_auth.yaml`, `table/odoo_user.yaml`: Odoo's users, for sign-in only.
-- `datasource/odoo_rpc.yaml`, `table/odoo_task_write.yaml`: Odoo's JSON-RPC, for tag changes.
 - `table/`: to-dos (`todo`, `todo_view`), assignments (`todo_user`), columns (`stage`),
   tags, people, followers; `stage_bar` (the to-do sheet's column list).
 - `action/`: sign-in, create, save, move, done, priority, tags, assignees, archive, switch person.
@@ -133,7 +132,9 @@ test to-dos afterwards.
    ``insert returned no usable id — the row's id came back NULL`` and, inside an action,
    ``operator does not exist: tid = text``; also ``table takes no delete_all``. Hence the
    Odoo JSON-RPC route above. A wrong password also gets HTTP 200 from Odoo, so nodo reads
-   the result back to confirm.
+   the result back to confirm. **Fixed (Vantage 1.16):** the link table now has an id computed
+   from the pair, and tags are written straight to the database; the JSON-RPC route and the
+   password it needed are gone.
 4. **Creating a to-do** was first refused by the "assigned to you" rule, because the task
    exists a moment before its assignment: ``record does not belong to this set (table: "project_task")``.
    The create action now has a rule exception and assigns the to-do in the same transaction.
@@ -177,7 +178,8 @@ test to-dos afterwards.
    with that sign-in, in memory, as a secret field (`odoo_password` in `application.yaml`).
    Saving tags uses it there. The web page no longer stores it, and it also clears the copy
    an older version of the page may have left in an open tab. The desktop Tags dialog still
-   asks for the password, because the desktop has no sign-in.
+   asks for the password, because the desktop has no sign-in. *(Since removed: tags no longer
+   go through Odoo, so nodo keeps no Odoo password at all.)*
 3. **"Open" like Odoo.** Open now leaves out to-dos that are done or cancelled and to-dos
    in one of your folded columns (Done, Cancelled), on the desktop list and the web list.
    Behind it is a new `open_for` column on the to-do list: the people for whom that to-do is
