@@ -15,6 +15,11 @@ columns:
     flags: [title, searchable]
     expr: 'sql::coalesce(table.column("name_localised"), table.column("name_en"))'
   color: { type: int, label: Colour }
+  # Written when a tag is created or recoloured (action/tag_create.yaml, tag_set_color.yaml).
+  create_uid: { type: int, flags: [hidden] }
+  write_uid: { type: int, flags: [hidden] }
+  create_date: { type: timestamp, flags: [hidden] }
+  write_date: { type: timestamp, flags: [hidden] }
 build: |
   table.nested_column("name_localised", "name", session.lang, #{ label: "Translation" });
 postgres:

@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Remove a follower from one of my to-dos (Odoo's chatter → Followers → remove). Args: id,
+# follower (the follower row's id, from todo_follower). Its subscriptions go with it.
+kind: script
+label: Remove follower
+icon: UserMinus
+params:
+  id: { type: int }
+  follower: { type: int }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  let fid = parse_int(args.follower.to_string());
+  let f = table("follower").get(fid);
+  if f == () || f.res_model != "project.task" || f.res_id != id { fail("That isn't one of this to-do's followers"); }
+  table("follower").delete(fid);
+  #{ id: id }

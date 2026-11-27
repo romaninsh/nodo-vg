@@ -9,7 +9,7 @@ entities:
     observe: todo_open
     read_only: true
     params:
-      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date, open_for]
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, my_stage, sequence, assignees, assignee_ids, due, notes, summary, write_date, open_for]
       filter: [name, state, priority, due, open_for]
       default_sort: date_deadline
     # Computed views listen to the Odoo tables they read, so changes from nodo and Odoo
@@ -35,7 +35,7 @@ entities:
     observe: card
     read_only: true
     params:
-      columns: [task_id, stage_id, task.name, task.priority, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
+      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
       filter: [task_id, stage_id]
     api: { load: instant }
   - name: stages
@@ -52,6 +52,24 @@ entities:
       columns: [name_local, color]
       default_sort: name_local
     api: { load: instant }
+  # A to-do's chatter, asked for by to-do (res_id), newest first.
+  - name: messages
+    observe: todo_message
+    read_only: true
+    params:
+      columns: [res_id, date, author, kind, text]
+      filter: [res_id]
+      default_sort: date
+    api: { load: lazy, collection_limit: 200 }
+  # A to-do's followers, asked for by to-do (res_id).
+  - name: followers
+    observe: todo_follower
+    read_only: true
+    params:
+      columns: [res_id, partner_id, name]
+      filter: [res_id]
+      default_sort: name
+    api: { load: lazy, collection_limit: 200 }
   - name: people
     observe: person
     read_only: true
@@ -65,6 +83,7 @@ actions:
   - sign_out
   - whoami
   - todo_create
+  - todo_quick_add
   - todo_save
   - todo_move
   - todo_toggle_done
@@ -72,6 +91,19 @@ actions:
   - todo_set_tags
   - todo_set_assignees
   - todo_archive
+  - todo_duplicate
+  - todo_delete
+  - todo_log_note
+  - todo_follow
+  - todo_unfollow
+  - stage_create
+  - stage_defaults
+  - stage_rename
+  - stage_fold
+  - stage_delete
+  - stage_reorder
+  - tag_create
+  - tag_set_color
 
 auth:
   local:

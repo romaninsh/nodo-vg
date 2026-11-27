@@ -1,0 +1,14 @@
+# A to-do's followers: the `res_id` rule in datasource/odoo.yaml shows them only on to-dos
+# assigned to the reader.
+app: team
+table: todo_follower
+cases:
+  - name: Marc sees who follows a to-do he's on
+    as: people.marc
+    record: { id: 250 }
+    read: { visible: true, columns: { id: shown, res_id: shown, partner_id: shown, name: shown } }
+
+  - name: Marc can't see who follows Monica's own to-do
+    as: people.marc
+    record: { id: 331 }
+    read: { visible: false }

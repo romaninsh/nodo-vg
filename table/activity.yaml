@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's scheduled activities (mail_activity), only as far as deleting a to-do needs: which
+# record one belongs to. `user_id` is left out on purpose: declared, the datasource's `user_id`
+# rule would hide colleagues' activities on the same to-do, and deleting the to-do would leave
+# them behind.
+datasource: odoo
+table: mail_activity
+title: Activity
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  res_model: { type: string }
+  res_id: { type: int }

@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Copy one of my to-dos (Odoo's ⚙ → Duplicate). Args: id.
+# As Odoo copies a to-do: named "<title> (copy)", open and active, with the same priority,
+# description, tags and active assignees; no deadline. Each assignee finds it in their first
+# column. The description keeps its text, not its formatting.
+kind: script
+label: Duplicate
+icon: Copy
+params:
+  id: { type: int }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let v = table("todo_view").get(id);
+  if !t::assigned(v, session.uid) { fail("That to-do isn't yours"); }
+  // The description goes over as its text (todo_view.notes), escaped like every description
+  // nodo writes (table/todo.yaml): Odoo's formatting doesn't survive, as with any nodo save.
+  let copy = actions.todo_create(#{ name: v.name + " (copy)", priority: v.priority, description: v.notes });
+  if v.tag_ids != () && v.tag_ids != "" { actions.todo_set_tags(#{ id: copy.id, tags: v.tag_ids }); }
+  if v.assignee_ids != () && v.assignee_ids != "" { actions.todo_set_assignees(#{ id: copy.id, users: v.assignee_ids }); }
+  #{ id: copy.id }

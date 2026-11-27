@@ -17,7 +17,7 @@ scenarios:
           - marc_cards.first().stage_id == 12
         vars:
           added: { record: todo, from: result.id }
-        what_if: [no-columns-yet, html-description]
+        what_if: [no-columns-yet, html-description, quick-add-keywords]
       - step: The new to-do is stamped the way Odoo stamps it
         assert:
           - added.state == "01_in_progress"
@@ -34,6 +34,26 @@ scenarios:
           set("stage_open", 12, #{ user_id: 99 });
           set("stage_open", 13, #{ user_id: 99 });
         fails: "You have no to-do columns yet"
+
+  # Odoo's quick-add keywords at the end of a title. "#tag", "@person" and the column go through
+  # actions that read the to-do's view or its assignments, which the in-memory copies don't have
+  # for a new to-do; those were checked live.
+  quick-add-keywords:
+    steps:
+      - step: 'Marc quick-adds "Order paper !!"'
+        do: { action: todo_quick_add, args: { name: "Order paper !!" } }
+        assert:
+          - result.name == "Order paper"
+        vars:
+          paper: { record: todo, from: result.id }
+      - step: The "!!" became a High priority
+        assert:
+          - paper.name == "Order paper"
+          - paper.priority == "2"
+      - step: Keywords in the middle of a title stay words
+        do: { action: todo_quick_add, args: { name: "Fix #3 in the plan" } }
+        assert:
+          - 'result.name == "Fix #3 in the plan"'
 
   html-description:
     steps:
@@ -83,6 +103,30 @@ scenarios:
         as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_set_tags, args: { id: 900, tags: "1" } }
         fails: "That to-do isn't yours"
+      - step: Nor copy it
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_duplicate, args: { id: 900 } }
+        fails: "That to-do isn't yours"
+      - step: Nor delete it
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_delete, args: { id: 900 } }
+        fails: "That to-do isn't yours"
+      - step: Nor log a note on it
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_log_note, args: { id: 900, note: "mine" } }
+        fails: "That to-do isn't yours"
+      - step: Monica logs a note on her own to-do, escaped into a paragraph
+        do: { action: todo_log_note, args: { id: 900, note: "Ask <Ana> & co." } }
+        vars:
+          her_note: { record: message, from: result.id }
+      - step: It is stored as Odoo stores a note
+        assert:
+          - her_note.body == "<p>Ask &lt;Ana&gt; &amp; co.</p>"
+          - her_note.message_type == "comment"
+          - her_note.is_internal == true
+      - step: It is still there
+        assert:
+          - monicas.name == "Monica's own to-do"
 
   # Tags are rows in Odoo's link table, written directly: links not in the list go, missing
   # ones are added, and a tag kept is the same row.
@@ -128,6 +172,21 @@ scenarios:
       - step: Marc tries to put a card into Monica's column
         do: { action: todo_move, args: { id: 900, stage: 27 } }
         fails: "That column isn't yours"
+      - step: He can't rename Monica's Inbox
+        do: { action: stage_rename, args: { id: 27, name: "Mine" } }
+        fails: "That column isn't yours"
+      - step: Nor fold it
+        do: { action: stage_fold, args: { id: 27 } }
+        fails: "That column isn't yours"
+      - step: Nor delete it
+        do: { action: stage_delete, args: { id: 27 } }
+        fails: "That column isn't yours"
+      - step: Nor slip it into his own order
+        do: { action: stage_reorder, args: { ids: "12,27,13" } }
+        fails: "That column isn't yours"
+      # Deleting a column moves the assignments in it first; assignments read through the
+      # rule's SQL condition, which the in-memory copies can't run, so that was checked live
+      # (a project task's assignment moved to the previous column, then the column went).
 
   # The to-do and assignment rules narrow with SQL (`with_condition`), which the in-memory test
   # copies can't evaluate ("native condition isn't this table's condition type"). These

@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's chatter messages (mail_message), for writing: a note logged on a to-do
+# (todo_log_note), and deleting a to-do's messages with it (todo_delete). Deleting one cascades
+# to its notifications, reactions and links. Reading them goes through todo_message.
+datasource: odoo
+table: mail_message
+title: Message
+id_column: id
+columns:
+  id: { type: int, flags: [id, auto] }
+  model: { type: string }
+  res_id: { type: int }
+  message_type: { type: string }
+  subtype_id: { type: int }
+  author_id: { type: int }
+  body: { type: string }
+  is_internal: { type: bool }
+  date: { type: timestamp }
+  create_uid: { type: int }
+  write_uid: { type: int }
+  create_date: { type: timestamp }
+  write_date: { type: timestamp }

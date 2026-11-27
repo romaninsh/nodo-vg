@@ -20,6 +20,15 @@ columns:
   sequence: { type: int, label: Order }
   fold: { type: bool, label: Folded }
   active: { type: bool, flags: [hidden] }
+  # Written when a column is added (action/stage_create.yaml), as Odoo fills them.
+  rating_status: { type: string, flags: [hidden] }
+  rating_status_period: { type: string, flags: [hidden] }
+  rotting_threshold_days: { type: int, flags: [hidden] }
+  auto_validation_state: { type: bool, flags: [hidden] }
+  create_uid: { type: int, flags: [hidden] }
+  write_uid: { type: int, flags: [hidden] }
+  create_date: { type: timestamp, flags: [hidden] }
+  write_date: { type: timestamp, flags: [hidden] }
 build: |
   table.nested_column("name_localised", "name", session.lang, #{ label: "Translation" });
 postgres:

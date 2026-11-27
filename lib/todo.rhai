@@ -20,6 +20,33 @@ fn assigned(view, uid) {
     ("," + view.assignee_ids.to_string() + ",").contains("," + uid.to_string() + ",")
 }
 
+// Odoo's quick-add keywords, read off the end of a title: "Call Ana #sales @marc !!" gives
+// #{ name: "Call Ana", tags: ["sales"], users: ["marc"], priority: "2" }. Only a run of
+// keywords at the end counts, at least one word stays the title, and a title that starts with
+// #, @ or ! is left alone. "!" to "!!!" is priority 1 to 3. `priority` is () when none was
+// given; who a "@word" is gets decided by the caller.
+fn keywords(title) {
+    let out = #{ name: title, tags: [], users: [], priority: () };
+    let t = title;
+    t.trim();
+    if t == "" || ["#", "@", "!"].contains(t.sub_string(0, 1)) { return out; }
+    let words = t.split(" ").filter(|w| w != "");
+    let cut = words.len();
+    while cut > 1 {
+        let w = words[cut - 1];
+        let tag_or_user = (w.starts_with("#") || w.starts_with("@")) && w.len() > 1;
+        if tag_or_user || w == "!" || w == "!!" || w == "!!!" { cut -= 1; } else { break; }
+    }
+    for i in cut..words.len() {
+        let w = words[i];
+        if w.starts_with("#") { out.tags.push(w.sub_string(1)); }
+        else if w.starts_with("@") { out.users.push(w.sub_string(1)); }
+        else if out.priority == () { out.priority = w.len().to_string(); }
+    }
+    out.name = words.extract(0, cut).reduce(|acc, w| if acc == "" { w } else { acc + " " + w }, "");
+    out
+}
+
 // A list of ids from a checklist (array) or "1,5" text.
 fn ids(v) {
     let out = [];

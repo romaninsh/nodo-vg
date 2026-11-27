@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Put my columns in a new order (Odoo: drag a column's header). Args: ids, my column ids in the
+# new order ("13,12,14"). Each gets its place as `sequence` (1, 2, 3…), as Odoo numbers them.
+# Every id must be one of my columns; archived ones not listed keep their numbers.
+kind: script
+label: Reorder columns
+icon: ArrowLeftRight
+atomic: true
+params:
+  ids: { type: string }
+body: |
+  import "todo" as t;
+  let me = session.uid;
+  let order = t::ids(args.ids);
+  if order.len() == 0 { fail("Give the columns in their new order"); }
+  let n = 0;
+  for id in order {
+    let s = table("stage").get(id);
+    if s == () || s.user_id != me { fail("That column isn't yours"); }
+    n += 1;
+    if s.sequence != n { table("stage").record(id).set(#{ sequence: n, write_uid: me, write_date: now() }).flash(); }
+  }
+  #{ count: n }

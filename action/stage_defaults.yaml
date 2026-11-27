@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Give me Odoo's seven default columns when I have none (Odoo does it on a person's first visit):
+# Inbox, Today, This Week, This Month, Later, then Done and Cancelled folded. Each name takes the
+# translations Odoo already stored on another person's column of that English name, else English.
+# Runs under the `user_id` rule's exception (inserts are refused otherwise), so it stamps the
+# columns as mine itself. Does nothing when I have columns, archived ones included.
+kind: script
+label: Set up my columns
+icon: Columns3
+body: |
+  let me = session.uid;
+  if me == () { fail("Sign in first"); }
+  if table("stage").where("user_id", me).count() > 0 { return #{ created: 0 }; }
+  let defaults = [
+    ["Inbox", false], ["Today", false], ["This Week", false], ["This Month", false],
+    ["Later", false], ["Done", true], ["Cancelled", true],
+  ];
+  let n = 0;
+  for d in defaults {
+    n += 1;
+    let known = table("stage_names").where("name_en", d[0]).first();
+    let names = if known == () { #{ en_US: d[0] } } else { known.name };
+    table("stage").insert(#{
+      name: names, user_id: me, sequence: n, fold: d[1], active: true,
+      rating_status: "stage", rating_status_period: "monthly", rotting_threshold_days: 0,
+      auto_validation_state: false, create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+    });
+  }
+  #{ created: n }

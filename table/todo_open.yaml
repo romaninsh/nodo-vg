@@ -14,6 +14,8 @@ columns:
   active: { type: bool, label: Active }
   project_id: { type: int, flags: [hidden] }
   tags: { type: string, label: Tags }
+  my_stage: { type: int, label: My column }
+  sequence: { type: int, label: Order }
   tag_ids: { type: string, label: Tag ids }
   assignees: { type: string, label: Assigned to }
   assignee_ids: { type: string, label: Assignee ids }

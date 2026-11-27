@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Change a tag's colour (Odoo: click the tag on a form, pick a colour). Args: id, color (0-11,
+# 0 = no colour). Tags are shared, as in Odoo: the colour changes for everyone.
+kind: script
+label: Tag colour
+icon: Palette
+params:
+  id: { type: int }
+  color: { type: int }
+body: |
+  let id = parse_int(args.id.to_string());
+  let color = parse_int(args.color.to_string());
+  if color < 0 || color > 11 { fail("Pick one of Odoo's 12 colours"); }
+  if table("tag").get(id) == () { fail("That tag is gone"); }
+  table("tag").record(id).set(#{ color: color, write_uid: session.uid, write_date: now() }).flash();
+  #{ id: id, color: color }

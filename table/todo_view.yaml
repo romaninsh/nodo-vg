@@ -13,6 +13,8 @@ columns:
   state: { type: string, label: Status }
   active: { type: bool, label: Active }
   project_id: { type: int, flags: [hidden] }
+  # Odoo orders to-dos by priority, then this, then deadline.
+  sequence: { type: int, label: Order }
   # Tag names in the reader's language, else English. An `expr:` column, because the query
   # script below can't read the session. It runs outside that script's select, where the row
   # is `todo_view`.
@@ -21,6 +23,12 @@ columns:
     label: Tags
     expr: |
       sql::expr("(SELECT string_agg(n, ', ' ORDER BY n) FROM (SELECT coalesce(g.name->>{}, g.name->>'en_US', '') AS n FROM project_tags_project_task_rel tr JOIN project_tags g ON g.id = tr.project_tags_id WHERE tr.project_task_id = todo_view.id) t)", [session.lang])
+  # The reader's own column for it (their personal stage): what the list groups by.
+  my_stage:
+    type: int
+    label: My column
+    expr: |
+      sql::expr("(SELECT ur.stage_id FROM project_task_user_rel ur WHERE ur.task_id = todo_view.id AND ur.user_id = {})", [session.uid])
   tag_ids: { type: string, label: Tag ids }
   assignees: { type: string, label: Assigned to }
   assignee_ids: { type: string, label: Assignee ids }
@@ -43,6 +51,7 @@ postgres:
         .field("state")
         .expression(sql::expr("coalesce(active, true)").alias("active"))
         .field("project_id")
+        .expression(sql::expr("coalesce(sequence, 10)").alias("sequence"))
         .expression(sql::expr("(SELECT string_agg(tr.project_tags_id::text, ',' ORDER BY tr.project_tags_id) FROM project_tags_project_task_rel tr WHERE tr.project_task_id = project_task.id)").alias("tag_ids"))
         .expression(sql::expr("(SELECT string_agg(p.name, ', ' ORDER BY p.name) FROM project_task_user_rel ur JOIN res_users u ON u.id = ur.user_id JOIN res_partner p ON p.id = u.partner_id WHERE ur.task_id = project_task.id)").alias("assignees"))
         .expression(sql::expr("(SELECT string_agg(ur.user_id::text, ',' ORDER BY ur.user_id) FROM project_task_user_rel ur WHERE ur.task_id = project_task.id)").alias("assignee_ids"))

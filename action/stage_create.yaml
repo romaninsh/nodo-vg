@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Add a column at the end of my board (Odoo's "+" after the last column). Args: name.
+# The name goes under English and my language, as Odoo stores a new name.
+# Runs under the `user_id` rule's exception (inserts are refused otherwise), so it stamps the
+# column as mine itself.
+kind: script
+label: Add a column
+icon: Plus
+params:
+  name: { type: string }
+body: |
+  let me = session.uid;
+  if me == () { fail("Sign in first"); }
+  let name = if args.name == () { "" } else { args.name.to_string() };
+  name.trim();
+  if name == "" { fail("Give the column a name"); }
+  let last = table("stage").where("user_id", me).sort("sequence", "desc").first();
+  let names = #{ en_US: name };
+  if session.lang != () && session.lang != "" { names[session.lang] = name; }
+  let id = table("stage").insert(#{
+    name: names, user_id: me, sequence: if last == () { 1 } else { last.sequence + 1 },
+    fold: false, active: true, rating_status: "stage", rating_status_period: "monthly",
+    rotting_threshold_days: 0, auto_validation_state: false,
+    create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+  });
+  #{ id: id, name: name }

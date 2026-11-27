@@ -42,6 +42,21 @@ timestamps in the machine's zone: the demo deadline stored as `16:01` shows as `
 Brussels machine, as in Odoo. Dates and times of day never shift. `create_date`/`write_date`
 can now be set in the `normalise` hook (§1).
 
+## 3. Managing your columns (web)
+
+Odoo's board adds a column with "+" at the end; a column's menu has Fold, Edit and Delete. Delete
+removes the `project_task_type` row at once and moves its tasks to the previous column. Personal
+columns hold project tasks too, and `project_task_user_rel.stage_id` is `ON DELETE RESTRICT`.
+
+- **Web only.** The desktop app is for data review and debugging; its board keeps fixed lanes.
+- **Add:** created as yours, last in order, the name under `en_US` and your language.
+- **Rename:** writes your language only (`name_localised`), so other translations stay.
+- **Fold:** saves Odoo's `fold`, so Odoo folds it too.
+- **Delete:** asks first (Odoo doesn't). Everything in the column moves to the previous one (the
+  next one for your first column), then the row is deleted. Your last column can't be deleted.
+  The move includes your project-task assignments, which nodo doesn't show, because the database
+  refuses the delete otherwise; it runs under a rule exception and touches only your own rows.
+
 ## Feature inventory
 
 Odoo 20's To-do compared with nodo on 2026-11-21, from Odoo's source and both running apps
@@ -55,7 +70,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Columns are my personal stages, with a card count | yes | yes, but each person's columns are typed into the page (3 people) | yes, read from my stages | partly (desktop per person) |
 | Drag a card to another column, for me only | yes | yes | yes | done |
 | Reorder cards inside a column by drag | yes | no | no | not yet |
-| Card order: open first, then priority, then deadline | yes | no set order | no set order | not yet |
+| Card order: open first, then priority, then deadline | yes | no set order | yes, Odoo's board order (state, priority, deadline, sequence, newest) | done (web) |
 | Card title | yes | yes | yes | done |
 | Card deadline as "2 days ago", red when past | yes | deadline date | yes, plus amber for today | done |
 | Card tags in their colour | yes | tags as plain labels | yes | partly (desktop) |
@@ -67,12 +82,12 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Card menu: colour, cover image, delete | yes | no | no | not yet |
 | Column bar of activities (planned, today, late) | yes | no | no | not yet |
 | Done and Cancelled folded, click to look inside | yes | yes | yes | done |
-| Board shows only open to-dos by default | yes (Open filter) | shows all | shows all | not yet |
+| Board shows only open to-dos by default | yes (Open filter) | shows all | yes, Open / All chips | done (web) |
 | Quick add on a column: title, Enter adds, box stays open, Edit opens it | yes | no (New dialog only) | yes | partly (desktop) |
 | Quick add takes a deadline | yes | in the New dialog | no | partly |
-| Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | no | not yet |
+| Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | yes, Odoo's rules (a run at the end of the title) | done (web) |
 | New button | quick add in first column | dialog (title, deadline), then opens it | none (per-column + only) | partly |
-| Search and filters on the board | full search panel | search box | none | partly |
+| Search and filters on the board | full search panel | search box | title search, Open / All | partly |
 
 ### List
 
@@ -86,7 +101,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Personal stage column | optional | no | no | not yet |
 | Activities column | optional | no | no | not yet |
 | Show or hide optional columns | yes | no | no | not yet |
-| Rows grouped by my column, with counts | yes | flat | flat | not yet |
+| Rows grouped by my column, with counts | yes | flat | yes, folded columns closed, Odoo's order in each | done (web) |
 | Edit rows in place, "Add a line" per group | yes | no | no | not yet |
 | Select rows: bulk edit, archive, duplicate, delete, export | yes | no | no | not yet |
 | Sort by a column header | yes | yes | fixed by deadline | partly (web) |
@@ -102,8 +117,8 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Assignees with avatars: add, remove | yes | checklist dialog | picker | done |
 | Remove yourself (it leaves your list) | yes | no, you stay assigned | no, you stay assigned | won't (it would vanish from your board) |
 | Tags: pick existing | yes | checklist dialog, asks your Odoo password | picker | done |
-| Tags: create a new one here | yes | no | no | not yet |
-| Tags: click one to change its colour | yes | no | no | not yet |
+| Tags: create a new one here | yes | no | yes, `Create "…"` in the tags field | done (web) |
+| Tags: click one to change its colour | yes | no | yes, Odoo's twelve colours | done (web) |
 | Deadline with date and time, red when past | yes | typed in the Edit dialog, "(overdue)" | picker, Clear, Overdue mark | done |
 | Description as rich text (bold, lists, checklists, links, images, / commands) | yes | shown as text, edited as plain text | plain text box | partly (formatting lost on save) |
 | Description edited by several people at once, whiteboard | yes | no | no | not yet |
@@ -135,13 +150,13 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | feature | Odoo | nodo desktop | nodo web | status |
 |---|---|---|---|---|
 | Each person has their own columns; others keep their own for the same to-do | yes | yes | yes | done |
-| A new person gets the 7 default columns | automatically | no ("open To-do in Odoo once") | no (same message) | not yet |
+| A new person gets the 7 default columns | automatically | no ("open To-do in Odoo once") | yes, on their first board visit, named as Odoo named them | done (web) |
 | New person or new column shows up on the board | yes | needs a page edit | yes | partly (desktop) |
-| Add a column | yes | no | no | not yet |
-| Rename a column | yes | no | no | not yet |
-| Delete a column | yes | no | no | not yet |
-| Fold or unfold a column for good | yes | Done/Cancelled fixed as folded | unfold for the visit only | partly |
-| Reorder columns by drag | yes | no | no | not yet |
+| Add a column | yes | no | yes (§3) | done (web) |
+| Rename a column | yes, in your language | no | yes, in your language (§3) | done (web) |
+| Delete a column | yes, at once | no | yes, after asking (§3) | done (web) |
+| Fold or unfold a column for good | yes | Done/Cancelled fixed as folded | yes, saved in Odoo (§3) | done (web) |
+| Reorder columns by drag | yes | no | Move left / right in the column menu, saved as Odoo's order | partly (no drag) |
 | New to-do goes to the first column; quick add into a chosen one | yes | Inbox only | yes | partly (desktop) |
 
 ### Tags
@@ -150,8 +165,8 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 |---|---|---|---|---|
 | Tag colours | yes | no colours | Odoo's palette, darker shades | partly |
 | Pick from existing tags | yes | yes (password asked each time) | yes | done |
-| Create a tag (form or #tag) | yes | no | no | not yet |
-| Change a tag's colour by clicking it | yes | no | no | not yet |
+| Create a tag (form or #tag) | yes | no | yes, from the form or #tag in a quick add | done (web) |
+| Change a tag's colour by clicking it | yes | no | yes | done (web) |
 | Recently used tags first | yes | no | no | not yet |
 
 ### Assignees
@@ -173,10 +188,10 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Activity view (to-dos by activity type) | yes | no | no | not yet |
 | Systray Activities with a To-Do group | yes | no | no | not yet |
 | Add a To-Do from anywhere (Alt+Shift+T) with a reminder | yes | no | no | not yet |
-| Chatter panel, toggled with D and remembered | yes | no | no | not yet |
-| Send message, log note | yes | no | no | not yet |
+| Chatter panel, toggled with D and remembered | yes | no | under the form, always shown; messages as text | partly |
+| Send message, log note | yes | no | log note (internal, notifies nobody); no send message | partly |
 | Change history in the chatter (stage, deadline, people) | yes | no | no | not yet |
-| Followers: see, add, remove | yes | added on create and assign, not shown | same as desktop | partly |
+| Followers: see, add, remove | yes | added on create and assign, not shown | yes, in the chatter (internal users to add) | done (web) |
 | Attachments | yes | no | no | not yet |
 | Search messages | yes | no | no | not yet |
 
@@ -185,8 +200,8 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | feature | Odoo | nodo desktop | nodo web | status |
 |---|---|---|---|---|
 | Archive and restore | yes | yes | yes | done |
-| Duplicate | yes | no | no | not yet |
-| Delete | yes | no | no | not yet |
+| Duplicate | yes | no | yes, ⚙ menu; the description keeps its text, not its formatting | done (web) |
+| Delete | yes | no | yes, ⚙ menu after asking; followers, messages and activities go too | done (web) |
 | Convert to a project task | yes | no | no | won't (nodo has no Project app) |
 | Calendar by deadline | yes | no | no | not yet |
 | Welcome to-do for each new user | yes | shows existing ones | shows existing ones | not yet |

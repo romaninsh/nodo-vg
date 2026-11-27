@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Rename one of my columns in my language (Odoo's Edit). Args: id, name.
+# Only my language's translation changes; the others stay.
+kind: script
+label: Rename
+icon: Pencil
+params:
+  id: { type: int }
+  name: { type: string }
+body: |
+  let id = parse_int(args.id.to_string());
+  let name = if args.name == () { "" } else { args.name.to_string() };
+  name.trim();
+  if name == "" { fail("Give the column a name"); }
+  let s = table("stage").get(id);
+  if s == () || s.user_id != session.uid { fail("That column isn't yours"); }
+  table("stage").record(id).set(#{ name_localised: name, write_uid: session.uid, write_date: now() }).flash();
+  #{ id: id, name: name }
