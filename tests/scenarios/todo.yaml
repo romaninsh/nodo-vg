@@ -6,7 +6,7 @@ vars:
 
 scenarios:
   quick-add:
-    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    session: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
     clock: 2026-11-21T09:00:00Z
     steps:
       - step: Marc adds a to-do from the board
@@ -31,6 +31,8 @@ scenarios:
         before: |
           set("stage", 12, #{ user_id: 99 });
           set("stage", 13, #{ user_id: 99 });
+          set("stage_open", 12, #{ user_id: 99 });
+          set("stage_open", 13, #{ user_id: 99 });
         fails: "You have no to-do columns yet"
 
   html-description:
@@ -45,7 +47,7 @@ scenarios:
 
   # Odoo's four priority levels survive a round trip; done toggles Odoo's two states.
   monica-priority:
-    session: { app: team, uid: 6, name: Monica Light, login: light }
+    session: { app: team, uid: 6, name: Monica Light, login: light, lang: en_US }
     clock: 2026-11-21T09:00:00Z
     steps:
       - step: Monica's Urgent to-do goes down to High
@@ -71,14 +73,14 @@ scenarios:
   not-marcs:
     steps:
       - step: Marc tries to change the priority of Monica's to-do
-        as: { app: team, uid: 5, name: Marc Demo, login: demo }
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         fails: "That to-do isn't yours"
       - step: Marc can't mark it done either
-        as: { app: team, uid: 5, name: Marc Demo, login: demo }
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_toggle_done, args: { id: 900 } }
         fails: "That to-do isn't yours"
       - step: Nor tag it
-        as: { app: team, uid: 5, name: Marc Demo, login: demo }
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_set_tags, args: { id: 900, tags: "1" } }
         fails: "That to-do isn't yours"
 
@@ -121,7 +123,7 @@ scenarios:
           - monicas.date_end == ()
 
   columns-stay-private:
-    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    session: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
     steps:
       - step: Marc tries to put a card into Monica's column
         do: { action: todo_move, args: { id: 900, stage: 27 } }
@@ -132,7 +134,7 @@ scenarios:
   # refusals were checked on the live app instead (NOTES.md).
   others-stay-private:
     skip: the rules' SQL conditions don't run on in-memory test tables; checked live
-    session: { app: team, uid: 5, name: Marc Demo, login: demo }
+    session: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
     steps:
       - step: Marc tries to move Monica's to-do
         do: { action: todo_move, args: { id: 900, stage: 13 } }

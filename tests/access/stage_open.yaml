@@ -1,0 +1,12 @@
+# The columns a board and the stage bar show: mine, not archived.
+app: team
+table: stage_open
+cases:
+  - name: Marc's board shows his 7 columns
+    as: people.marc
+    list: { count: 7 }
+
+  - name: Monica's columns aren't on Marc's board
+    as: people.marc
+    record: { id: 27 }
+    read: { visible: false }

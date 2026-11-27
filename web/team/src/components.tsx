@@ -20,7 +20,7 @@ export function ViewSwitcher({ current }: { current: "board" | "list" }) {
 /** Tag pills in Odoo's colours, from a "1,5" id list. */
 export const TagPills = observer(({ tagIds }: { tagIds: string | null | undefined }) => {
   const db = useDb();
-  const { items } = useCollection(db.tags.sort("name", "asc"));
+  const { items } = useCollection(db.tags.sort("name_local", "asc"));
   const wanted = ids(tagIds);
   if (wanted.length === 0) return null;
   const byId = new Map(items.map((t) => [t.id, t]));
@@ -30,7 +30,7 @@ export const TagPills = observer(({ tagIds }: { tagIds: string | null | undefine
         const t = byId.get(id);
         return (
           <span key={id} className="tag" style={{ background: tagColor(t?.color), color: tagText(t?.color) }}>
-            {t?.name ?? "…"}
+            {t?.name_local ?? "…"}
           </span>
         );
       })}

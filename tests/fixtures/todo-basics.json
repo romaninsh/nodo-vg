@@ -4,10 +4,16 @@
     { "id": 6, "name": "Monica Light", "login": "light", "partner_id": 7 }
   ],
   "stage": [
-    { "id": 12, "name": "Inbox", "user_id": 5, "sequence": 1, "fold": false },
-    { "id": 13, "name": "Today", "user_id": 5, "sequence": 2, "fold": false },
-    { "id": 27, "name": "Inbox", "user_id": 6, "sequence": 1, "fold": false },
-    { "id": 28, "name": "Today", "user_id": 6, "sequence": 2, "fold": false }
+    { "id": 12, "name": { "en_US": "Inbox" }, "user_id": 5, "sequence": 1, "fold": false },
+    { "id": 13, "name": { "en_US": "Today" }, "user_id": 5, "sequence": 2, "fold": false },
+    { "id": 27, "name": { "en_US": "Inbox" }, "user_id": 6, "sequence": 1, "fold": false },
+    { "id": 28, "name": { "en_US": "Today" }, "user_id": 6, "sequence": 2, "fold": false }
+  ],
+  "stage_open": [
+    { "id": 12, "name_local": "Inbox", "user_id": 5, "sequence": 1, "fold": false },
+    { "id": 13, "name_local": "Today", "user_id": 5, "sequence": 2, "fold": false },
+    { "id": 27, "name_local": "Inbox", "user_id": 6, "sequence": 1, "fold": false },
+    { "id": 28, "name_local": "Today", "user_id": 6, "sequence": 2, "fold": false }
   ],
   "todo": [
     { "id": 900, "name": "Monica's own to-do", "state": "01_in_progress", "priority": "3", "active": true }

@@ -17,8 +17,9 @@ body: |
   if u.active != true || u.share == true { fail("This account can't use nodo"); }
   let p = table("person").get(id);
   let name = if p == () { login } else { p.name };
+  let lang = if p == () || p.lang == () { "en_US" } else { p.lang };
   // Memory session fields have no column type: store the id as a number, or the rules compare
   // Odoo's integer user_id with text.
   let uid = parse_int(id.to_string());
-  let token = session.create(id, #{ uid: uid, name: name, login: login });
+  let token = session.create(id, #{ uid: uid, name: name, login: login, lang: lang });
   #{ token: token, uid: uid, name: name, login: login }

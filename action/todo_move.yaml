@@ -13,6 +13,7 @@ body: |
   let me = session.uid;
   let s = table("stage").get(stage);
   if s == () || s.user_id != me { fail("That column isn't yours"); }
+  if s.active == false { fail("That column is archived"); }
   let r = table("todo_user").where("task_id", id).where("user_id", me).first();
   if r == () { fail("That to-do isn't yours"); }
   if r.stage_id != stage { table("todo_user").record(r.id).set(#{ stage_id: stage }).flash(); }

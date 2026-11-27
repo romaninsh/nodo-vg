@@ -20,5 +20,10 @@ session:
     uid: {}
     name: {}
     login: {}
+    lang: {}                                  # "de_DE": the person's Odoo language (res_partner.lang)
   signed_out: [sign_in]
-  desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin" }'
+  desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin", lang: "en_US" }'
+
+# The local Odoo container (datasource/odoo.yaml). Access tests run on it, reverting every write.
+profiles:
+  local: {}

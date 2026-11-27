@@ -18,7 +18,7 @@ body: |
   if name == "" { fail("Give the to-do a title"); }
   let me = session.uid;
   if me == () { fail("Sign in first"); }
-  let inbox = table("stage").where("user_id", me).sort("sequence", "asc").first();
+  let inbox = table("stage_open").where("user_id", me).sort("sequence", "asc").first();
   if inbox == () { fail("You have no to-do columns yet. Open To-do in Odoo once to create them."); }
   let rec = #{ name: name, state: "01_in_progress", priority: "0", date_assign: now() };
   let dl = t::deadline(args.date_deadline);
