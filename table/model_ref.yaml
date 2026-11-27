@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's model ids by name (ir_model): an activity records the id of "project.task", which
+# differs between databases.
+datasource: odoo
+title: Model
+id_column: model
+columns:
+  model: { type: string, flags: [id] }
+  model_id: { type: int }
+postgres:
+  rhai: |
+    sql::select().from("ir_model")
+        .field("model")
+        .expression(sql::expr("id").alias("model_id"))
+        .where(sql::expr("model = 'project.task'"))

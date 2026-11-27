@@ -115,6 +115,14 @@ scenarios:
         as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_log_note, args: { id: 900, note: "mine" } }
         fails: "That to-do isn't yours"
+      - step: Nor schedule an activity on it
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_schedule_activity, args: { id: 900, type: 2 } }
+        fails: "That to-do isn't yours"
+      - step: Nor add himself as a follower
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_follow, args: { id: 900, person: 5 } }
+        fails: "That to-do isn't yours"
       - step: Monica logs a note on her own to-do, escaped into a paragraph
         do: { action: todo_log_note, args: { id: 900, note: "Ask <Ana> & co." } }
         vars:

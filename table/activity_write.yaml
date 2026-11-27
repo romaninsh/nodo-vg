@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Odoo's activities (mail_activity) for writing: scheduling one (todo_schedule_activity) and
+# marking it done (todo_activity_done). It declares `user_id` (who it's assigned to), so the
+# datasource's `user_id` rule applies; both actions run under its exceptions and check the
+# to-do is the caller's first. Reading goes through todo_activity.
+datasource: odoo
+table: mail_activity
+title: Activity
+id_column: id
+columns:
+  id: { type: int, flags: [id, auto] }
+  res_model_id: { type: int }
+  res_model: { type: string }
+  res_id: { type: int }
+  res_name: { type: string }
+  activity_type_id: { type: int }
+  user_id: { type: int }
+  summary: { type: string }
+  note: { type: string }
+  date_deadline: { type: date }
+  date_done: { type: date }
+  feedback: { type: string }
+  automated: { type: bool }
+  active: { type: bool }
+  create_uid: { type: int }
+  write_uid: { type: int }
+  create_date: { type: timestamp }
+  write_date: { type: timestamp }

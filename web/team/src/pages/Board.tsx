@@ -9,7 +9,7 @@ import {
   Button, Dialog, Form, Heading, Input, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover, SearchField, TextField, ToggleButton,
   ToggleButtonGroup,
 } from "react-aria-components";
-import { Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
+import { AlarmClock, Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Cards, Stages } from "../vantage.gen";
 import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
@@ -489,6 +489,13 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
         {v.date_deadline && (
           <span className={`deadline${due === "overdue" ? " overdue" : due === "today" ? " today" : ""}`} title={fullDate(v.date_deadline)}>
             <Clock size={12} aria-hidden="true" /> {deadlineLabel(v.date_deadline)}
+          </span>
+        )}
+        {card["task.activity_state"] && (
+          <span className={`activity-clock ${card["task.activity_state"]}`} role="img"
+            aria-label={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}
+            title={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}>
+            <AlarmClock size={14} aria-hidden="true" />
           </span>
         )}
         <Avatars names={v.assignees} />

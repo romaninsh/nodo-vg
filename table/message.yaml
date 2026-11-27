@@ -12,6 +12,7 @@ columns:
   res_id: { type: int }
   message_type: { type: string }
   subtype_id: { type: int }
+  mail_activity_type_id: { type: int }
   author_id: { type: int }
   body: { type: string }
   is_internal: { type: bool }

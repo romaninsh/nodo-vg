@@ -21,6 +21,7 @@ columns:
   task.priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
   task.state: { type: string, label: Status }
   task.sequence: { type: int, label: Order }
+  task.activity_state: { type: string, label: Activity }
   task.active: { type: bool, label: Active }
   task.tags: { type: string, label: Tags }
   task.tag_ids: { type: string, label: Tag ids }

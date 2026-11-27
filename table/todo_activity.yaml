@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# A to-do's planned activities (Odoo's mail_activity that aren't done): what, by when, for whom,
+# and whether it's overdue, due today or planned (Odoo's colours). Odoo's `user_id` (who it's
+# assigned to) comes out as `assignee_id`: a column named `user_id` would put it under the
+# datasource's `user_id` rule, which shows each person only their own rows. The `res_id` rule
+# keeps it to to-dos assigned to the reader. Read-only; see todo_schedule_activity and
+# todo_activity_done.
+datasource: odoo
+title: Activity
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  res_id: { type: int, label: To-do }
+  type_id: { type: int, label: Type id }
+  type: { type: string, label: Type }
+  icon_kind: { type: string, label: Kind }
+  summary: { type: string, label: Summary, flags: [title] }
+  note: { type: string, label: Note }
+  date_deadline: { type: date, label: Due }
+  state: { type: string, label: State, enum: [overdue, today, planned] }
+  assignee_id: { type: int, label: Assigned to }
+  assignee: { type: string, label: Assignee }
+postgres:
+  listen: [mail_activity]
+  rhai: |
+    sql::select().from("mail_activity")
+        .field("id")
+        .field("res_id")
+        .expression(sql::expr("activity_type_id").alias("type_id"))
+        .expression(sql::expr("(SELECT t.name->>'en_US' FROM mail_activity_type t WHERE t.id = mail_activity.activity_type_id)").alias("type"))
+        .expression(sql::expr("(SELECT t.category FROM mail_activity_type t WHERE t.id = mail_activity.activity_type_id)").alias("icon_kind"))
+        .field("summary")
+        .expression(sql::expr("btrim(regexp_replace(coalesce(note, ''), '<[^>]*>', ' ', 'g'))").alias("note"))
+        .field("date_deadline")
+        .expression(sql::expr("CASE WHEN date_deadline < (now() AT TIME ZONE 'UTC')::date THEN 'overdue' WHEN date_deadline = (now() AT TIME ZONE 'UTC')::date THEN 'today' ELSE 'planned' END").alias("state"))
+        .expression(sql::expr("user_id").alias("assignee_id"))
+        .expression(sql::expr("(SELECT p.name FROM res_users u JOIN res_partner p ON p.id = u.partner_id WHERE u.id = mail_activity.user_id)").alias("assignee"))
+        .where(sql::expr("res_model = 'project.task' AND active IS NOT FALSE AND date_done IS NULL"))
