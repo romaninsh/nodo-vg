@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Fold one of my columns, or unfold it (Odoo's Fold): saved, so Odoo shows it the same way.
+# Args: id.
+kind: script
+label: Fold
+icon: ChevronLeft
+params:
+  id: { type: int }
+body: |
+  let id = parse_int(args.id.to_string());
+  let s = table("stage").get(id);
+  if s == () || s.user_id != session.uid { fail("That column isn't yours"); }
+  let fold = s.fold != true;
+  table("stage").record(id).set(#{ fold: fold, write_uid: session.uid, write_date: now() }).flash();
+  #{ id: id, fold: fold }

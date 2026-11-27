@@ -28,6 +28,21 @@ invariants:
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       # Creating a to-do assigns it to the caller (and reads the caller's first column).
       - { type: action, name: todo_create, when: 'session.uid != ()' }
+      # Adding a column inserts a row the rule refuses; the action stamps it as the caller's.
+      - { type: action, name: stage_create, when: 'session.uid != ()' }
+      - { type: action, name: stage_defaults, when: 'session.uid != ()' }
+      # Deleting a column first moves the caller's assignments out of it, project tasks
+      # included (hidden by this rule, but they block the delete); the action keeps to the
+      # caller's own rows.
+      - { type: action, name: stage_delete, when: 'session.uid != ()' }
+  # A to-do's chatter and followers (todo_message, todo_follower): only on to-dos assigned to you. The other tables that
+  # point at a record by `res_id` (followers, messages and activities for writing) are reached
+  # only from the to-do actions, which check the to-do is yours first.
+  res_id:
+    script: |
+      if table_name == "todo_message" || table_name == "todo_follower" {
+        table.with_condition(sql::expr("res_id IN (SELECT task_id FROM project_task_user_rel WHERE user_id = {})", [session.uid]));
+      }
   # To-dos (project_task): tasks with no project, no parent, not a template, that are assigned
   # to you, archived or not (as Odoo's rule; lists leave archived ones out themselves).
   project_id:
@@ -56,7 +71,12 @@ invariants:
       - { type: action, name: todo_set_priority, when: 'session.uid != ()' }
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       - { type: action, name: todo_archive, when: 'session.uid != ()' }
+      - { type: action, name: todo_delete, when: 'session.uid != ()' }
       # This rule's SQL condition can't run in scenario tests (the in-memory copies don't
       # evaluate SQL; gaps spec TEST-1), so the tag action checks the to-do is the caller's
       # itself, like the actions above, and its tests run.
       - { type: action, name: todo_set_tags, when: 'session.uid != ()' }
+      - { type: action, name: todo_duplicate, when: 'session.uid != ()' }
+      - { type: action, name: todo_log_note, when: 'session.uid != ()' }
+      - { type: action, name: todo_follow, when: 'session.uid != ()' }
+      - { type: action, name: todo_unfollow, when: 'session.uid != ()' }

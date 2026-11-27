@@ -4,12 +4,15 @@ import { ChevronDown, X } from "lucide-react";
 
 export type PickerOption = { id: string; name: string };
 
+// The id of the `Create "…"` entry; real ids are numbers.
+const CREATE = "__create__";
+
 /**
  * A many-to-many field the way Odoo shows one: the chosen records as removable chips, then a
  * search box that offers the rest. Chips are a React Aria TagGroup (arrow keys, Delete or
  * Backspace remove one), the box a ComboBox (type to filter, Enter or a click adds).
  */
-export function MultiPicker({ labelId, addLabel, placeholder, options, selected, onChange, chip, chipStyle, removable, disabled }: {
+export function MultiPicker({ labelId, addLabel, placeholder, options, selected, onChange, onCreate, chip, chipStyle, removable, disabled }: {
   /** The id of the field's visible label. */
   labelId: string;
   /** The search box's accessible name ("Assign someone"). */
@@ -18,6 +21,11 @@ export function MultiPicker({ labelId, addLabel, placeholder, options, selected,
   options: PickerOption[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  /**
+   * Offer `Create "<typed text>"` when nothing has that name; resolves to the new option's id
+   * (picked at once), or null when creating failed.
+   */
+  onCreate?: (name: string) => Promise<string | null>;
   /** What a chip shows; the name by default. */
   chip?: (o: PickerOption) => ReactNode;
   chipStyle?: (o: PickerOption) => CSSProperties | undefined;
@@ -37,9 +45,24 @@ export function MultiPicker({ labelId, addLabel, placeholder, options, selected,
       input.current?.focus();
     }
   }, [round]);
+  const [text, setText] = useState("");
   const byId = new Map(options.map((o) => [o.id, o]));
   const chosen = selected.map((id) => byId.get(id) ?? { id, name: "…" });
-  const available = options.filter((o) => !selected.includes(o.id));
+  const typed = text.trim();
+  const available = options.filter((o) => !selected.includes(o.id) && o.name.toLowerCase().includes(typed.toLowerCase()));
+  const exists = options.some((o) => o.name.toLowerCase() === typed.toLowerCase());
+  const items = onCreate && typed && !exists ? [...available, { id: CREATE, name: `Create "${typed}"` }] : available;
+  const pick = async (id: string) => {
+    if (id === CREATE) {
+      const made = await onCreate?.(typed);
+      if (made == null) return;
+      id = made;
+    }
+    if (!selected.includes(id)) onChange([...selected, id]);
+    refocus.current = true;
+    setText("");
+    setRound((r) => r + 1);
+  };
   const canRemove = (id: string) => !disabled && (removable?.(id) ?? true);
 
   return (
@@ -59,13 +82,8 @@ export function MultiPicker({ labelId, addLabel, placeholder, options, selected,
         </TagList>
       </TagGroup>
       <ComboBox key={round} aria-label={addLabel} className="combo" isDisabled={disabled} menuTrigger="focus" allowsEmptyCollection
-        defaultItems={available} selectedKey={null}
-        onSelectionChange={(k) => {
-          if (k == null) return;
-          onChange([...selected, String(k)]);
-          refocus.current = true;
-          setRound((r) => r + 1);
-        }}>
+        items={items} inputValue={text} onInputChange={setText} selectedKey={null}
+        onSelectionChange={(k) => { if (k != null) void pick(String(k)); }}>
         <span className="combo-field">
           <Input ref={input} className="combo-input" placeholder={placeholder} />
           <Button className="combo-btn"><ChevronDown size={14} aria-hidden="true" /></Button>

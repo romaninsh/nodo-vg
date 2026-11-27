@@ -45,6 +45,7 @@ const TAG_COLORS = [
   "#e9ecef", "#F06050", "#F4A460", "#F7CD1F", "#6CC1ED", "#814968",
   "#EB7E7F", "#2C8397", "#475577", "#D6145F", "#30C381", "#9365B8",
 ];
+export const TAG_COLOR_COUNT = TAG_COLORS.length;
 export const tagColor = (c: number | null | undefined) => TAG_COLORS[(c ?? 0) % 12] ?? TAG_COLORS[0]!;
 // White text where it reads at 4.5:1 (WCAG AA) on the tag's colour, dark text elsewhere.
 const luminance = (hex: string) => {

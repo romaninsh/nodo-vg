@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Log an internal note on one of my to-dos (Odoo's chatter → Log note). Args: id, note.
+# Stored as Odoo stores a note: a "comment" with Odoo's Note subtype, internal, by me. The text
+# is escaped into paragraphs, so nothing typed runs as HTML in Odoo. Notes notify nobody.
+kind: script
+label: Log note
+icon: StickyNote
+params:
+  id: { type: int }
+  note: { type: string }
+body: |
+  import "todo" as t;
+  let me = session.uid;
+  let id = parse_int(args.id.to_string());
+  if !t::assigned(table("todo_view").get(id), me) { fail("That to-do isn't yours"); }
+  let text = if args.note == () { "" } else { args.note.to_string() };
+  text.trim();
+  if text == "" { fail("Write the note first"); }
+  let body = text.split("\n").map(|l| {
+    let x = l; x.replace("&", "&amp;"); x.replace("<", "&lt;"); x.replace(">", "&gt;"); `<p>${x}</p>`
+  }).reduce(|acc, p| acc + p, "");
+  let sub = table("mail_subtype").get("mt_note");
+  let p = table("person").get(me);
+  let mid = table("message").insert(#{
+    model: "project.task", res_id: id, message_type: "comment",
+    subtype_id: if sub == () { () } else { sub.subtype_id },
+    author_id: if p == () { () } else { p.partner_id }, body: body, is_internal: true,
+    date: now(), create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+  });
+  #{ id: mid }

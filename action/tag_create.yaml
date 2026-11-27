@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Create a tag from the to-do form (Odoo's "Create "…"" in the tags field). Args: name.
+# A tag of that name (in English or the reader's language, any case) is reused instead, since
+# Odoo keeps names unique. A new one gets a random colour 1-11, as Odoo gives it.
+kind: script
+label: Create a tag
+icon: Tag
+params:
+  name: { type: string }
+body: |
+  let me = session.uid;
+  if me == () { fail("Sign in first"); }
+  let name = if args.name == () { "" } else { args.name.to_string() };
+  name.trim();
+  if name == "" { fail("Give the tag a name"); }
+  let same = table("tag").search(name).list().filter(|t| t.name_local.to_lower() == name.to_lower() || t.name_en.to_lower() == name.to_lower());
+  if same.len() > 0 { return #{ id: same[0].id, created: false }; }
+  let names = #{ en_US: name };
+  if session.lang != () && session.lang != "" { names[session.lang] = name; }
+  let id = table("tag").insert(#{
+    name: names, color: random_int(1, 11),
+    create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+  });
+  #{ id: id, created: true }

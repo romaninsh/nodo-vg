@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import { Input, SearchField, ToggleButton, ToggleButtonGroup, Button } from "react-aria-components";
-import { Search, Star, X } from "lucide-react";
+import { ChevronRight, Search, Star, X } from "lucide-react";
 import { auth, call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, toast, type Level } from "../ui";
@@ -44,7 +44,7 @@ export const TodoList = observer(() => {
     if (filter === "done") q = q.where({ state: "1_done" });
     if (filter === "starred") q = q.where({ priority: { in: ["1", "2", "3"] } });
     if (filter === "overdue") q = q.where({ due: "overdue" });
-    body = <Rows key="open" list={q.sort("date_deadline", "asc")} byDeadline />;
+    body = <Rows key="open" list={q.sort("date_deadline", "asc")} byDeadline grouped />;
   }
 
   return (
@@ -69,16 +69,39 @@ export const TodoList = observer(() => {
 });
 
 /** The table for one collection. Only the mounted one is read from the server. */
-const Rows = observer(({ list, byDeadline }: { list: Parameters<typeof useCollection<Item>>[0]; byDeadline?: boolean }) => {
+const Rows = observer(({ list, byDeadline, grouped }: {
+  list: Parameters<typeof useCollection<Item>>[0];
+  byDeadline?: boolean;
+  /** Grouped by my column (personal stage) with counts, as Odoo's To-do list. */
+  grouped?: boolean;
+}) => {
   const db = useDb();
   const navigate = useNavigate();
   const rows = useCollection(list);
+  const stages = useCollection(db.stages.sort("sequence", "asc"));
+  // Folded columns (Done, Cancelled) start closed, as Odoo's groups do; a click flips one.
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
   // The server sorts on one column, so to-dos with the same deadline (or none) arrive in any
-  // order; the id keeps them in one order between loads.
-  const items = byDeadline
+  // order; no deadline goes last, and the id keeps them in one order between loads.
+  const deadline = (a: Item, b: Item) => {
+    const x = a.date_deadline ?? null, y = b.date_deadline ?? null;
+    return x === y ? 0 : x === null ? 1 : y === null ? -1 : x < y ? -1 : 1;
+  };
+  // Grouped, each group keeps Odoo's order for to-dos: priority (Urgent first), sequence,
+  // deadline, newest. Ungrouped lists go by deadline.
+  const items = grouped
     ? [...rows.items].sort((a, b) =>
-      (a.date_deadline ?? "￿").localeCompare(b.date_deadline ?? "￿") || Number(a.id) - Number(b.id))
-    : rows.items;
+      Number(b.priority ?? 0) - Number(a.priority ?? 0)
+      || ((a as Todos).sequence ?? 10) - ((b as Todos).sequence ?? 10)
+      || deadline(a, b) || Number(b.id) - Number(a.id))
+    : byDeadline ? [...rows.items].sort((a, b) => deadline(a, b) || Number(a.id) - Number(b.id)) : rows.items;
+  const groups = grouped
+    ? [
+      ...stages.items.map((s) => ({ key: String(s.id), name: s.name_local ?? "", fold: !!s.fold })),
+      { key: "", name: "No column", fold: false },
+    ].map((g) => ({ ...g, rows: items.filter((t) => String((t as Todos).my_stage ?? "") === g.key) }))
+      .filter((g) => g.rows.length > 0 || g.key !== "")
+    : [{ key: "all", name: "", fold: false, rows: items }];
 
   const setPriority = async (id: string, priority: Level) => {
     const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
@@ -106,12 +129,28 @@ const Rows = observer(({ list, byDeadline }: { list: Parameters<typeof useCollec
               <th className="col-wide">Assigned to</th>
             </tr>
           </thead>
-          <tbody>
-            {items.map((t) => (
-              <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
-                onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
-            ))}
-          </tbody>
+          {groups.map((g) => {
+            const open = g.fold === !!flipped[g.key];
+            return (
+              <tbody key={g.key}>
+                {grouped && (
+                  <tr className="group">
+                    <td colSpan={6}>
+                      <button className="group-head" aria-expanded={open}
+                        onClick={() => setFlipped((f) => ({ ...f, [g.key]: !f[g.key] }))}>
+                        <ChevronRight size={14} aria-hidden="true" className={open ? "turned" : ""} />
+                        {g.name} <span className="count">({g.rows.length})</span>
+                      </button>
+                    </td>
+                  </tr>
+                )}
+                {open && g.rows.map((t) => (
+                  <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
+                    onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
+                ))}
+              </tbody>
+            );
+          })}
         </table>
         {rows.loadState !== "loading" && items.length === 0 && <div className="empty">No to-dos here.</div>}
       </div>

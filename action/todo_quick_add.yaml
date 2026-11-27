@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# The board's quick add, as Odoo's quick create: a title, optionally the column it was typed
+# into, and Odoo's keywords at the end of the title: "#tag" (made if new), "@person" (when
+# exactly one person matches; otherwise the word stays in the title), "!" to "!!!" (priority).
+# Args: name, stage (optional).
+# Not atomic: actions can't be called inside an atomic one, so each step (create, tag, assign,
+# move) is atomic on its own. A step that fails leaves the to-do with the steps before it.
+kind: script
+label: Quick add
+icon: Plus
+params:
+  name: { type: string, label: Title }
+  stage: { type: int, label: Column, required: false }
+body: |
+  import "todo" as t;
+  let me = session.uid;
+  if me == () { fail("Sign in first"); }
+  let k = t::keywords(if args.name == () { "" } else { args.name.to_string() });
+  let name = k.name;
+  // A "@word" assigns the one person whose name contains it, or whose login it is.
+  let users = [];
+  for u in k.users {
+    let found = table("person").search(u).list();
+    for p in table("person").where("login", u).list() { if !found.some(|f| f.id == p.id) { found.push(p); } }
+    if found.len() == 1 && found[0].id != me { users.push(found[0].id); }
+    else if found.len() != 1 { name += " @" + u; }
+  }
+  let made = actions.todo_create(#{ name: name, priority: k.priority });
+  let id = made.id;
+  if k.tags.len() > 0 {
+    let tags = k.tags.map(|g| actions.tag_create(#{ name: g }).id.to_string());
+    actions.todo_set_tags(#{ id: id, tags: tags.reduce(|a, x| if a == "" { x } else { a + "," + x }, "") });
+  }
+  if users.len() > 0 {
+    let all = ([me] + users).map(|x| x.to_string());
+    actions.todo_set_assignees(#{ id: id, users: all.reduce(|a, x| if a == "" { x } else { a + "," + x }, "") });
+  }
+  if args.stage != () { actions.todo_move(#{ id: id, stage: args.stage }); }
+  #{ id: id, name: name }

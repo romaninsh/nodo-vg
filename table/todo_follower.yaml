@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# Who follows a to-do (Odoo's followers, mail_followers), with their name. The `res_id` rule in
+# datasource/odoo.yaml keeps it to to-dos assigned to the reader. Read-only; todo_follow and
+# todo_unfollow change it.
+datasource: odoo
+title: Follower
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  res_id: { type: int, label: To-do }
+  partner_id: { type: int, label: Contact }
+  name: { type: string, label: Name, flags: [title] }
+postgres:
+  listen: [mail_followers, res_partner]
+  rhai: |
+    sql::select().from("mail_followers")
+        .field("id")
+        .field("res_id")
+        .field("partner_id")
+        .expression(sql::expr("(SELECT p.name FROM res_partner p WHERE p.id = mail_followers.partner_id)").alias("name"))
+        .where(sql::expr("res_model = 'project.task'"))

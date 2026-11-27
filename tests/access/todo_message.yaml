@@ -1,0 +1,19 @@
+# A to-do's chatter: the `res_id` rule in datasource/odoo.yaml shows messages only on to-dos
+# assigned to the reader.
+app: team
+table: todo_message
+cases:
+  - name: Marc reads the chatter of a to-do he's on
+    as: people.marc
+    record: { id: 1379 }
+    read: { visible: true, columns: { id: shown, res_id: shown, date: shown, author: shown, kind: shown, text: shown } }
+
+  - name: Marc can't read the chatter of Monica's own to-do
+    as: people.marc
+    record: { id: 3165 }
+    read: { visible: false }
+
+  - name: Monica reads her own to-do's chatter
+    as: people.monica
+    record: { id: 3165 }
+    read: { visible: true, columns: { id: shown, res_id: shown, date: shown, author: shown, kind: shown, text: shown } }

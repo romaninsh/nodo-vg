@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Delete one of my to-dos for good (Odoo's ⚙ → Delete). Args: id.
+# Postgres drops its assignment, tag and role links itself (ON DELETE CASCADE). Odoo also
+# removes what points at a record by model and id, with no foreign key: its followers, chatter
+# messages and activities. So does this.
+kind: script
+label: Delete
+icon: Trash2
+atomic: true
+params:
+  id: { type: int }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  for f in table("follower").where("res_model", "project.task").where("res_id", id).list() { table("follower").delete(f.id); }
+  for m in table("message").where("model", "project.task").where("res_id", id).list() { table("message").delete(m.id); }
+  for a in table("activity").where("res_model", "project.task").where("res_id", id).list() { table("activity").delete(a.id); }
+  table("todo").delete(id);
+  #{ id: id }

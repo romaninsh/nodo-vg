@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Add a follower to one of my to-dos (Odoo's chatter → Followers → Add). Args: id, person (a
+# user id; nodo offers internal users only). They follow its discussions, as Odoo subscribes a
+# new follower. Following twice changes nothing.
+kind: script
+label: Add follower
+icon: UserPlus
+params:
+  id: { type: int }
+  person: { type: int }
+body: |
+  import "todo" as t;
+  let me = session.uid;
+  let id = parse_int(args.id.to_string());
+  if !t::assigned(table("todo_view").get(id), me) { fail("That to-do isn't yours"); }
+  let p = table("person").get(parse_int(args.person.to_string()));
+  if p == () { fail("Unknown person"); }
+  if table("follower").where("res_model", "project.task").where("res_id", id).where("partner_id", p.partner_id).count() > 0 {
+    return #{ id: id, added: false };
+  }
+  let f = table("follower").insert(#{
+    res_model: "project.task", res_id: id, partner_id: p.partner_id,
+    create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+  });
+  let sub = table("mail_subtype").get("mt_comment");
+  if sub != () { table("follower_subtype").insert(#{ mail_followers_id: f, mail_message_subtype_id: sub.subtype_id }); }
+  #{ id: id, added: true }

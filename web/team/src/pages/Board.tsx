@@ -1,12 +1,15 @@
-import { useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import {
   DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor,
   useSensors, type Announcements, type CollisionDetection, type DragEndEvent, type KeyboardCoordinateGetter, type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { Button, Form, Input, TextField } from "react-aria-components";
-import { Check, ChevronLeft, Clock, Plus, X } from "lucide-react";
+import {
+  Button, Dialog, Form, Heading, Input, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover, SearchField, TextField, ToggleButton,
+  ToggleButtonGroup,
+} from "react-aria-components";
+import { Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Cards, Stages } from "../vantage.gen";
 import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
@@ -97,7 +100,9 @@ export const Board = observer(() => {
   // columns and open tabs.
   const cards = useCollection(db.cards.all);
   const pending = usePendingStore();
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  // Odoo's board opens with its "Open" filter: done and cancelled to-dos stay out until asked.
+  const [show, setShow] = useState<"open" | "all">("open");
+  const [text, setText] = useState("");
   const [dragging, setDragging] = useState<UniqueIdentifier | null>(null);
   const sensors = useSensors(
     useSensor(CardMouseSensor, { activationConstraint: { distance: 5 } }),
@@ -107,13 +112,40 @@ export const Board = observer(() => {
       keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space", "Enter"] },
     }),
   );
+  // Odoo gives a person its seven default columns on their first visit; so does the board.
+  const noColumns = stages.loadState !== "loading" && !stages.error && stages.items.length === 0;
+  useEffect(() => {
+    if (!noColumns) return;
+    void call(db.run.stage_defaults, {}).then((out) => { if (!out.ok) toast(out.message); });
+  }, [noColumns, db]);
   if (stages.error) return <p className="alert">{stages.error}</p>;
 
   const first = stages.items[0]?.id;
   // A card just dropped shows in its new column at once; the server's copy catches up later.
   const stageOf = (c: Cards) => pendingValue(pending, c.task_id, "stage_id") ?? String(c.stage_id ?? "");
+  const needle = text.trim().toLowerCase();
+  const shown = cards.items.filter((c) => {
+    const state = pendingValue(pending, c.task_id, "state") ?? c["task.state"];
+    if (show === "open" && (state === "1_done" || state === "1_canceled")) return false;
+    return !needle || (c["task.name"] ?? "").toLowerCase().includes(needle);
+  });
+  // The order of Odoo's To-do board: state (open ones before done and cancelled), priority
+  // (Urgent first), the nearest deadline (none last), sequence, then the newest.
+  const stateOf = (c: Cards) => pendingValue(pending, c.task_id, "state") ?? c["task.state"] ?? "";
+  const rank = (c: Cards) => Number(pendingValue(pending, c.task_id, "priority") ?? c["task.priority"] ?? 0);
+  const due = (c: Cards) => pendingValue(pending, c.task_id, "date_deadline") ?? c["task.date_deadline"] ?? null;
+  const byDeadline = (a: Cards, b: Cards) => {
+    const x = due(a), y = due(b);
+    return x === y ? 0 : x === null ? 1 : y === null ? -1 : x < y ? -1 : 1;
+  };
+  shown.sort((a, b) =>
+    (stateOf(a) < stateOf(b) ? -1 : stateOf(a) > stateOf(b) ? 1 : 0)
+    || rank(b) - rank(a)
+    || byDeadline(a, b)
+    || (a["task.sequence"] ?? 10) - (b["task.sequence"] ?? 10)
+    || (b.task_id ?? 0) - (a.task_id ?? 0));
   const byStage = new Map<string, Cards[]>();
-  for (const c of cards.items) {
+  for (const c of shown) {
     const key = stageOf(c);
     byStage.set(key, [...(byStage.get(key) ?? []), c]);
   }
@@ -149,29 +181,52 @@ export const Board = observer(() => {
     <>
       <div className="cp">
         <div className="crumbs">My to-dos</div>
+        <SearchField aria-label="Search the board" className="search" value={text} onChange={setText}>
+          <Search size={14} aria-hidden="true" />
+          <Input className="search-input" placeholder="Search…" />
+          <Button className="search-clear"><X size={14} aria-hidden="true" /></Button>
+        </SearchField>
+        <ToggleButtonGroup aria-label="Show" className="chips" selectionMode="single" disallowEmptySelection
+          selectedKeys={[show]} onSelectionChange={(keys) => { const k = [...keys][0]; if (k) setShow(k as "open" | "all"); }}>
+          <ToggleButton id="open" className="chip">Open</ToggleButton>
+          <ToggleButton id="all" className="chip">All</ToggleButton>
+        </ToggleButtonGroup>
         <div className="grow" />
         <ViewSwitcher current="board" />
       </div>
       {stages.loadState === "loading" && <p className="muted pad">Loading…</p>}
       {stages.loadState !== "loading" && stages.items.length === 0 && (
-        <p className="alert">You have no to-do columns yet. Open To-do in Odoo once to create them.</p>
+        <p className="muted pad">Setting up your columns…</p>
       )}
       <DndContext sensors={sensors} collisionDetection={columnUnder}
         accessibility={{ announcements, screenReaderInstructions: { draggable: INSTRUCTIONS } }}
         onDragStart={({ active }) => setDragging(active.id)} onDragCancel={() => setDragging(null)}
         onDragEnd={(e) => void drop(e)}>
         <div className="board">
-          {stages.items.map((s) => (
+          {stages.items.map((s, i) => (
             <Column
               key={s.id}
               stage={s}
               cards={byStage.get(String(s.id)) ?? []}
               error={cards.error}
               inbox={s.id === first}
-              folded={!!s.fold && !open[s.id]}
-              onToggle={() => setOpen((o) => ({ ...o, [s.id]: !o[s.id] }))}
+              // Odoo moves what's in a deleted column to the one before it; the first column's
+              // go to the next one.
+              heir={stages.items[i > 0 ? i - 1 : 1]}
+              // Odoo reorders columns by dragging a header; here the column menu moves one a
+              // place left or right, and the new order is saved as Odoo's `sequence`.
+              onMove={i > 0 || i < stages.items.length - 1 ? (step) => {
+                const order = stages.items.map((x) => x.id);
+                const j = i + step;
+                if (j < 0 || j >= order.length) return;
+                [order[i], order[j]] = [order[j]!, order[i]!];
+                void call(db.run.stage_reorder, { ids: order.join(",") }).then((out) => { if (!out.ok) toast(out.message); });
+              } : undefined}
+              first={i === 0}
+              last={i === stages.items.length - 1}
             />
           ))}
+          {stages.loadState !== "loading" && <AddColumn />}
         </div>
         <DragOverlay dropAnimation={null}>{lifted && <CardView card={lifted} lifted />}</DragOverlay>
       </DndContext>
@@ -179,40 +234,161 @@ export const Board = observer(() => {
   );
 });
 
-type ColumnProps = { stage: Stages; cards: Cards[]; error?: string | null; inbox: boolean; folded: boolean; onToggle: () => void };
+type ColumnProps = {
+  stage: Stages; cards: Cards[]; error?: string | null; inbox: boolean; heir: Stages | undefined;
+  onMove?: (step: -1 | 1) => void; first: boolean; last: boolean;
+};
 
-const Column = observer(({ stage, cards, error, inbox, folded, onToggle }: ColumnProps) => {
+const Column = observer(({ stage, cards, error, inbox, heir, onMove, first, last }: ColumnProps) => {
+  const db = useDb();
   const [adding, setAdding] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // Folded columns take drops too: dropping on "Done" is the quickest way to finish one.
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const name = stage.name_local ?? "";
+  // Folding is saved in Odoo (its `fold`), so both apps show the column the same way.
+  const toggleFold = async () => {
+    const out = await call(db.run.stage_fold, { id: Number(stage.id) });
+    if (!out.ok) toast(out.message);
+  };
 
-  if (folded) {
-    const show = () => onToggle();
+  if (stage.fold) {
     return (
       <div ref={setNodeRef} className={`col folded${isOver ? " drop" : ""}`} role="button" tabIndex={0}
-        aria-label={`${stage.name_local}, ${cards.length} to-dos, folded. Show`} onClick={show}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(); } }}>
-        <h3>{stage.name_local} <span className="count">({cards.length})</span></h3>
+        aria-label={`${name}, ${cards.length} to-dos, folded. Unfold`} onClick={() => void toggleFold()}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); void toggleFold(); } }}>
+        <h3>{name} <span className="count">({cards.length})</span></h3>
       </div>
     );
   }
   return (
-    <section ref={setNodeRef} className={`col${isOver ? " drop" : ""}`} aria-label={stage.name_local ?? undefined}>
-      <h3>
-        {stage.name_local} <span className="count">{cards.length}</span>
-        <span className="col-tools">
-          {stage.fold && (
-            <Button className="icon-btn" aria-label={`Fold ${stage.name_local}`} onPress={onToggle}><ChevronLeft size={16} aria-hidden="true" /></Button>
-          )}
-          <Button className="icon-btn" aria-label={`Add a to-do to ${stage.name_local}`} onPress={() => setAdding(true)}><Plus size={16} aria-hidden="true" /></Button>
-        </span>
-      </h3>
+    <section ref={setNodeRef} className={`col${isOver ? " drop" : ""}`} aria-label={name || undefined}>
+      {renaming ? (
+        <RenameColumn stage={stage} onClose={() => setRenaming(false)} />
+      ) : (
+        <h3>
+          {name} <span className="count">{cards.length}</span>
+          <span className="col-tools">
+            <Button className="icon-btn" aria-label={`Add a to-do to ${name}`} onPress={() => setAdding(true)}><Plus size={16} aria-hidden="true" /></Button>
+            <MenuTrigger>
+              <Button className="icon-btn" aria-label={`${name}: column menu`}><MoreHorizontal size={16} aria-hidden="true" /></Button>
+              <Popover className="popover" placement="bottom end" offset={4}>
+                <Menu className="menu" onAction={(key) => {
+                  if (key === "fold") void toggleFold();
+                  else if (key === "rename") setRenaming(true);
+                  else if (key === "delete") setDeleting(true);
+                  else if (key === "left") onMove?.(-1);
+                  else if (key === "right") onMove?.(1);
+                }} disabledKeys={[...(first ? ["left"] : []), ...(last ? ["right"] : [])]}>
+                  <MenuItem id="fold" className="menu-item">Fold</MenuItem>
+                  <MenuItem id="rename" className="menu-item">Rename</MenuItem>
+                  {onMove && <MenuItem id="left" className="menu-item">Move left</MenuItem>}
+                  {onMove && <MenuItem id="right" className="menu-item">Move right</MenuItem>}
+                  <MenuItem id="delete" className="menu-item">Delete</MenuItem>
+                </Menu>
+              </Popover>
+            </MenuTrigger>
+          </span>
+        </h3>
+      )}
+      {deleting && <DeleteColumn stage={stage} count={cards.length} heir={heir} onClose={() => setDeleting(false)} />}
       {adding && <QuickCreate stage={stage} inbox={inbox} onClose={() => setAdding(false)} />}
       {error && <p className="alert">{error}</p>}
       {cards.map((c) => <Card key={c.id} card={c} />)}
     </section>
   );
 });
+
+/** The column's name as a field: Enter saves it in your language, Escape leaves it. */
+function RenameColumn({ stage, onClose }: { stage: Stages; onClose: () => void }) {
+  const db = useDb();
+  const [name, setName] = useState(stage.name_local ?? "");
+  const [busy, setBusy] = useState(false);
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || name.trim() === stage.name_local) { onClose(); return; }
+    setBusy(true);
+    const out = await call(db.run.stage_rename, { id: Number(stage.id), name: name.trim() });
+    setBusy(false);
+    if (!out.ok) { toast(out.message); return; }
+    onClose();
+  };
+  return (
+    <Form className="col-rename" onSubmit={(e) => void save(e)}>
+      <TextField aria-label="Column name" value={name} onChange={setName} autoFocus isDisabled={busy}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
+        <Input className="input" />
+      </TextField>
+    </Form>
+  );
+}
+
+/** Asks before deleting (Odoo doesn't), saying where the column's to-dos go. */
+function DeleteColumn({ stage, count, heir, onClose }: { stage: Stages; count: number; heir: Stages | undefined; onClose: () => void }) {
+  const db = useDb();
+  const [busy, setBusy] = useState(false);
+  const name = stage.name_local ?? "";
+  const remove = async () => {
+    setBusy(true);
+    const out = await call(db.run.stage_delete, { id: Number(stage.id) });
+    setBusy(false);
+    if (!out.ok) { toast(out.message); return; }
+    onClose();
+  };
+  const what = !heir ? "It's your only column, so it stays."
+    : count === 0 ? "It has no to-dos."
+    : `Its ${count === 1 ? "to-do moves" : `${count} to-dos move`} to "${heir.name_local}".`;
+  return (
+    <ModalOverlay className="modal-overlay" isOpen isDismissable onOpenChange={(o) => { if (!o) onClose(); }}>
+      <Modal className="modal">
+        <Dialog className="dialog" role="alertdialog">
+          <Heading slot="title" className="dialog-title">Delete "{name}"?</Heading>
+          <p>{what}</p>
+          <div className="row">
+            <Button className="btn btn-danger" isDisabled={busy || !heir} onPress={() => void remove()} autoFocus>Delete</Button>
+            <Button className="btn" onPress={onClose}>Cancel</Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  );
+}
+
+/** Odoo's "+" after the last column: name a new one, Enter adds it at the end. */
+function AddColumn() {
+  const db = useDb();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!open) {
+    return (
+      <Button className="col-add" aria-label="Add a column" onPress={() => setOpen(true)}><Plus size={16} aria-hidden="true" /> Column</Button>
+    );
+  }
+  const add = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    const out = await call(db.run.stage_create, { name: name.trim() });
+    setBusy(false);
+    if (!out.ok) { toast(out.message); return; }
+    setName("");
+    setOpen(false);
+  };
+  return (
+    <Form className="col col-new quick" onSubmit={(e) => void add(e)}>
+      <TextField aria-label="Name of the new column" value={name} onChange={setName} autoFocus
+        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+        <Input className="input" placeholder="Column name" />
+      </TextField>
+      <div className="row">
+        <Button type="submit" className="btn btn-primary" isDisabled={busy || !name.trim()}>Add</Button>
+        <Button className="btn icon" aria-label="Close" onPress={() => setOpen(false)}><X size={14} aria-hidden="true" /></Button>
+      </div>
+    </Form>
+  );
+}
 
 /** Odoo's quick create: type a title, Enter adds it (and keeps the box open for the next one). */
 function QuickCreate({ stage, inbox, onClose }: { stage: Stages; inbox: boolean; onClose: () => void }) {
@@ -224,11 +400,9 @@ function QuickCreate({ stage, inbox, onClose }: { stage: Stages; inbox: boolean;
     e?.preventDefault();
     if (!name.trim()) return;
     setBusy(true);
-    const out = await call<{ name: string }, { id: number }>(db.run.todo_create, { name: name.trim() });
-    if (out.ok && !inbox) {
-      const moved = await call(db.run.todo_move, { id: out.value.id, stage: Number(stage.id) });
-      if (!moved.ok) toast(moved.message);
-    }
+    // Odoo's keywords work here: "Call Ana #sales @marc !!".
+    const out = await call<{ name: string; stage?: number }, { id: number }>(db.run.todo_quick_add,
+      inbox ? { name: name.trim() } : { name: name.trim(), stage: Number(stage.id) });
     setBusy(false);
     if (!out.ok) { toast(out.message); return; }
     setName("");
@@ -238,7 +412,7 @@ function QuickCreate({ stage, inbox, onClose }: { stage: Stages; inbox: boolean;
     <Form className="quick" onSubmit={(e) => void add(e)}>
       <TextField aria-label={`Title of the new to-do in ${stage.name_local}`} value={name} onChange={setName} autoFocus
         onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
-        <Input className="input" placeholder="Title of the to-do" />
+        <Input className="input" placeholder="Title  #tag  @person  !" />
       </TextField>
       <div className="row">
         <Button type="submit" className="btn btn-primary" isDisabled={busy || !name.trim()}>Add</Button>

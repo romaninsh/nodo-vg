@@ -21,7 +21,8 @@ DECLARE
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'project_task', 'project_task_user_rel', 'project_task_type',
-    'project_tags', 'project_tags_project_task_rel', 'res_users', 'res_partner'
+    'project_tags', 'project_tags_project_task_rel', 'res_users', 'res_partner',
+    'mail_message', 'mail_followers'  -- a to-do's chatter and followers
   ] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS nodo_notify ON %I', t);
     EXECUTE format(
