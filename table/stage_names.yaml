@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=./table-schema-1.json
 # The names of Odoo's seven default personal columns as Odoo stored them, every language: what
 # a new person's columns are named with (action/stage_defaults.yaml). Only those seven English
-# names, so nobody's own column names show; one row per English name. No `user_id`, so it isn't
-# narrowed to the reader's columns.
+# names, and only rows Odoo itself wrote (its system user, uid 1, created and last wrote them):
+# a column someone renamed, in any language, is never copied to another person. One row per
+# English name. No `user_id`, so it isn't narrowed to the reader's columns.
 datasource: odoo
 title: Default column name
 id_column: name_en
@@ -15,5 +16,5 @@ postgres:
     sql::select().from("project_task_type")
         .expression(sql::expr("name->>'en_US'").alias("name_en"))
         .expression(sql::expr("(array_agg(name ORDER BY (SELECT count(*) FROM jsonb_object_keys(name)) DESC, id))[1]").alias("name"))
-        .where(sql::expr("user_id IS NOT NULL AND name->>'en_US' IN ('Inbox', 'Today', 'This Week', 'This Month', 'Later', 'Done', 'Cancelled')"))
+        .where(sql::expr("user_id IS NOT NULL AND create_uid = 1 AND write_uid = 1 AND name->>'en_US' IN ('Inbox', 'Today', 'This Week', 'This Month', 'Later', 'Done', 'Cancelled')"))
         .group_by(sql::expr("name->>'en_US'"))
