@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# My columns that aren't archived: what the board, the stage bar and a new to-do's first column
+# use. An archived column is gone from Odoo's board and status bar, but it is still mine, so
+# archiving one goes through `stage`; the rule there only says whose it is.
+datasource: odoo
+title: Column
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name_local: { type: string, label: Column, flags: [title] }
+  user_id: { type: int, flags: [hidden] }
+  sequence: { type: int, label: Order }
+  fold: { type: bool, label: Folded }
+postgres:
+  listen: [project_task_type]
+  base: stage
+  rhai: |
+    base.where(sql::expr("active IS NOT FALSE"))

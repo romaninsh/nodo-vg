@@ -39,18 +39,18 @@ entities:
       filter: [task_id, stage_id]
     api: { load: instant }
   - name: stages
-    observe: stage
+    observe: stage_open
     read_only: true
     params:
-      columns: [name, sequence, fold]
+      columns: [name_local, sequence, fold]
       default_sort: sequence
     api: { load: instant }
   - name: tags
     observe: tag
     read_only: true
     params:
-      columns: [name, color]
-      default_sort: name
+      columns: [name_local, color]
+      default_sort: name_local
     api: { load: instant }
   - name: people
     observe: person

@@ -1,0 +1,34 @@
+# Personal to-do columns (project_task_type with a user_id): the `user_id` rule in
+# datasource/odoo.yaml. Archived columns stay yours; table/stage_open.yaml leaves them out.
+#
+# Writes to someone else's column aren't cases here: the rule hides the row, and the tester
+# reports a hidden row as a failed write (patch) or as allowed (delete), not refused
+# (FEEDBACK.md). "Marc can't see Monica's Inbox" is the proof that he can't reach it.
+app: team
+table: stage
+cases:
+  - name: Marc sees his own columns only
+    as: people.marc
+    list: { count: 7 }
+
+  - name: Marc can't see Monica's Inbox
+    as: people.marc
+    record: { id: 27 }
+    read: { visible: false }
+
+  - name: Monica sees her own Inbox
+    as: people.monica
+    record: { id: 27 }
+    read: { visible: true, columns: { id: shown, name: shown, name_en: shown, name_local: shown, user_id: shown, sequence: shown, fold: shown, active: shown, name_localised: shown } }
+
+  - name: Marc can't give his Inbox to Monica
+    as: people.marc
+    record: { id: 12 }
+    patch: { user_id: 6 }
+    expect: refused
+
+  - name: Marc archives his Later column, and it stays his
+    as: people.marc
+    record: { id: 16 }
+    patch: { active: false }
+    expect: allowed

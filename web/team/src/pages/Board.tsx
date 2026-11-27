@@ -118,7 +118,7 @@ export const Board = observer(() => {
     byStage.set(key, [...(byStage.get(key) ?? []), c]);
   }
   const cardOf = (id: UniqueIdentifier | undefined) => cards.items.find((c) => String(c.task_id) === String(id));
-  const stageName = (id: UniqueIdentifier | undefined) => stages.items.find((s) => s.id === String(id))?.name ?? "";
+  const stageName = (id: UniqueIdentifier | undefined) => stages.items.find((s) => s.id === String(id))?.name_local ?? "";
   const nameOf = (id: UniqueIdentifier) => cardOf(id)?.["task.name"] ?? "the to-do";
 
   const drop = async ({ active, over }: DragEndEvent) => {
@@ -190,21 +190,21 @@ const Column = observer(({ stage, cards, error, inbox, folded, onToggle }: Colum
     const show = () => onToggle();
     return (
       <div ref={setNodeRef} className={`col folded${isOver ? " drop" : ""}`} role="button" tabIndex={0}
-        aria-label={`${stage.name}, ${cards.length} to-dos, folded. Show`} onClick={show}
+        aria-label={`${stage.name_local}, ${cards.length} to-dos, folded. Show`} onClick={show}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(); } }}>
-        <h3>{stage.name} <span className="count">({cards.length})</span></h3>
+        <h3>{stage.name_local} <span className="count">({cards.length})</span></h3>
       </div>
     );
   }
   return (
-    <section ref={setNodeRef} className={`col${isOver ? " drop" : ""}`} aria-label={stage.name ?? undefined}>
+    <section ref={setNodeRef} className={`col${isOver ? " drop" : ""}`} aria-label={stage.name_local ?? undefined}>
       <h3>
-        {stage.name} <span className="count">{cards.length}</span>
+        {stage.name_local} <span className="count">{cards.length}</span>
         <span className="col-tools">
           {stage.fold && (
-            <Button className="icon-btn" aria-label={`Fold ${stage.name}`} onPress={onToggle}><ChevronLeft size={16} aria-hidden="true" /></Button>
+            <Button className="icon-btn" aria-label={`Fold ${stage.name_local}`} onPress={onToggle}><ChevronLeft size={16} aria-hidden="true" /></Button>
           )}
-          <Button className="icon-btn" aria-label={`Add a to-do to ${stage.name}`} onPress={() => setAdding(true)}><Plus size={16} aria-hidden="true" /></Button>
+          <Button className="icon-btn" aria-label={`Add a to-do to ${stage.name_local}`} onPress={() => setAdding(true)}><Plus size={16} aria-hidden="true" /></Button>
         </span>
       </h3>
       {adding && <QuickCreate stage={stage} inbox={inbox} onClose={() => setAdding(false)} />}
@@ -236,7 +236,7 @@ function QuickCreate({ stage, inbox, onClose }: { stage: Stages; inbox: boolean;
   };
   return (
     <Form className="quick" onSubmit={(e) => void add(e)}>
-      <TextField aria-label={`Title of the new to-do in ${stage.name}`} value={name} onChange={setName} autoFocus
+      <TextField aria-label={`Title of the new to-do in ${stage.name_local}`} value={name} onChange={setName} autoFocus
         onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
         <Input className="input" placeholder="Title of the to-do" />
       </TextField>

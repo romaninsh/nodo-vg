@@ -1,27 +1,24 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# The to-do form's column bar: my personal stages in order, with `here` = "yes" on the one
-# holding the to-do passed as args.task. Read-only; moving goes through the todo_move action.
-# The datasource rule narrows it to the signed-in person's stages (it has `user_id`).
+# The to-do form's column bar: my personal stages in order (mine, not archived, in my
+# language), with `here` = "yes" on the one holding the to-do passed as args.task.
+# Read-only; moving goes through the todo_move action.
 datasource: odoo
 title: Column
 id_column: id
 columns:
   id: { type: int, flags: [id] }
-  name: { type: string, label: Column, flags: [title] }
+  name_local: { type: string, label: Column, flags: [title] }
   user_id: { type: int, flags: [hidden] }
   sequence: { type: int, label: Order }
   fold: { type: bool, label: Folded }
   here: { type: string, label: Current }
 postgres:
   listen: [project_task_type, project_task_user_rel]
+  # `stage`, not `stage_open`: on a derived table the base is a nested select, where
+  # `project_task_type.id` below doesn't exist. So the "not archived" filter is repeated here.
+  base: stage
   rhai: |
     let task = if "task" in args { args.task } else { "" };
-    sql::select().from("project_task_type")
-        .field("id")
-        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
-        .field("user_id")
-        .field("sequence")
-        .expression(sql::expr("coalesce(fold, false)").alias("fold"))
-        .expression(sql::expr("CASE WHEN EXISTS (SELECT 1 FROM project_task_user_rel ur WHERE ur.stage_id = project_task_type.id AND ur.task_id::text = {}) THEN 'yes' ELSE '' END", [task]).alias("here"))
-        .where(sql::expr("user_id IS NOT NULL AND active IS NOT FALSE"))
+    base.expression(sql::expr("CASE WHEN EXISTS (SELECT 1 FROM project_task_user_rel ur WHERE ur.stage_id = project_task_type.id AND ur.task_id::text = {}) THEN 'yes' ELSE '' END", [task]).alias("here"))
+        .where(sql::expr("active IS NOT FALSE"))
         .order_by(sql::ident("sequence"), "asc")

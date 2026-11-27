@@ -8,5 +8,5 @@ body: |
   let p = table("person").get(parse_int(f.person.to_string()));
   if p == () { fail("Pick a person"); }
   if p.id == 2 { session.restore(); return #{ uid: 2 }; }
-  session.assume(#{ app: "nodo", fields: #{ uid: p.id, name: p.name, login: p.login } });
+  session.assume(#{ app: "nodo", fields: #{ uid: p.id, name: p.name, login: p.login, lang: p.lang ?? "en_US" } });
   #{ uid: p.id }

@@ -8,6 +8,7 @@ columns:
   name: { type: string, label: Name, flags: [title, searchable] }
   login: { type: string, label: Login }
   partner_id: { type: int, flags: [hidden] }
+  lang: { type: string, label: Language, flags: [hidden] }
 postgres:
   listen: [res_users, res_partner]
   rhai: |
@@ -17,5 +18,7 @@ postgres:
         .expression(sql::expr("p.name").alias("name"))
         .expression(sql::expr("res_users.login").alias("login"))
         .expression(sql::expr("res_users.partner_id").alias("partner_id"))
+        // Odoo reads names in en_US when a partner has no language.
+        .expression(sql::expr("coalesce(nullif(p.lang, ''), 'en_US')").alias("lang"))
         .where(sql::expr("res_users.active AND NOT coalesce(res_users.share, false)"))
         .order_by(sql::expr("p.name"), "asc")

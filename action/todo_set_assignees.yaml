@@ -29,7 +29,7 @@ body: |
     if have.contains(u) { continue; }
     let p = table("person").get(u);
     if p == () { fail("Unknown person"); }
-    let inbox = table("stage").where("user_id", u).sort("sequence", "asc").first();
+    let inbox = table("stage_open").where("user_id", u).sort("sequence", "asc").first();
     table("todo_user").insert(#{ task_id: id, user_id: u, stage_id: if inbox == () { () } else { inbox.id } });
     if table("follower").where("res_model", "project.task").where("res_id", id).where("partner_id", p.partner_id).count() == 0 {
       let f = table("follower").insert(#{

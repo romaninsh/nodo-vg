@@ -88,12 +88,12 @@ body:
     action: |
       if row.here != "yes" {
         actions.todo_move(#{ id: args.id, stage: row.id });
-        toast("Moved to " + row.name, "success");
+        toast("Moved to " + row.name_local, "success");
       }
     item:
       - kind: label
         params:
-          text: "${if row.here == \"yes\" { \"●  \" + row.name + \"   (here)\" } else { \"○  \" + row.name }}"
+          text: "${if row.here == \"yes\" { \"●  \" + row.name_local + \"   (here)\" } else { \"○  \" + row.name_local }}"
 
   - kind: divider
   - kind: column

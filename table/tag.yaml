@@ -1,17 +1,21 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# Odoo's project tags. The name is translated JSON, so this is read-only.
+# Odoo's project tags. Odoo keeps the name as JSON keyed by language ({"en_US": "Bug", ...});
+# nodo shows the reader's language and falls back to English, as Odoo does.
 datasource: odoo
+table: project_tags
 title: Tag
 id_column: id
 columns:
-  id: { type: int, flags: [id] }
-  name: { type: string, label: Tag, flags: [title, searchable] }
+  id: { type: int, flags: [id, auto] }
+  name: { type: json, flags: [hidden] }                     # every language
+  name_en: { type: string, label: English, nested_path: name.en_US }
+  name_local:
+    type: string
+    label: Tag
+    flags: [title, searchable]
+    expr: 'sql::coalesce(table.column("name_localised"), table.column("name_en"))'
   color: { type: int, label: Colour }
+build: |
+  table.nested_column("name_localised", "name", session.lang, #{ label: "Translation" });
 postgres:
   listen: [project_tags]
-  rhai: |
-    sql::select().from("project_tags")
-        .field("id")
-        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
-        .expression(sql::expr("coalesce(color, 0)").alias("color"))
-        .order_by(sql::expr("2"), "asc")

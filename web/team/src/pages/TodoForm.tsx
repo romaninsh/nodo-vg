@@ -176,9 +176,9 @@ const StageBar = observer(({ id }: { id: number }) => {
       {stages.items.map((s) => (
         <button key={s.id} className={`${s.id === current ? "on" : ""}${s.fold ? " folded" : ""}`}
           aria-current={s.id === current ? "step" : undefined} disabled={busy}
-          title={s.id === current ? `In ${s.name}` : `Move to ${s.name}`}
-          onClick={() => void move(s.id, s.name ?? "")}>
-          {s.name}
+          title={s.id === current ? `In ${s.name_local}` : `Move to ${s.name_local}`}
+          onClick={() => void move(s.id, s.name_local ?? "")}>
+          {s.name_local}
         </button>
       ))}
     </nav>
@@ -190,11 +190,11 @@ type PickerProps = { selected: string[]; disabled?: boolean; onChange: (ids: str
 /** Tags as Odoo's coloured pills, removable; a search box adds one. */
 const TagPicker = observer(({ selected, disabled, onChange }: PickerProps) => {
   const db = useDb();
-  const { items } = useCollection(db.tags.sort("name", "asc"));
+  const { items } = useCollection(db.tags.sort("name_local", "asc"));
   const color = new Map(items.map((t) => [t.id, t.color]));
   return (
     <MultiPicker labelId="f-tags" addLabel="Add a tag" placeholder="Add a tag…" disabled={disabled}
-      options={items.map((t) => ({ id: t.id, name: t.name ?? "" }))} selected={selected} onChange={onChange}
+      options={items.map((t) => ({ id: t.id, name: t.name_local ?? "" }))} selected={selected} onChange={onChange}
       chipStyle={(o) => ({ background: tagColor(color.get(o.id)), color: tagText(color.get(o.id)) })} />
   );
 });

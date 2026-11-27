@@ -1,23 +1,26 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# Personal to-do stages (project_task_type rows owned by a user). Odoo keeps the name as
-# translated JSON, so this is read-only.
+# Personal to-do stages (project_task_type rows owned by a user). Odoo keeps the name as JSON
+# keyed by language; nodo shows the reader's language, falling back to English.
+# The datasource rule narrows it to the signed-in person's stages, archived or not;
+# table/stage_open.yaml leaves the archived ones out.
 datasource: odoo
+table: project_task_type
 title: Stage
 id_column: id
 columns:
-  id: { type: int, flags: [id] }
-  name: { type: string, label: Stage, flags: [title] }
+  id: { type: int, flags: [id, auto] }
+  name: { type: json, flags: [hidden] }                     # every language
+  name_en: { type: string, label: English, nested_path: name.en_US }
+  name_local:
+    type: string
+    label: Stage
+    flags: [title]
+    expr: 'sql::coalesce(table.column("name_localised"), table.column("name_en"))'
   user_id: { type: int, flags: [hidden] }
   sequence: { type: int, label: Order }
   fold: { type: bool, label: Folded }
+  active: { type: bool, flags: [hidden] }
+build: |
+  table.nested_column("name_localised", "name", session.lang, #{ label: "Translation" });
 postgres:
   listen: [project_task_type]
-  rhai: |
-    sql::select().from("project_task_type")
-        .field("id")
-        .expression(sql::expr("coalesce(name->>'en_US', name->>(SELECT k FROM jsonb_object_keys(name) k LIMIT 1))").alias("name"))
-        .field("user_id")
-        .field("sequence")
-        .expression(sql::expr("coalesce(fold, false)").alias("fold"))
-        .where(sql::expr("user_id IS NOT NULL AND active IS NOT FALSE"))
-        .order_by(sql::ident("sequence"), "asc")
