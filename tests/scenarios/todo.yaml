@@ -92,13 +92,13 @@ scenarios:
           - monicas_tags.count() == 2
         vars:
           feature_link: { vista: todo_tag, where: { project_task_id: 900, project_tags_id: 2 } }
-      - step: She swaps Bug for Experiment; New Feature stays the same row
+      - step: She swaps Bug for Experiment; New Feature stays
         do: { action: todo_set_tags, args: { id: 900, tags: "2,3" } }
         assert:
           - monicas_tags.count() == 2
           - monicas_tags.list().map(|l| l.project_tags_id).contains(3)
           - "!monicas_tags.list().map(|l| l.project_tags_id).contains(1)"
-          - feature_link.first().v_id.to_string() == "2"
+          - feature_link.count() == 1
       - step: She clears them
         do: { action: todo_set_tags, args: { id: 900, tags: "" } }
         assert:

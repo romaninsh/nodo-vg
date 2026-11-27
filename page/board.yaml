@@ -26,7 +26,7 @@ body:
   - kind: kanban
     name: board_mitchell
     when: 'session.uid == 2'
-    observe: todo_user
+    observe: card
     params:
       lane: stage_id
       title: task.name
@@ -49,7 +49,7 @@ body:
   - kind: kanban
     name: board_marc
     when: 'session.uid == 5'
-    observe: todo_user
+    observe: card
     params:
       lane: stage_id
       title: task.name
@@ -72,7 +72,7 @@ body:
   - kind: kanban
     name: board_monica
     when: 'session.uid == 6'
-    observe: todo_user
+    observe: card
     params:
       lane: stage_id
       title: task.name

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
 import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
-import type { Todos } from "../vantage.gen";
+import type { Todo } from "../vantage.gen";
 import { auth, call, fromLocalInput, ids, isDone, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
 import { Avatar, DateTimePicker, MultiPicker, Priority, toast } from "../ui";
 import { setPending, usePending } from "../pending";
@@ -11,7 +11,8 @@ import { setPending, usePending } from "../pending";
 export const TodoForm = observer(() => {
   const db = useDb();
   const { id = "" } = useParams();
-  const ref = useMemo(() => db.todos.ref(id), [db, id]);
+  // `todo` serves one to-do by id, archived or not; the lists hold only their own sets.
+  const ref = useMemo(() => db.todo.ref(id), [db, id]);
   const { value: todo, status, error } = useRecord(ref);
   if (status === "error") return <p className="alert">{error}</p>;
   if (status === "missing") return <p className="alert">This to-do isn't in your list. <Link to="/">Back to my to-dos</Link></p>;
@@ -19,7 +20,7 @@ export const TodoForm = observer(() => {
   return <Editor key={todo.id} todo={todo} />;
 });
 
-const Editor = observer(({ todo }: { todo: Todos }) => {
+const Editor = observer(({ todo }: { todo: Todo }) => {
   const db = useDb();
   const navigate = useNavigate();
   const id = Number(todo.id);

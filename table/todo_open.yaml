@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# My to-dos that aren't archived: the list and everything sent to a browser at connect.
+# Archived ones are usually most of the table, so they stay out of here (table/todo_archived.yaml).
+# Columns are todo_view's, declared again: the API's schema lists only declared columns.
+datasource: odoo
+title: To-do
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Title, flags: [title, searchable] }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
+  state: { type: string, label: Status }
+  active: { type: bool, label: Active }
+  project_id: { type: int, flags: [hidden] }
+  tags: { type: string, label: Tags }
+  tag_ids: { type: string, label: Tag ids }
+  assignees: { type: string, label: Assigned to }
+  assignee_ids: { type: string, label: Assignee ids }
+  overdue: { type: bool, label: Overdue }
+  due: { type: string, label: Due, enum: [overdue, today, soon, later] }
+  notes: { type: string, label: Description }
+  summary: { type: string, label: Summary }
+  write_date: { type: timestamp, label: Last updated }
+  open_for: { type: string, label: Open for }
+postgres:
+  listen: [project_task, project_task_user_rel, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
+  base: todo_view
+  rhai: |
+    base.where(sql::expr("active IS NOT FALSE"))

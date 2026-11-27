@@ -37,7 +37,7 @@ const STATS: [string, string, string][] = [
   [fmt(c.generated_lines), "lines generated", "the typed client, from the API's schema, never edited"],
   [fmt(c.scenario_steps), "scenario test steps", "run on every pull request"],
   [fmt(ABOUT.pullRequests), "pull requests merged", "one per feature, each with Odoo next to nodo"],
-  [String(ABOUT.odooTables.length), "Odoo tables used", "no tables added; one temporary id column"],
+  [String(ABOUT.odooTables.length), "Odoo tables used", "no tables or columns added"],
   [String(ABOUT.vantage.features.length), "features added to Vantage", ABOUT.vantage.features.join("; ")],
   [String(ABOUT.vantage.issues), "issues reported to Vantage", "each with a workaround in nodo"],
 ];

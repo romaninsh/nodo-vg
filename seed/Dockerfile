@@ -11,7 +11,6 @@ ENV PGDATA=/pgdata \
 
 COPY nodo.dump /tmp/nodo.dump
 COPY notify.sql /tmp/notify.sql
-COPY link_ids.sql /tmp/link_ids.sql
 COPY filestore /odoo-filestore
 
 RUN mkdir -p "$PGDATA" && chown postgres "$PGDATA" \
@@ -20,8 +19,7 @@ RUN mkdir -p "$PGDATA" && chown postgres "$PGDATA" \
  && gosu postgres psql -U odoo -d postgres -c "ALTER USER odoo PASSWORD 'odoo'" -c "CREATE DATABASE nodo" \
  && gosu postgres pg_restore -U odoo -d nodo --exit-on-error /tmp/nodo.dump \
  && gosu postgres psql -U odoo -d nodo -v ON_ERROR_STOP=1 -q -f /tmp/notify.sql \
- && gosu postgres psql -U odoo -d nodo -v ON_ERROR_STOP=1 -q -f /tmp/link_ids.sql \
  && gosu postgres pg_ctl -m fast -w stop \
  && echo "listen_addresses = '*'" >> "$PGDATA/postgresql.conf" \
  && echo "host all all all scram-sha-256" >> "$PGDATA/pg_hba.conf" \
- && rm /tmp/nodo.dump /tmp/notify.sql /tmp/link_ids.sql
+ && rm /tmp/nodo.dump /tmp/notify.sql

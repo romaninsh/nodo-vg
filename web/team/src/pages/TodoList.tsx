@@ -7,7 +7,7 @@ import { auth, call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, toast, type Level } from "../ui";
 import { setPending, usePending } from "../pending";
-import type { Todos } from "../vantage.gen";
+import type { Archived, Todos } from "../vantage.gen";
 
 type Filter = "open" | "done" | "starred" | "overdue" | "archived" | "all";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -19,39 +19,33 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "archived", label: "Archived" },
 ];
 
+/** What a row shows, from either endpoint. */
+type Item = Todos | Archived;
+
 /** My to-dos as a list, with the deadline, tags and who else has it. */
 export const TodoList = observer(() => {
   const db = useDb();
-  const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("open");
   const [text, setText] = useState("");
 
-  // The server filters and sorts; the page shows rows in the order they arrive.
-  let q = db.todos.where({ active: filter !== "archived" });
-  // Open, as in Odoo: not done or cancelled, and not sitting in one of my folded columns
-  // (Done, Cancelled). `open_for` lists who still has it open, as ",2,7,".
-  if (filter === "open") q = q.where({ open_for: { like: `,${auth.me()?.uid ?? 0},` } });
-  if (filter === "done") q = q.where({ state: "1_done" });
-  if (filter === "starred") q = q.where({ priority: { in: ["1", "2", "3"] } });
-  if (filter === "overdue") q = q.where({ due: "overdue" });
+  // The server filters and sorts. `todos` holds the to-dos that aren't archived and is kept
+  // whole in the browser; archived ones are usually most of them, so they are their own
+  // endpoint, read only under "Archived", a page at a time, the latest first.
   // `like` matches "contains", ignoring case (the server adds the wildcards).
-  if (text.trim()) q = q.where({ name: { like: text.trim() } });
-  const list = useCollection(q.sort("date_deadline", "asc"));
-  // The server sorts on one column, so to-dos with the same deadline (or none) arrive in any
-  // order; the id keeps them in one order between loads.
-  const rows = [...list.items].sort((a, b) =>
-    (a.date_deadline ?? "￿").localeCompare(b.date_deadline ?? "￿") || Number(a.id) - Number(b.id));
-
-  const setPriority = async (id: string, priority: Level) => {
-    const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
-    if (!out.ok) toast(out.message);
-    else setPending(id, { priority });
-  };
-  const toggleDone = async (id: string, done: boolean) => {
-    const out = await call(db.run.todo_toggle_done, { id: Number(id) });
-    if (!out.ok) toast(out.message);
-    else setPending(id, { state: done ? "01_in_progress" : "1_done" });
-  };
+  const search = text.trim() ? { name: { like: text.trim() } } : {};
+  let body;
+  if (filter === "archived") {
+    body = <Rows key="archived" list={db.archived.where(search).sort("write_date", "desc")} />;
+  } else {
+    let q = db.todos.where(search);
+    // Open, as in Odoo: not done or cancelled, and not sitting in one of my folded columns
+    // (Done, Cancelled). `open_for` lists who still has it open, as ",2,7,".
+    if (filter === "open") q = q.where({ open_for: { like: `,${auth.me()?.uid ?? 0},` } });
+    if (filter === "done") q = q.where({ state: "1_done" });
+    if (filter === "starred") q = q.where({ priority: { in: ["1", "2", "3"] } });
+    if (filter === "overdue") q = q.where({ due: "overdue" });
+    body = <Rows key="open" list={q.sort("date_deadline", "asc")} byDeadline />;
+  }
 
   return (
     <>
@@ -69,7 +63,37 @@ export const TodoList = observer(() => {
         <div className="grow" />
         <ViewSwitcher current="list" />
       </div>
-      {list.error && <p className="alert">{list.error}</p>}
+      {body}
+    </>
+  );
+});
+
+/** The table for one collection. Only the mounted one is read from the server. */
+const Rows = observer(({ list, byDeadline }: { list: Parameters<typeof useCollection<Item>>[0]; byDeadline?: boolean }) => {
+  const db = useDb();
+  const navigate = useNavigate();
+  const rows = useCollection(list);
+  // The server sorts on one column, so to-dos with the same deadline (or none) arrive in any
+  // order; the id keeps them in one order between loads.
+  const items = byDeadline
+    ? [...rows.items].sort((a, b) =>
+      (a.date_deadline ?? "￿").localeCompare(b.date_deadline ?? "￿") || Number(a.id) - Number(b.id))
+    : rows.items;
+
+  const setPriority = async (id: string, priority: Level) => {
+    const out = await call(db.run.todo_set_priority, { id: Number(id), priority });
+    if (!out.ok) toast(out.message);
+    else setPending(id, { priority });
+  };
+  const toggleDone = async (id: string, done: boolean) => {
+    const out = await call(db.run.todo_toggle_done, { id: Number(id) });
+    if (!out.ok) toast(out.message);
+    else setPending(id, { state: done ? "01_in_progress" : "1_done" });
+  };
+
+  return (
+    <>
+      {rows.error && <p className="alert">{rows.error}</p>}
       <div className="list">
         <table>
           <thead>
@@ -83,20 +107,20 @@ export const TodoList = observer(() => {
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => (
+            {items.map((t) => (
               <Row key={t.id} t={t} onOpen={() => navigate(`/todo/${t.id}`)}
                 onPriority={(p) => void setPriority(t.id, p)} onDone={(done) => void toggleDone(t.id, done)} />
             ))}
           </tbody>
         </table>
-        {list.loadState !== "loading" && list.items.length === 0 && <div className="empty">No to-dos here.</div>}
+        {rows.loadState !== "loading" && items.length === 0 && <div className="empty">No to-dos here.</div>}
       </div>
     </>
   );
 });
 
 const Row = observer(({ t, onOpen, onPriority, onDone }: {
-  t: Todos;
+  t: Item;
   onOpen: () => void;
   onPriority: (level: Level) => void;
   onDone: (done: boolean) => void;
