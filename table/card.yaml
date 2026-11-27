@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# The board: my assignments (todo_user) of to-dos that aren't archived, with what a card shows.
+# Read-only; moves go through todo_move. Archived to-dos stay out of every board read.
+datasource: odoo
+title: Card
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  task_id: { type: int, label: To-do, references: { table: todo_view, kind: has_one, name: task } }
+  user_id: { type: int, label: Person }
+  stage_id: { type: int, label: Stage, references: stage }
+  task.name: { type: string, label: Title }
+  task.date_deadline: { type: timestamp, label: Deadline }
+  task.priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  task.state: { type: string, label: Status }
+  task.tags: { type: string, label: Tags }
+  task.tag_ids: { type: string, label: Tag ids }
+  task.assignees: { type: string, label: Assigned to }
+  task.overdue: { type: bool, label: Overdue }
+  task.due: { type: string, label: Due }
+  task.summary: { type: string, label: Summary }
+postgres:
+  listen: [project_task_user_rel, project_task, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
+  base: todo_user
+  rhai: |
+    base.where(sql::expr("task_id IN (SELECT id FROM project_task WHERE active IS NOT FALSE)"))

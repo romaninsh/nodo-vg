@@ -11,9 +11,10 @@ invariants:
   user_id:
     script: |
       table.where("user_id", session.uid);
-      if table_name == "todo_user" {
-        // To-dos only (no project tasks), and not archived: the board shows what Odoo's does.
-        table.with_condition(sql::expr("task_id IN (SELECT id FROM project_task WHERE project_id IS NULL AND parent_id IS NULL AND is_template IS NOT TRUE AND active IS NOT FALSE)"));
+      if table_name == "todo_user" || table_name == "card" {
+        // Assignments of to-dos only (no project tasks). Archived ones stay yours, as in Odoo;
+        // the board leaves them out itself (table/card.yaml).
+        table.with_condition(sql::expr("task_id IN (SELECT id FROM project_task WHERE project_id IS NULL AND parent_id IS NULL AND is_template IS NOT TRUE)"));
       }
       // New assignments come only from the to-do actions (todo_create, todo_set_assignees),
       // which run under the exceptions below; anything else could assign itself someone
@@ -27,13 +28,21 @@ invariants:
       - { type: action, name: todo_set_assignees, when: 'session.uid != ()' }
       # Creating a to-do assigns it to the caller (and reads the caller's first column).
       - { type: action, name: todo_create, when: 'session.uid != ()' }
-  # To-dos (project_task): only tasks with no project, no parent, not a template, that are
-  # assigned to you.
+  # To-dos (project_task): tasks with no project, no parent, not a template, that are assigned
+  # to you, archived or not (as Odoo's rule; lists leave archived ones out themselves).
   project_id:
     script: |
-      table.with_condition(sql::expr("project_id IS NULL AND id IN (SELECT ur.task_id FROM project_task_user_rel ur JOIN project_task t ON t.id = ur.task_id WHERE ur.user_id = {} AND t.parent_id IS NULL AND t.is_template IS NOT TRUE)", [session.uid]));
-      table.before_insert(|record| if record.project_id != () { throw "A to-do belongs to no project" });
-      table.before_update(|record, stored| if record.project_id != () { throw "A to-do belongs to no project" });
+      if table_name == "todo" {
+        // `"is", null()` would read better for the two NULL checks, but the project validator
+        // refuses `null` in rule scripts (FEEDBACK.md); the loaded rule accepts it.
+        table.where("mine", true).where("is_template", "is_not", true);
+        table.with_condition(sql::expr("project_id IS NULL AND parent_id IS NULL"));
+        table.before_insert(|record| if record.project_id != () { throw "A to-do belongs to no project" });
+        table.before_update(|record, stored| if record.project_id != () { throw "A to-do belongs to no project" });
+      } else {
+        // The read-only to-do views (todo_view and the lists over it) select to-dos only.
+        table.with_condition(sql::expr("id IN (SELECT task_id FROM project_task_user_rel WHERE user_id = {})", [session.uid]));
+      }
     exceptions:
       # A new to-do isn't assigned to anyone until the same action adds its assignment, so the
       # insert can't pass the "assigned to you" check. The action stamps project_id = () and

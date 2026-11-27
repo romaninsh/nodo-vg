@@ -10,7 +10,7 @@
 set -euo pipefail
 
 DB_IMAGE="${DB_IMAGE:-ghcr.io/romaninsh/nodo-vg-db:latest}"
-SERVER_IMAGE="${SERVER_IMAGE:-romaninsh/vantage-server:1.14.8}"
+SERVER_IMAGE="${SERVER_IMAGE:-romaninsh/vantage-server:1.16.4}"
 PORT="${PORT:-8090}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 DB=nodo-e2e-db

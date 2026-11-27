@@ -26,6 +26,8 @@ columns:
   date_last_stage_update: { type: timestamp, flags: [hidden] }
   date_assign: { type: timestamp, flags: [hidden] }
   date_end: { type: timestamp, flags: [hidden] }
+  # Assigned to the person reading: a row in Odoo's assignment table for them.
+  mine: { type: bool, label: Mine, flags: [hidden], expr: 'table.ref("assignments").where("user_id", session.uid).exists()' }
   # Dotted columns last: a rule's write check binds values in file order but lists dotted
   # columns after the stored ones (see FEEDBACK.md).
   info.tags: { type: string, label: Tags }

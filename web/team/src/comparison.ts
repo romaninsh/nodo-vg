@@ -10,7 +10,7 @@ export const COMPARISON: Row[] = [
   {
     area: "Database",
     odoo: "Postgres schema created and migrated by Odoo",
-    nodo: "That same database and schema. nodo adds no tables; it adds a trigger per table that announces changes, and, for now, an id column on the tag link table",
+    nodo: "That same database and schema. nodo adds no tables or columns; it adds a trigger per table that announces changes",
     mark: "same",
   },
   {
@@ -70,8 +70,8 @@ export const COMPARISON: Row[] = [
   {
     area: "Many-to-many links",
     odoo: "Link tables written by the ORM",
-    nodo: "Tags are written straight to Odoo's link table. Until Vantage can insert into a table keyed by the pair, that table has an extra id column nodo added",
-    mark: "partly",
+    nodo: "Tags are written straight to Odoo's link table, keyed by the pair as Odoo keys it",
+    mark: "same",
   },
   {
     area: "Translations",

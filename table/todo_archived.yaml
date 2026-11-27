@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# My archived to-dos. Read a page at a time, newest first; never sent whole.
+# Columns are todo_view's that a list shows, declared again: the API's schema lists only
+# declared columns.
+datasource: odoo
+title: Archived to-do
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Title, flags: [title, searchable] }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  date_deadline: { type: timestamp, label: Deadline, time_precision: minutes }
+  state: { type: string, label: Status }
+  active: { type: bool, label: Active }
+  project_id: { type: int, flags: [hidden] }
+  tags: { type: string, label: Tags }
+  tag_ids: { type: string, label: Tag ids }
+  assignees: { type: string, label: Assigned to }
+  assignee_ids: { type: string, label: Assignee ids }
+  due: { type: string, label: Due, enum: [overdue, today, soon, later] }
+  write_date: { type: timestamp, label: Last updated }
+postgres:
+  listen: [project_task, project_task_user_rel, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
+  base: todo_view
+  rhai: |
+    base.where(sql::expr("active IS FALSE"))

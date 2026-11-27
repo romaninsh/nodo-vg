@@ -16,7 +16,7 @@ body: |
   let links = table("todo").where("id", id).ref("tags");
   let has = [];
   for l in links.list() {
-    if wanted.contains(l.project_tags_id) { has.push(l.project_tags_id); } else { links.delete(l.v_id); }
+    if wanted.contains(l.project_tags_id) { has.push(l.project_tags_id); } else { links.delete(l.id); }
   }
   for g in wanted { if !has.contains(g) { links.insert(#{ project_tags_id: g }); } }
   #{ id: id, tags: wanted.len() }

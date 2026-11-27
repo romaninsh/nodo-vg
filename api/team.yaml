@@ -4,18 +4,35 @@
 title: nodo for the team
 description: To-do for the team, signed in with Odoo logins.
 entities:
+  # My to-dos that aren't archived, sent whole at connect and kept current: the list.
   - name: todos
-    observe: todo_view
+    observe: todo_open
     read_only: true
     params:
       columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date, open_for]
-      filter: [name, state, active, priority, due, open_for]
+      filter: [name, state, priority, due, open_for]
       default_sort: date_deadline
-    # A computed view: it listens to the Odoo tables it reads (table/todo_view.yaml), so
-    # changes from nodo and Odoo arrive as they happen.
+    # Computed views listen to the Odoo tables they read, so changes from nodo and Odoo
+    # arrive as they happen.
     api: { load: instant }
+  # My archived to-dos: usually most of them, so read only when asked, a page at a time.
+  - name: archived
+    observe: todo_archived
+    read_only: true
+    params:
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, write_date]
+      filter: [name]
+      default_sort: write_date
+    api: { load: lazy, collection_limit: 200 }
+  # One to-do by id, archived or not: the to-do page. No lists.
+  - name: todo
+    observe: todo_view
+    read_only: true
+    params:
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, notes, summary, write_date]
+    api: { list: false }
   - name: cards
-    observe: todo_user
+    observe: card
     read_only: true
     params:
       columns: [task_id, stage_id, task.name, task.priority, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
