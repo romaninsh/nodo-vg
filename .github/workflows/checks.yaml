@@ -134,7 +134,6 @@ jobs:
   # web/team/e2e/stack.sh. Playwright signs in as Marc Demo and changes his to-dos.
   e2e:
     runs-on: ubuntu-24.04
-    # Measured: 4 min with Odoo installed from scratch, 1.5 min from the cached seed.
     timeout-minutes: 8
     permissions:
       contents: read
@@ -159,31 +158,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      # Odoo's install with demo data (seed/install.sh, as the seed image) takes minutes, so its
-      # dump is cached until seed/ changes.
-      - name: Restore the seed
-        id: seed
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/seed
-          key: nodo-seed-${{ hashFiles('seed/**') }}
-      - name: Install Odoo with demo data
-        if: steps.seed.outputs.cache-hit != 'true'
-        env:
-          DB_PORT: "5434"
-        run: ../../seed/install.sh "$RUNNER_TEMP/seed"
-      - name: Save the seed
-        if: steps.seed.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/seed
-          key: ${{ steps.seed.outputs.cache-primary-key }}
-      # Into Odoo's usual `odoo`, the database the datasources read, with this PR's NOTIFY triggers.
+      # The committed master seed (seed/master, rebuilt by hand with seed/refresh.sh) into Odoo's
+      # usual `odoo`, the database the datasources read, with this PR's NOTIFY triggers. No Odoo
+      # install in CI.
       - name: Load the seed
         run: |
-          pg() { docker run --rm --network host -e PGPASSWORD=odoo -v "$RUNNER_TEMP/seed:/seed:ro" \
+          pg() { docker run --rm --network host -e PGPASSWORD=odoo \
             -v "$GITHUB_WORKSPACE/seed:/src:ro" postgres:17 "$@"; }
-          pg pg_restore -h 127.0.0.1 -p 5434 -U odoo -d odoo --exit-on-error /seed/nodo.dump
+          pg pg_restore -h 127.0.0.1 -p 5434 -U odoo -d odoo --exit-on-error /src/master/nodo.dump
           pg psql -h 127.0.0.1 -p 5434 -U odoo -d odoo -v ON_ERROR_STOP=1 -q -f /src/notify.sql
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -192,7 +174,54 @@ jobs:
           cache-dependency-path: web/team/package-lock.json
       - run: npm ci
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      # Chromium is cached per lockfile (its Playwright version); only its system packages are
+      # installed on a hit.
+      - name: Restore Playwright's browser
+        id: browsers
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('web/team/package-lock.json') }}
+      - name: Install Playwright's browser
+        run: |
+          if [ "${{ steps.browsers.outputs.cache-hit }}" = true ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Save Playwright's browser
+        if: steps.browsers.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browsers.outputs.cache-primary-key }}
+      # The vantage-server image stack.sh runs, cached as a saved image per tag instead of pulled
+      # from Docker Hub on every run.
+      - name: Server image tag
+        id: server
+        run: echo "image=$(grep -o 'romaninsh/vantage-server:[0-9.]*' e2e/stack.sh | head -1)" >> "$GITHUB_OUTPUT"
+      - name: Restore the server image
+        id: server-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/images
+          key: docker-${{ steps.server.outputs.image }}
+      - name: Load or pull the server image
+        env:
+          IMAGE: ${{ steps.server.outputs.image }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/images"
+          if [ -f "$RUNNER_TEMP/images/server.tar" ]; then
+            docker load -q -i "$RUNNER_TEMP/images/server.tar"
+          else
+            docker pull -q "$IMAGE" && docker save -o "$RUNNER_TEMP/images/server.tar" "$IMAGE"
+          fi
+      - name: Save the server image
+        if: steps.server-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/images
+          key: ${{ steps.server-cache.outputs.cache-primary-key }}
       - name: Start the stack
         env:
           DB_IMAGE: running

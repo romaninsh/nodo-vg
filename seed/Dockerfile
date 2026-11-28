@@ -11,7 +11,8 @@ ENV PGDATA=/pgdata \
 
 COPY nodo.dump /tmp/nodo.dump
 COPY notify.sql /tmp/notify.sql
-COPY filestore /odoo-filestore
+# ADD unpacks the archive: /odoo-filestore/filestore/…
+ADD filestore.tar.gz /odoo-filestore
 
 RUN mkdir -p "$PGDATA" && chown postgres "$PGDATA" \
  && gosu postgres initdb -U odoo --auth-local=trust --auth-host=scram-sha-256 \

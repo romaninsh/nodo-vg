@@ -1,8 +1,9 @@
-# The demo database, rebuilt every night. `build` installs Odoo Community with the apps in
-# seed/modules.txt and their demo data (seed/build.sh) and pushes the Postgres image
-# ghcr.io/romaninsh/nodo-vg-db. `reseed` loads the same data into Cloud SQL (database `nodo` on
-# wow-plan-pg) for the live demo. Odoo dates its demo records from the install day, so the nightly
-# rebuild keeps the demo current, and visitors' edits are wiped like on Odoo's own demo.
+# The demo database, reset every night. `build` packs the committed master seed (seed/master:
+# Odoo Community with the apps in seed/modules.txt and their demo data) into the Postgres image
+# ghcr.io/romaninsh/nodo-vg-db (seed/build.sh, seconds: no Odoo install). `reseed` loads the
+# same data into Cloud SQL (database `nodo` on wow-plan-pg) for the live demo, so visitors' edits
+# are wiped every night like on Odoo's own demo. Demo dates are those of the day the master was
+# made; seed/refresh.sh (by hand) moves them to today.
 # On a pull request that touches the seed, only `build` runs, without pushing.
 # Auth for `reseed`: Workload Identity Federation as github-nodo-vg (vantage-terraform's module
 # "nodo_vg_gcp"); the database URL comes from Secret Manager.
@@ -29,7 +30,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
