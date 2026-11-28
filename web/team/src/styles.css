@@ -179,22 +179,23 @@ svg.lucide { flex: none; }
 .card-menu-panel .menu-item { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; }
 .menu-item.danger { color: var(--danger); }
 @media (hover: none) { .card-menu { opacity: 1; } }
-/* Calendar: a month of to-dos by deadline, Monday first. */
-.cal-title { margin: 0 var(--sp-2); font-size: var(--fs-h6); font-weight: var(--fw-medium); }
-.cal { margin: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
-.cal-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.cal-head { background: var(--bs-gray-100); }
-.cal-weekday { padding: var(--sp-1) var(--sp-2); font-size: var(--fs-sm); color: var(--muted); }
-.cal-day { min-height: 96px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); padding: 2px var(--sp-1); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cal-day:first-child { border-left: 0; }
-.cal-day.other { background: var(--bs-gray-100); color: var(--muted); }
-.cal-day.today .cal-date { background: var(--brand); color: var(--bs-white); border-radius: 50%; }
-.cal-date { align-self: flex-end; font-size: var(--fs-sm); width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
-.cal-todo { border: 0; border-left: 3px solid var(--brand); background: var(--brand-hover); border-radius: 2px; text-align: left; font: inherit; font-size: var(--fs-sm); padding: 1px var(--sp-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.cal-todo.overdue { border-left-color: var(--danger); }
-.cal-todo.done { text-decoration: line-through; opacity: .6; }
-.cal-todo:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-@media (max-width: 640px) { .cal-day { min-height: 64px; } .cal-todo { font-size: 11px; } }
+/* Calendar view: a month of to-dos by deadline, Sunday first. `month-*`, not `cal-*`: the date
+   picker's popover owns those. */
+.month-title { margin: 0 var(--sp-2); font-size: var(--fs-h6); font-weight: var(--fw-medium); }
+.month { margin: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.month-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.month-head { background: var(--bs-gray-100); }
+.month-weekday { padding: var(--sp-1) var(--sp-2); font-size: var(--fs-sm); color: var(--muted); }
+.month-day { min-height: 96px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); padding: 2px var(--sp-1); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.month-day:first-child { border-left: 0; }
+.month-day.other { background: var(--bs-gray-100); color: var(--muted); }
+.month-day.today .month-date { background: var(--brand); color: var(--bs-white); border-radius: 50%; }
+.month-date { align-self: flex-end; font-size: var(--fs-sm); width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+.month-todo { border: 0; border-left: 3px solid var(--brand); background: var(--brand-hover); border-radius: 2px; text-align: left; font: inherit; font-size: var(--fs-sm); padding: 1px var(--sp-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.month-todo.overdue { border-left-color: var(--danger); }
+.month-todo.done { text-decoration: line-through; opacity: .6; }
+.month-todo:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+@media (max-width: 640px) { .month-day { min-height: 64px; } .month-todo { font-size: 11px; } }
 /* The form's pager: "2 / 7" and arrows. */
 .pager { display: inline-flex; align-items: center; gap: var(--sp-1); margin-right: var(--sp-2); }
 /* Chatter under the to-do form. */
