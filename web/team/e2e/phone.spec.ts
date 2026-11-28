@@ -15,9 +15,10 @@ async function signIn(page: Page) {
   await expect(page.locator("article.card").first()).toBeVisible();
 }
 
-// What changes from day to day or per install: deadlines, chatter times, and tags (random demo
-// colours).
-const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group"), page.locator(".tag"), page.locator(".message-date")];
+// What changes from day to day or per install: deadlines, chatter headers (a time today, a date
+// later, so their width changes too; the whole header line keeps the mask one size), and tags
+// (random demo colours).
+const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group"), page.locator(".tag"), page.locator(".message-head")];
 
 test("sign-in page", async ({ page }) => {
   await page.goto("/");
