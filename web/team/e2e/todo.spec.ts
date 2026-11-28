@@ -68,7 +68,9 @@ test("complete a to-do", async ({ page, browser }) => {
   await expect(card(page, name).getByRole("button", { name: "Done" })).toHaveAttribute("aria-pressed", "true");
   await expect(card(page, name)).toHaveClass(/\bdone\b/);
 
+  // A fresh board opens on Odoo's "Open" filter, which leaves done to-dos out; "All" shows it.
   await elsewhere(browser, async (other) => {
+    await other.getByRole("radio", { name: "All" }).or(other.getByRole("button", { name: "All", exact: true })).first().click();
     await expect(card(other, name).getByRole("button", { name: "Done" })).toHaveAttribute("aria-pressed", "true");
   });
 });
