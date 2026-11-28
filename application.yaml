@@ -15,19 +15,21 @@ session:
   table: web_session
   identity: odoo_user                         # Odoo's res_users
   password_schemes: [pbkdf2_sha512, argon2id] # Odoo's passlib hashes
-  # A sign-in ends 8 hours after it began (its row's expires_at, never empty: NOT NULL with a
-  # default); an archived or portal user is signed out at once. Sessions without a row (the
-  # desktop's, an assumed one, an access test's or an MCP view's) have no expiry to check.
+  # A sign-in ends 8 hours after it began (its row's expires_at); an archived or portal user is
+  # signed out at once. Fails closed: a session with no expiry is refused, so sessions without a
+  # row (the desktop's below, an access test's) state theirs in `expires_at`.
   valid: >-
     (identity == () || (identity.active == true && identity.share != true))
-    && (session.assumed || session.expires_at == () || session.expires_at > now())
+    && (session.assumed || session.expires_at > now())
   fields:
     uid: {}
     name: {}
     login: {}
     lang: {}                                  # "de_DE": the person's Odoo language (res_partner.lang)
+    expires_at: {}                            # when the sign-in ends (RFC 3339 text)
   signed_out: [sign_in]
-  desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin", lang: "en_US" }'
+  # The desktop is the admin's own machine: its session doesn't end.
+  desktop: '#{ uid: 2, name: "Mitchell Admin", login: "admin", lang: "en_US", expires_at: "9999-12-31T23:59:59Z" }'
 
 # The local Odoo container (datasource/odoo.yaml). Access tests run on it, reverting every write.
 profiles:

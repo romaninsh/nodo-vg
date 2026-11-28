@@ -1,6 +1,6 @@
 # Odoo's demo people, with the session fields sign-in gives them (action/sign_in.yaml), language
 # included: a `from:` identity carries only the link to the person, and the column and tag names
-# need `lang`.
+# need `lang`. `expires_at` stands in for the row's expiry, which `session.valid` requires.
 people:
-  marc:   { fields: { uid: 5, name: Marc Demo, login: demo, lang: en_US } }
-  monica: { fields: { uid: 6, name: Monica Light, login: light, lang: en_US } }
+  marc:   { fields: { uid: 5, name: Marc Demo, login: demo, lang: en_US, expires_at: "2099-01-01T00:00:00Z" } }
+  monica: { fields: { uid: 6, name: Monica Light, login: light, lang: en_US, expires_at: "2099-01-01T00:00:00Z" } }
