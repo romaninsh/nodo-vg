@@ -1,0 +1,184 @@
+# Which code serves each section of docs/todo.md's feature inventory: nodo's here, Odoo's in
+# docs/parity-odoo-map.yaml (same sections). scripts/parity.py reads both and docs/todo.md and
+# writes docs/parity.md and
+# web/team/src/parity.ts. CI fails when either is stale, when a nodo source file is in no
+# section, or when a status in todo.md is not one of done / partly / not yet / won't.
+#
+# A file that serves several sections is split by `share` (default 1). Shares are estimates from
+# reading the code: in nodo, from where each component starts and ends; in Odoo, from the methods,
+# views and templates To-do uses. Odoo's line counts are in docs/parity-odoo.json, measured from
+# the odoo:20.0 image (`scripts/parity.py --measure-odoo`); nodo's are counted at each run.
+# Both sides count every line of a file, as scripts/stats.py does.
+#
+# Odoo counts only app code To-do uses: the project_todo addon, the parts of project and mail it
+# relies on. Not counted on either side: the frameworks (Odoo's ORM and web client; Vantage).
+
+sections:
+  Board:
+    nodo:
+      backend:
+        - { file: page/board.yaml }
+        - { file: table/card.yaml }
+        - { file: action/todo_move.yaml }
+        - { file: action/todo_quick_add.yaml }
+        - { file: action/todo_set_color.yaml }
+        - { file: action/todo_set_priority.yaml, share: 0.4 }
+        - { file: action/todo_toggle_done.yaml, share: 0.4 }
+        - { file: lib/todo.rhai, share: 0.22, why: keywords() for quick add }
+      frontend:
+        - { file: web/team/src/pages/Board.tsx, share: 0.84, why: board, columns, cards, drag, quick add }
+        - { file: web/team/src/ui/Priority.tsx, share: 0.34 }
+        - { file: web/team/src/ui/DoneCheck.tsx, share: 0.34 }
+        - { file: web/team/src/styles.css, share: 0.2, why: kanban and card rules }
+  List:
+    nodo:
+      backend:
+        - { file: page/todos.yaml }
+        - { file: table/todo_open.yaml }
+        - { file: action/todo_set_priority.yaml, share: 0.3 }
+        - { file: action/todo_toggle_done.yaml, share: 0.3 }
+      frontend:
+        - { file: web/team/src/pages/TodoList.tsx, share: 0.7, why: rows and groups }
+        - { file: web/team/src/ui/Priority.tsx, share: 0.33 }
+        - { file: web/team/src/ui/DoneCheck.tsx, share: 0.33 }
+        - { file: web/team/src/styles.css, share: 0.05, why: list and group rules }
+  Form:
+    nodo:
+      backend:
+        - { file: page/todo.yaml }
+        - { file: table/todo.yaml }
+        - { file: table/stage_bar.yaml }
+        - { file: action/todo_create.yaml }
+        - { file: action/todo_save.yaml }
+        - { file: action/todo_edit_form.yaml }
+        - { file: action/todo_new_form.yaml }
+        - { file: action/todo_set_priority.yaml, share: 0.3 }
+        - { file: action/todo_toggle_done.yaml, share: 0.3 }
+      frontend:
+        - { file: web/team/src/pages/TodoForm.tsx, share: 0.52, why: editor, stage bar, pager }
+        - { file: web/team/src/ui/Priority.tsx, share: 0.33 }
+        - { file: web/team/src/ui/DoneCheck.tsx, share: 0.33 }
+        - { file: web/team/src/ui/DateTimePicker.tsx }
+        - { file: web/team/src/styles.css, share: 0.26, why: sheet, stage bar, pickers, date picker }
+  Search and filters:
+    nodo:
+      backend:
+        - { file: table/todo_archived.yaml }
+      frontend:
+        - { file: web/team/src/pages/TodoList.tsx, share: 0.3, why: filter chips and group-by }
+  Stages:
+    nodo:
+      backend:
+        - { file: table/stage.yaml }
+        - { file: table/stage_names.yaml }
+        - { file: table/stage_open.yaml }
+        - { file: action/stage_create.yaml }
+        - { file: action/stage_rename.yaml }
+        - { file: action/stage_delete.yaml }
+        - { file: action/stage_fold.yaml }
+        - { file: action/stage_reorder.yaml }
+        - { file: action/stage_defaults.yaml }
+      frontend:
+        - { file: web/team/src/pages/Board.tsx, share: 0.16, why: add, rename and delete a column }
+        - { file: web/team/src/styles.css, share: 0.03, why: column management rules }
+  Tags:
+    nodo:
+      backend:
+        - { file: table/tag.yaml }
+        - { file: table/todo_tag.yaml }
+        - { file: action/tag_create.yaml }
+        - { file: action/tag_set_color.yaml }
+        - { file: action/todo_set_tags.yaml }
+        - { file: action/todo_tags_form.yaml }
+      frontend:
+        - { file: web/team/src/pages/TodoForm.tsx, share: 0.09, why: TagPicker, TagColour }
+        - { file: web/team/src/ui/MultiPicker.tsx, share: 0.5 }
+        - { file: web/team/src/components.tsx, share: 0.5, why: TagPills }
+        - { file: web/team/src/styles.css, share: 0.03, why: chips and swatches }
+  Assignees:
+    nodo:
+      backend:
+        - { file: table/todo_user.yaml }
+        - { file: table/person.yaml }
+        - { file: table/odoo_user.yaml }
+        - { file: table/web_session.yaml }
+        - { file: datasource/odoo_auth.yaml }
+        - { file: datasource/sessions.yaml }
+        - { file: action/todo_set_assignees.yaml }
+        - { file: action/todo_assign_form.yaml }
+        - { file: action/sign_in.yaml }
+        - { file: action/sign_out.yaml }
+        - { file: action/whoami.yaml }
+        - { file: action/switch_person.yaml }
+        - { file: action/switch_person_form.yaml }
+        - { file: action/restore_identity.yaml }
+      frontend:
+        - { file: web/team/src/pages/Login.tsx }
+        - { file: web/team/src/pages/TodoForm.tsx, share: 0.02, why: PeoplePicker }
+        - { file: web/team/src/ui/MultiPicker.tsx, share: 0.5 }
+        - { file: web/team/src/ui/Avatars.tsx }
+  Activities and chatter:
+    nodo:
+      backend:
+        - { file: table/todo_activity.yaml }
+        - { file: table/activity.yaml }
+        - { file: table/activity_write.yaml }
+        - { file: table/activity_type.yaml }
+        - { file: table/model_ref.yaml }
+        - { file: table/todo_message.yaml }
+        - { file: table/message.yaml }
+        - { file: table/mail_subtype.yaml }
+        - { file: table/todo_follower.yaml }
+        - { file: table/follower.yaml }
+        - { file: table/follower_subtype.yaml }
+        - { file: action/todo_schedule_activity.yaml }
+        - { file: action/todo_activity_done.yaml }
+        - { file: action/todo_activity_cancel.yaml }
+        - { file: action/todo_log_note.yaml }
+        - { file: action/todo_follow.yaml }
+        - { file: action/todo_unfollow.yaml }
+        - { file: lib/todo.rhai, share: 0.46, why: change history (tracking messages) }
+      frontend:
+        - { file: web/team/src/pages/TodoForm.tsx, share: 0.36, why: Followers, Activities, Chatter }
+        - { file: web/team/src/styles.css, share: 0.07, why: chatter and activity rules }
+  Other:
+    nodo:
+      backend:
+        - { file: action/todo_archive.yaml }
+        - { file: action/todo_duplicate.yaml }
+        - { file: action/todo_delete.yaml }
+      frontend:
+        - { file: web/team/src/pages/Calendar.tsx }
+        - { file: web/team/src/styles.css, share: 0.04, why: month view rules }
+
+# Code every section relies on: the app's wiring, not one feature.
+shared:
+  nodo:
+    backend:
+      - { file: application.yaml }
+      - { file: datasource/odoo.yaml }
+      - { file: api/team.yaml }
+      - { file: table/todo_view.yaml }
+      - { file: layout/nodo.yaml }
+      - { file: menu/left.yaml }
+      - { file: lib/todo.rhai, share: 0.32, why: deadline(), assigned(), ids() }
+    frontend:
+      - { file: web/team/index.html }
+      - { file: web/team/src/main.tsx }
+      - { file: web/team/src/App.tsx }
+      - { file: web/team/src/lib.ts }
+      - { file: web/team/src/pending.ts }
+      - { file: web/team/src/settings.ts }
+      - { file: web/team/src/components.tsx, share: 0.5, why: ViewSwitcher }
+      - { file: web/team/src/ui/Toast.tsx }
+      - { file: web/team/src/ui/Hint.tsx }
+      - { file: web/team/src/ui/index.ts }
+      - { file: web/team/src/styles.css, share: 0.32, why: base, top bar, control panel, popovers }
+
+# nodo files that are not To-do: the About screen.
+not_todo:
+  - web/team/src/Splash.tsx
+  - web/team/src/splash.css
+  - web/team/src/about.ts
+  - web/team/src/comparison.ts
+  - web/team/src/parity.ts

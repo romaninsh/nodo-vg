@@ -38,4 +38,24 @@
 .mark-partly { background: #4a3a10; color: #fcd34d; }
 .mark-different { background: #312e81; color: #c7d2fe; }
 .mark-not-yet { background: #3f1d24; color: #fca5a5; }
+.parity-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.parity-tabs button { background: #181a26; color: #a0a3b5; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+.parity-tabs button:hover { border-color: #818cf899; }
+.parity-tabs button[aria-pressed="true"] { background: #312e81; color: #ecedf2; border-color: #818cf8; }
+.parity-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .parity-body { grid-template-columns: 1fr; gap: 24px; } }
+.parity-big { margin: 0; color: #ecedf2; font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+.parity-label { margin: 4px 0 10px; color: #a5b4fc; font-size: 13px; font-weight: 500; }
+.parity-bar { display: flex; height: 10px; border-radius: 5px; background: #3f1d24; overflow: hidden; }
+.parity-done { background: #22c55e; }
+.parity-partly { background: #f59e0b; }
+.parity-counts { margin: 8px 0 0; font-size: 12.5px; line-height: 1.45; }
+.parity-code { display: grid; gap: 14px; }
+.parity-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 56px; align-items: center; gap: 10px; margin-top: 6px; font-size: 13px; }
+.parity-who { color: #d4d6e0; }
+.parity-track { height: 12px; border-radius: 6px; background: #181a26; overflow: hidden; }
+.parity-track span { display: block; height: 100%; border-radius: 6px; }
+.parity-odoo .parity-track span { background: #71639e; }
+.parity-nodo .parity-track span { background: #818cf8; }
+.parity-n { text-align: right; color: #ecedf2; font-variant-numeric: tabular-nums; }
 .splash-note { margin: 14px 0 0; font-size: 12px; color: #6e7186; }

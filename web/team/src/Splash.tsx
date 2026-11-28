@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowRight, ArrowUpRight } from "lucide-react";
 import { ABOUT } from "./about";
 import { COMPARISON, type Mark } from "./comparison";
+import { PARITY } from "./parity";
 import "./splash.css";
 
 // The first thing a browser session sees: what nodo is, that it is a rewrite on Odoo's own
@@ -41,6 +42,77 @@ const STATS: [string, string, string][] = [
   [String(ABOUT.vantage.features.length), "features added to Vantage", ABOUT.vantage.features.join("; ")],
   [String(ABOUT.vantage.issues), "issues reported to Vantage", "each with a workaround in nodo"],
 ];
+
+// Feature parity per section of docs/todo.md, and the code each side spends on it
+// (src/parity.ts, written by scripts/parity.py). "All" first.
+const SECTIONS = [PARITY.total, ...PARITY.sections];
+const SIDES = [
+  ["backend", "Backend"],
+  ["frontend", "Frontend"],
+] as const;
+
+function Parity() {
+  const [name, setName] = useState<string>(PARITY.total.name);
+  const r = SECTIONS.find((s) => s.name === name) ?? PARITY.total;
+  const scale = Math.max(r.odoo.backend, r.odoo.frontend, r.nodo.backend, r.nodo.frontend, 1);
+  const share = (n: number) => `${(100 * n) / Math.max(r.done + r.partly + r.notYet, 1)}%`;
+  const width = (n: number) => `${Math.max((100 * n) / scale, n ? 1 : 0)}%`;
+  return (
+    <section id="splash-parity" className="splash-compare" aria-labelledby="splash-parity-title">
+      <p className="splash-kicker">Feature parity, section by section</p>
+      <h2 id="splash-parity-title">How much of Odoo's To-do is rebuilt</h2>
+      <div className="parity-tabs" role="group" aria-label="Section">
+        {SECTIONS.map((s) => (
+          <button key={s.name} type="button" aria-pressed={s.name === r.name} onClick={() => setName(s.name)}>
+            {s.name === PARITY.total.name ? "All sections" : s.name}
+          </button>
+        ))}
+      </div>
+      <div className="parity-body">
+        <div>
+          <p className="parity-big">{r.complete}%</p>
+          <p className="parity-label">complete</p>
+          <div className="parity-bar" aria-hidden="true">
+            <span className="parity-done" style={{ width: share(r.done) }} />
+            <span className="parity-partly" style={{ width: share(r.partly) }} />
+          </div>
+          <p className="parity-counts">
+            {r.done} done · {r.partly} partly · {r.notYet} not yet
+            {r.wont ? ` · ${r.wont} won't` : ""}, of {r.features} features; partly counts as half
+          </p>
+        </div>
+        <div className="parity-code">
+          {SIDES.map(([side, label]) => (
+            <div key={side}>
+              <p className="parity-label">{label} lines</p>
+              {(["odoo", "nodo"] as const).map((who) => (
+                <div key={who} className={`parity-row parity-${who}`}>
+                  <span className="parity-who">{who === "odoo" ? "Odoo" : "nodo"}</span>
+                  <span className="parity-track">
+                    <span style={{ width: width(r[who][side]) }} />
+                  </span>
+                  <span className="parity-n">{fmt(r[who][side])}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {r.odooMail > 0 && (
+            <p className="parity-counts">
+              Odoo's lines include {fmt(r.odooMail)} in mail (chatter, followers, activities), which every Odoo app
+              shares.
+            </p>
+          )}
+        </div>
+      </div>
+      <p className="splash-note">
+        Odoo: the code To-do uses in project_todo, project and mail, counted in {PARITY.odooImage} on{" "}
+        {PARITY.odooMeasuredOn}. nodo: Vantage YAML and Rhai, React and CSS. Neither counts its framework. nodo's
+        wiring that every section relies on ({fmt(PARITY.shared.nodo.backend + PARITY.shared.nodo.frontend)} lines)
+        counts only under All sections. docs/parity.md lists every file.
+      </p>
+    </section>
+  );
+}
 
 const MARK: Record<Mark, string> = {
   ahead: "ahead",
@@ -117,7 +189,7 @@ export function Splash() {
             <button
               type="button"
               className="splash-link"
-              onClick={() => document.getElementById("splash-compare")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => document.getElementById("splash-parity")?.scrollIntoView({ behavior: "smooth" })}
             >
               How it compares with Odoo <ArrowDown size={14} aria-hidden="true" />
             </button>
@@ -133,6 +205,8 @@ export function Splash() {
             ))}
           </dl>
         </div>
+
+        <Parity />
 
         <section id="splash-compare" className="splash-compare" aria-labelledby="splash-compare-title">
           <p className="splash-kicker">Architecture, side by side</p>

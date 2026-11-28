@@ -32,6 +32,10 @@ jobs:
           ./actionlint -color
       - name: shellcheck
         run: shellcheck ingress.sh seed/*.sh web/team/e2e/*.sh
+      # docs/parity.md and the About screen's table match docs/todo.md and docs/parity-map.yaml,
+      # every nodo source file is mapped to a section, and every todo.md status is a known one.
+      - name: parity
+        run: /usr/bin/python3 -I scripts/parity.py --check
 
   # The app's scenario tests, headless against in-memory copies of the tables, in the released
   # server image (1.14.7 is the first that loads memory sessions).
