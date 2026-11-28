@@ -1,29 +1,52 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# The board: my assignments (todo_user) of to-dos that aren't archived, with what a card shows.
-# Read-only; moves go through todo_move. Archived to-dos stay out of every board read.
+# The board: my assignments (project_task_user_rel) of to-dos that aren't archived, joined once
+# to the to-do with what a card shows. One query, every value computed once per card: dotted
+# `task.*` columns each became a subquery rebuilding the whole to-do view per card, which made
+# the board's first load take seconds. Read-only; moves go through todo_move.
 datasource: odoo
 title: Card
 id_column: id
 columns:
   id: { type: int, flags: [id] }
-  task_id: { type: int, label: To-do, references: { table: todo_view, kind: has_one, name: task } }
+  task_id: { type: int, label: To-do }
   user_id: { type: int, label: Person }
-  stage_id: { type: int, label: Stage, references: stage }
-  task.name: { type: string, label: Title }
-  task.date_deadline: { type: timestamp, label: Deadline }
-  task.priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
-  task.state: { type: string, label: Status }
-  task.sequence: { type: int, label: Order }
-  task.color: { type: int, label: Colour }
-  task.activity_state: { type: string, label: Activity }
-  task.tags: { type: string, label: Tags }
-  task.tag_ids: { type: string, label: Tag ids }
-  task.assignees: { type: string, label: Assigned to }
-  task.overdue: { type: bool, label: Overdue }
-  task.due: { type: string, label: Due }
-  task.summary: { type: string, label: Summary }
+  stage_id: { type: int, label: Stage }
+  name: { type: string, label: Title }
+  date_deadline: { type: timestamp, label: Deadline }
+  priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
+  state: { type: string, label: Status }
+  sequence: { type: int, label: Order }
+  color: { type: int, label: Colour }
+  activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
+  tag_ids: { type: string, label: Tag ids }
+  assignees: { type: string, label: Assigned to }
+  due: { type: string, label: Due, enum: [overdue, today, soon, later] }
+  summary: { type: string, label: Summary }
+  # Tag names in the reader's language, else English. An `expr:` column (the script below can't
+  # read the session); it runs outside the script's select, where the row is `card`.
+  tags:
+    type: string
+    label: Tags
+    expr: |
+      sql::expr("(SELECT string_agg(n, ', ' ORDER BY n) FROM (SELECT coalesce(g.name->>{}, g.name->>'en_US', '') AS n FROM project_tags_project_task_rel tr JOIN project_tags g ON g.id = tr.project_tags_id WHERE tr.project_task_id = card.task_id) x)", [session.lang])
 postgres:
   listen: [project_task_user_rel, project_task, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner, mail_activity]
-  base: todo_user
   rhai: |
-    base.where(sql::expr("task_id IN (SELECT id FROM project_task WHERE active IS NOT FALSE)"))
+    sql::select().from("project_task_user_rel")
+        .inner_join("project_task", "t", sql::expr("t.id = project_task_user_rel.task_id"))
+        .expression(sql::expr("project_task_user_rel.id").alias("id"))
+        .expression(sql::expr("project_task_user_rel.task_id").alias("task_id"))
+        .expression(sql::expr("project_task_user_rel.user_id").alias("user_id"))
+        .expression(sql::expr("project_task_user_rel.stage_id").alias("stage_id"))
+        .expression(sql::expr("t.name").alias("name"))
+        .expression(sql::expr("t.date_deadline").alias("date_deadline"))
+        .expression(sql::expr("coalesce(t.priority, '0')").alias("priority"))
+        .expression(sql::expr("t.state").alias("state"))
+        .expression(sql::expr("coalesce(t.sequence, 10)").alias("sequence"))
+        .expression(sql::expr("coalesce(t.color, 0)").alias("color"))
+        .expression(sql::expr("(SELECT CASE WHEN min(a.date_deadline) < (now() AT TIME ZONE 'UTC')::date THEN 'overdue' WHEN min(a.date_deadline) = (now() AT TIME ZONE 'UTC')::date THEN 'today' WHEN min(a.date_deadline) IS NOT NULL THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'project.task' AND a.res_id = t.id AND a.active IS NOT FALSE AND a.date_done IS NULL)").alias("activity_state"))
+        .expression(sql::expr("(SELECT string_agg(tr.project_tags_id::text, ',' ORDER BY tr.project_tags_id) FROM project_tags_project_task_rel tr WHERE tr.project_task_id = t.id)").alias("tag_ids"))
+        .expression(sql::expr("(SELECT string_agg(p.name, ', ' ORDER BY p.name) FROM project_task_user_rel ur JOIN res_users u ON u.id = ur.user_id JOIN res_partner p ON p.id = u.partner_id WHERE ur.task_id = t.id)").alias("assignees"))
+        .expression(sql::expr("CASE WHEN t.date_deadline IS NULL OR t.state IN ('1_done', '1_canceled') THEN NULL WHEN t.date_deadline < (now() AT TIME ZONE 'UTC') THEN 'overdue' WHEN t.date_deadline::date = (now() AT TIME ZONE 'UTC')::date THEN 'today' WHEN t.date_deadline < (now() AT TIME ZONE 'UTC') + interval '7 days' THEN 'soon' ELSE 'later' END").alias("due"))
+        .expression(sql::expr("nullif(left(trim(regexp_replace(regexp_replace(replace(replace(coalesce(t.description, ''), '&nbsp;', ' '), '&amp;', '&'), '<[^>]*>', ' ', 'g'), '\\s+', ' ', 'g')), 120), '')").alias("summary"))
+        .where(sql::expr("t.project_id IS NULL AND t.parent_id IS NULL AND t.is_template IS NOT TRUE AND t.active IS NOT FALSE"))

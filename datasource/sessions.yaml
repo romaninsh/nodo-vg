@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=./datasource-schema-1.json
+description: nodo's own sign-ins, in a SQLite file beside nodo (never in Odoo's database), so a restart doesn't sign everyone out. Built by ingress.sh.
+type: sqlite
+url: sqlite:data/sessions.db

@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# One row per web sign-in (sessions/schema.sql). Keyed `web_session`, as `session` is the memory
+# session's name in policies. Only the session built-ins write it:
+# sign_in creates a row, sign_out deletes it, and a row past `expires_at` no longer signs in.
+datasource: sessions
+table: session
+title: Sign-in
+columns:
+  id: { type: string, flags: [id] }
+  uid: { type: int, label: Person, references: odoo_user }
+  name: { type: string, label: Name, flags: [title] }
+  login: { type: string, label: Login }
+  lang: { type: string, label: Language }
+  expires_at: { type: string, label: Ends }

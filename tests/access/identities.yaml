@@ -1,5 +1,6 @@
-# Odoo's demo people, with the session fields sign-in gives them (action/sign_in.yaml).
-# `fields:`, because nodo keeps no session table that a `from:` identity could link.
+# Odoo's demo people, with the session fields sign-in gives them (action/sign_in.yaml), language
+# included: a `from:` identity carries only the link to the person, and the column and tag names
+# need `lang`.
 people:
   marc:   { fields: { uid: 5, name: Marc Demo, login: demo, lang: en_US } }
   monica: { fields: { uid: 6, name: Monica Light, login: light, lang: en_US } }
