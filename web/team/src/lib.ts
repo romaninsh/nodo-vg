@@ -90,3 +90,21 @@ export function toLocalInput(iso: string | null | undefined) {
 export const fromLocalInput = (v: string) => (v ? new Date(v).toISOString().replace(/\.\d{3}Z$/, "Z") : "");
 
 export const isDone = (state: string | null | undefined) => state === "1_done";
+
+// ---- the to-do form's pager (Odoo's "2 / 7" with arrows) ----
+// The board or list a to-do was opened from remembers its order for this tab; the form steps
+// through it.
+const ORDER_KEY = "nodo.order";
+
+export function rememberOrder(ids: string[]) {
+  try { sessionStorage.setItem(ORDER_KEY, JSON.stringify(ids)); } catch { /* storage off: no pager */ }
+}
+
+/** Where `id` sits in the remembered order: 1-based position, total, and its neighbours. */
+export function orderAround(id: string): { pos: number; total: number; prev?: string; next?: string } | null {
+  let ids: string[] = [];
+  try { ids = JSON.parse(sessionStorage.getItem(ORDER_KEY) ?? "[]"); } catch { return null; }
+  const i = ids.indexOf(id);
+  if (i < 0) return null;
+  return { pos: i + 1, total: ids.length, prev: ids[i - 1], next: ids[i + 1] };
+}

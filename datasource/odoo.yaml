@@ -81,6 +81,7 @@ invariants:
       # itself, like the actions above, and its tests run.
       - { type: action, name: todo_set_tags, when: 'session.uid != ()' }
       - { type: action, name: todo_duplicate, when: 'session.uid != ()' }
+      - { type: action, name: todo_set_color, when: 'session.uid != ()' }
       - { type: action, name: todo_log_note, when: 'session.uid != ()' }
       - { type: action, name: todo_follow, when: 'session.uid != ()' }
       - { type: action, name: todo_unfollow, when: 'session.uid != ()' }

@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Colour one of my to-dos' cards (Odoo's card menu → a colour). Args: id, color (0-11, 0 = none).
+# The colour is the to-do's, so everyone on it sees the same, as in Odoo.
+kind: script
+label: Colour
+icon: Palette
+params:
+  id: { type: int }
+  color: { type: int }
+body: |
+  import "todo" as t;
+  let id = parse_int(args.id.to_string());
+  let color = parse_int(args.color.to_string());
+  if color < 0 || color > 11 { fail("Pick one of Odoo's 12 colours"); }
+  if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  table("todo").record(id).set(#{ color: color }).flash();
+  #{ id: id, color: color }

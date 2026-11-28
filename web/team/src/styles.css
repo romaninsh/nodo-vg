@@ -169,6 +169,17 @@ svg.lucide { flex: none; }
 .dialog { padding: var(--sp-3); outline: none; }
 .dialog-title { margin: 0 0 var(--sp-2); font-size: var(--fs-h6); font-weight: var(--fw-medium); }
 .dialog .row { display: flex; gap: var(--sp-1); margin-top: var(--sp-3); }
+/* A card's menu: colours and Delete. */
+.card .top { display: flex; align-items: flex-start; gap: var(--sp-1); }
+.card .top .title { flex: 1; }
+.card-menu { opacity: 0; transition: opacity .1s; }
+.card:hover .card-menu, .card:focus-within .card-menu, .card-menu:has([aria-expanded="true"]) { opacity: 1; }
+.card-menu-panel { padding: var(--sp-1); outline: none; }
+.card-menu-panel .menu-item { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; }
+.menu-item.danger { color: var(--danger); }
+@media (hover: none) { .card-menu { opacity: 1; } }
+/* The form's pager: "2 / 7" and arrows. */
+.pager { display: inline-flex; align-items: center; gap: var(--sp-1); margin-right: var(--sp-2); }
 /* Chatter under the to-do form. */
 .chatter { max-width: 900px; margin: var(--sp-3) auto; padding: 0 var(--sp-3); }
 .chatter-label { display: block; font-weight: var(--fw-medium); margin-bottom: var(--sp-1); }
@@ -196,6 +207,7 @@ svg.lucide { flex: none; }
 .message-text { white-space: pre-wrap; margin-top: 2px; }
 .message.note .message-text { background: var(--bs-gray-100); border-radius: var(--radius-sm); padding: var(--sp-1) var(--sp-2); }
 .message.notice .message-text { color: var(--muted); font-style: italic; }
+.message.change .message-text { color: var(--muted); }
 /* The list grouped by my column: Odoo's group rows with a count. */
 .list tr.group td { background: var(--bs-gray-100); padding: 0; }
 .group-head { display: flex; align-items: center; gap: var(--sp-1); width: 100%; border: 0; background: transparent; font: inherit; font-weight: var(--fw-medium); padding: var(--sp-1) var(--sp-2); cursor: pointer; text-align: left; }

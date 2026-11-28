@@ -13,6 +13,8 @@ columns:
   state: { type: string, label: Status }
   active: { type: bool, label: Active }
   project_id: { type: int, flags: [hidden] }
+  # The card's colour (Odoo's 12, 0 = none), shown as a stripe on its edge.
+  color: { type: int, label: Colour }
   # Odoo orders to-dos by priority, then this, then deadline.
   sequence: { type: int, label: Order }
   # Tag names in the reader's language, else English. An `expr:` column, because the query
@@ -55,6 +57,7 @@ postgres:
         .expression(sql::expr("coalesce(active, true)").alias("active"))
         .field("project_id")
         .expression(sql::expr("coalesce(sequence, 10)").alias("sequence"))
+        .expression(sql::expr("coalesce(color, 0)").alias("color"))
         .expression(sql::expr("(SELECT string_agg(tr.project_tags_id::text, ',' ORDER BY tr.project_tags_id) FROM project_tags_project_task_rel tr WHERE tr.project_task_id = project_task.id)").alias("tag_ids"))
         .expression(sql::expr("(SELECT string_agg(p.name, ', ' ORDER BY p.name) FROM project_task_user_rel ur JOIN res_users u ON u.id = ur.user_id JOIN res_partner p ON p.id = u.partner_id WHERE ur.task_id = project_task.id)").alias("assignees"))
         .expression(sql::expr("(SELECT string_agg(ur.user_id::text, ',' ORDER BY ur.user_id) FROM project_task_user_rel ur WHERE ur.task_id = project_task.id)").alias("assignee_ids"))

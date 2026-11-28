@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import { Input, SearchField, ToggleButton, ToggleButtonGroup, Button } from "react-aria-components";
 import { ChevronRight, Search, Star, X } from "lucide-react";
-import { auth, call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
+import { auth, call, deadlineLabel, fullDate, isDone, rememberOrder, useDb } from "../lib";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, toast, type Level } from "../ui";
 import { setPending, usePending } from "../pending";
@@ -102,6 +102,8 @@ const Rows = observer(({ list, byDeadline, grouped }: {
     ].map((g) => ({ ...g, rows: items.filter((t) => String((t as Todos).my_stage ?? "") === g.key) }))
       .filter((g) => g.rows.length > 0 || g.key !== "")
     : [{ key: "all", name: "", fold: false, rows: items }];
+  // The form's pager steps through the list as shown, group by group.
+  rememberOrder(groups.flatMap((g) => g.rows.map((t) => String(t.id))));
 
   const setPriority = async (id: string, priority: Level) => {
     const out = await call(db.run.todo_set_priority, { id: Number(id), priority });

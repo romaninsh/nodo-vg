@@ -20,6 +20,7 @@ body: |
   }
   let wanted = [me];
   for u in t::ids(args.users) { if !wanted.contains(u) { wanted.push(u); } }
+  let before = table("todo_view").get(id).assignees;
   let have = [];
   for r in table("todo_user").where("task_id", id).list() {
     if wanted.contains(r.user_id) { have.push(r.user_id); } else { table("todo_user").delete(r.id); }
@@ -41,4 +42,12 @@ body: |
     added += 1;
   }
   if added > 0 { table("todo").record(id).set(#{ date_assign: now() }).flash(); }
+  // Odoo's change history: the names before and after, alphabetical, as Odoo lists them.
+  let names = wanted.map(|u| { let x = table("person").get(u); if x == () { "" } else { x.name } }).filter(|n| n != "");
+  names.sort();
+  let after = names.reduce(|a, n| if a == "" { n } else { a + ", " + n }, "");
+  let who = table("person").get(me);
+  let m = t::tracking_message(id, t::tracking_body([[if before == () || before == "" { "None" } else { before }, after, "Assignees"]]),
+    if who == () { () } else { who.partner_id }, table("mail_subtype").get("mt_note")?.subtype_id, me);
+  if m != () { table("message").insert(m); }
   #{ id: id, assignees: wanted.len() }

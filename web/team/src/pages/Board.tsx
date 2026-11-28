@@ -6,12 +6,12 @@ import {
   useSensors, type Announcements, type CollisionDetection, type DragEndEvent, type KeyboardCoordinateGetter, type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
-  Button, Dialog, Form, Heading, Input, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover, SearchField, TextField, ToggleButton,
+  Button, Dialog, DialogTrigger, Form, Heading, Input, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover, SearchField, TextField, ToggleButton,
   ToggleButtonGroup,
 } from "react-aria-components";
 import { AlarmClock, Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Cards, Stages } from "../vantage.gen";
-import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
+import { call, deadlineLabel, fullDate, isDone, rememberOrder, TAG_COLOR_COUNT, tagColor, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, PriorityStar, toast, type Level } from "../ui";
@@ -103,6 +103,8 @@ export const Board = observer(() => {
   // Odoo's board opens with its "Open" filter: done and cancelled to-dos stay out until asked.
   const [show, setShow] = useState<"open" | "all">("open");
   const [text, setText] = useState("");
+  // Each press of New opens the first column's quick add.
+  const [asked, setAsked] = useState(0);
   // To-dos seen open during this visit, which stay on the board when they're closed.
   const seenOpen = useRef(new Set<string>());
   const [dragging, setDragging] = useState<UniqueIdentifier | null>(null);
@@ -155,6 +157,9 @@ export const Board = observer(() => {
     const key = stageOf(c);
     byStage.set(key, [...(byStage.get(key) ?? []), c]);
   }
+  // The form's pager steps through the board column by column, top to bottom.
+  const order = stages.items.flatMap((s) => (byStage.get(String(s.id)) ?? []).map((c) => String(c.task_id)));
+  rememberOrder(order);
   const cardOf = (id: UniqueIdentifier | undefined) => cards.items.find((c) => String(c.task_id) === String(id));
   const stageName = (id: UniqueIdentifier | undefined) => stages.items.find((s) => s.id === String(id))?.name_local ?? "";
   const nameOf = (id: UniqueIdentifier) => cardOf(id)?.["task.name"] ?? "the to-do";
@@ -186,6 +191,8 @@ export const Board = observer(() => {
   return (
     <>
       <div className="cp">
+        {/* Odoo's New on a board: quick add in the first column. */}
+        <Button className="btn btn-primary" onPress={() => setAsked((n) => n + 1)} isDisabled={!first}>New</Button>
         <div className="crumbs">My to-dos</div>
         <SearchField aria-label="Search the board" className="search" value={text} onChange={setText}>
           <Search size={14} aria-hidden="true" />
@@ -216,6 +223,7 @@ export const Board = observer(() => {
               cards={byStage.get(String(s.id)) ?? []}
               error={cards.error}
               inbox={s.id === first}
+              asked={s.id === first ? asked : 0}
               // Odoo moves what's in a deleted column to the one before it; the first column's
               // go to the next one.
               heir={stages.items[i > 0 ? i - 1 : 1]}
@@ -243,11 +251,14 @@ export const Board = observer(() => {
 type ColumnProps = {
   stage: Stages; cards: Cards[]; error?: string | null; inbox: boolean; heir: Stages | undefined;
   onMove?: (step: -1 | 1) => void; first: boolean; last: boolean;
+  /** Bumped by the board's New button: open this column's quick add. */
+  asked: number;
 };
 
-const Column = observer(({ stage, cards, error, inbox, heir, onMove, first, last }: ColumnProps) => {
+const Column = observer(({ stage, cards, error, inbox, heir, onMove, first, last, asked }: ColumnProps) => {
   const db = useDb();
   const [adding, setAdding] = useState(false);
+  useEffect(() => { if (asked > 0) setAdding(true); }, [asked]);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Folded columns take drops too: dropping on "Done" is the quickest way to finish one.
@@ -449,6 +460,47 @@ const Card = observer(({ card }: { card: Cards }) => {
   );
 });
 
+// The menu is portalled, but React still bubbles its events through the card, which must not
+// open or start a drag.
+const stopCard = (e: SyntheticEvent) => e.stopPropagation();
+
+/** Odoo's card menu: the card's colour (Odoo's twelve) and Delete. */
+function CardMenu({ task, name, color }: { task: number; name: string; color: number }) {
+  const db = useDb();
+  const setColor = async (c: number) => {
+    setPending(task, { color: String(c) });
+    const out = await call(db.run.todo_set_color, { id: task, color: c });
+    if (!out.ok) { setPending(task, { color: String(color) }); toast(out.message); }
+  };
+  const remove = async () => {
+    if (!window.confirm(`Delete "${name}"? It's gone for everyone it's assigned to, in Odoo too.`)) return;
+    const out = await call(db.run.todo_delete, { id: task });
+    toast(out.ok ? "Deleted" : out.message);
+  };
+  return (
+    <span className="card-menu" onClick={stopCard} onPointerDown={stopCard} onMouseDown={stopCard} onTouchStart={stopCard} onKeyDown={stopCard}>
+      <DialogTrigger>
+        <Button className="icon-btn" aria-label={`${name}: card menu`}><MoreHorizontal size={14} aria-hidden="true" /></Button>
+        <Popover className="popover" placement="bottom end" offset={4}>
+          <Dialog className="card-menu-panel" aria-label={`${name}: card menu`}>
+            {({ close }) => (
+              <>
+                <div className="swatches">
+                  {Array.from({ length: TAG_COLOR_COUNT }, (_, c) => (
+                    <Button key={c} className={`swatch${color === c ? " on" : ""}`} style={{ background: tagColor(c) }}
+                      aria-label={c === 0 ? "No colour" : `Colour ${c}`} onPress={() => { void setColor(c); close(); }} />
+                  ))}
+                </div>
+                <Button className="menu-item danger" onPress={() => { close(); void remove(); }}>Delete</Button>
+              </>
+            )}
+          </Dialog>
+        </Popover>
+      </DialogTrigger>
+    </span>
+  );
+}
+
 /** A card's face, on the board and under the pointer while it is dragged (`lifted`, no controls). */
 const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
   card: Cards;
@@ -467,6 +519,7 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
     assignees: card["task.assignees"],
     date_deadline: card["task.date_deadline"],
     stage_id: String(card.stage_id ?? ""),
+    color: String(card["task.color"] ?? 0),
   });
   const done = isDone(v.state);
   const due = card["task.due"];
@@ -483,10 +536,13 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
     else setPending(task, { state: done ? "01_in_progress" : "1_done" });
   };
   const cls = `card${done || v.state === "1_canceled" ? " done" : ""}${dimmed ? " dimmed" : ""}${lifted ? " lifted" : ""}`;
+  const color = Number(v.color ?? 0);
   return (
-    <article ref={cardRef} className={cls} aria-label={v.name ?? undefined} {...props}>
+    <article ref={cardRef} className={cls} aria-label={v.name ?? undefined} {...props}
+      style={color ? { borderLeft: `4px solid ${tagColor(color)}` } : undefined}>
       <div className="top">
         <span className="title">{v.name}</span>
+        {!lifted && task != null && <CardMenu task={task} name={v.name ?? ""} color={color} />}
       </div>
       {card["task.summary"] && <div className="summary">{card["task.summary"]}</div>}
       <TagPills tagIds={v.tag_ids} />

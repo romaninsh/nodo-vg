@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=./table-schema-1.json
-# A to-do's chatter as Odoo shows it: notes, messages and Odoo's own notices on the record,
-# newest first, with the author's name. The body is plain text, never Odoo's HTML. Personal
+# A to-do's chatter as Odoo shows it: notes, messages, Odoo's own notices and the change
+# history ("Low priority → High priority (Priority)") on the record, newest first, with the
+# author's name. The body is plain text, never Odoo's HTML. Personal
 # notifications ("you have been assigned") are left out, as Odoo's chatter leaves them out.
 # The `res_id` rule in datasource/odoo.yaml keeps it to to-dos assigned to the reader.
 # Read-only; notes are added with todo_log_note.
@@ -12,7 +13,7 @@ columns:
   res_id: { type: int, label: To-do }
   date: { type: timestamp, label: Date }
   author: { type: string, label: Author }
-  kind: { type: string, label: Kind, enum: [note, message, notice] }
+  kind: { type: string, label: Kind, enum: [note, message, notice, change] }
   text: { type: string, label: Text }
 postgres:
   listen: [mail_message]
@@ -22,6 +23,6 @@ postgres:
         .field("res_id")
         .field("date")
         .expression(sql::expr("(SELECT p.name FROM res_partner p WHERE p.id = mail_message.author_id)").alias("author"))
-        .expression(sql::expr("CASE WHEN message_type = 'notification' THEN 'notice' WHEN is_internal OR subtype_id IN (SELECT res_id FROM ir_model_data WHERE module = 'mail' AND name = 'mt_note') THEN 'note' ELSE 'message' END").alias("kind"))
+        .expression(sql::expr("CASE WHEN message_type = 'tracking' THEN 'change' WHEN message_type = 'notification' THEN 'notice' WHEN is_internal OR subtype_id IN (SELECT res_id FROM ir_model_data WHERE module = 'mail' AND name = 'mt_note') THEN 'note' ELSE 'message' END").alias("kind"))
         .expression(sql::expr("btrim(replace(replace(replace(replace(replace(left(trim(regexp_replace(regexp_replace(coalesce(body, ''), '<(br|/p|/li|/div)[^>]*>', E'\\n', 'gi'), '<[^>]*>', '', 'g')), 4000), '&lt;', '<'), '&gt;', '>'), '&nbsp;', ' '), '&quot;', '\"'), '&amp;', '&'), E' \\n')").alias("text"))
-        .where(sql::expr("model = 'project.task' AND message_type IN ('comment', 'notification')"))
+        .where(sql::expr("model = 'project.task' AND message_type IN ('comment', 'notification', 'tracking')"))
