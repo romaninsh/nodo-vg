@@ -397,7 +397,7 @@ const Chatter = observer(({ id }: { id: number }) => {
             <div>
               <div className="message-head">
                 <strong>{m.author ?? "Someone"}</strong>
-                <span className="muted" title={fullDate(m.date)}>{messageDate(m.date)}</span>
+                <span className="muted message-date" title={fullDate(m.date)}>{messageDate(m.date)}</span>
                 {m.kind === "note" && <span className="badge">Note</span>}
               </div>
               <div className="message-text">{m.text}</div>
