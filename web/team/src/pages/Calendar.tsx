@@ -45,27 +45,27 @@ export const Calendar = observer(() => {
         <button className="btn icon" aria-label="Previous month" onClick={() => step(-1)}><ChevronLeft size={14} aria-hidden="true" /></button>
         <button className="btn" onClick={() => setMonth(new Date(today.getFullYear(), today.getMonth(), 1))}>Today</button>
         <button className="btn icon" aria-label="Next month" onClick={() => step(1)}><ChevronRight size={14} aria-hidden="true" /></button>
-        <h2 className="cal-title" aria-live="polite">{title}</h2>
+        <h2 className="month-title" aria-live="polite">{title}</h2>
         <div className="grow" />
         <ViewSwitcher current="calendar" />
       </div>
       {error && <p className="alert">{error}</p>}
-      <div className="cal" role="grid" aria-label={title}>
-        <div className="cal-row cal-head" role="row">
-          {WEEKDAYS.map((w) => <div key={w} role="columnheader" className="cal-weekday">{w}</div>)}
+      <div className="month" role="grid" aria-label={title}>
+        <div className="month-row month-head" role="row">
+          {WEEKDAYS.map((w) => <div key={w} role="columnheader" className="month-weekday">{w}</div>)}
         </div>
         {Array.from({ length: 6 }, (_, w) => (
-          <div key={w} className="cal-row" role="row">
+          <div key={w} className="month-row" role="row">
             {days.slice(w * 7, w * 7 + 7).map((d) => {
               const key = dayKey(d);
               const todos = byDay.get(key) ?? [];
               const other = d.getMonth() !== month.getMonth();
               return (
                 <div key={key} role="gridcell" aria-label={`${d.toLocaleDateString(undefined, { day: "numeric", month: "long" })}, ${todos.length} to-dos`}
-                  className={`cal-day${other ? " other" : ""}${key === dayKey(today) ? " today" : ""}`}>
-                  <span className="cal-date">{d.getDate()}</span>
+                  className={`month-day${other ? " other" : ""}${key === dayKey(today) ? " today" : ""}`}>
+                  <span className="month-date">{d.getDate()}</span>
                   {todos.map((t) => (
-                    <button key={t.id} className={`cal-todo${isDone(t.state) ? " done" : ""}${t.due === "overdue" ? " overdue" : ""}`}
+                    <button key={t.id} className={`month-todo${isDone(t.state) ? " done" : ""}${t.due === "overdue" ? " overdue" : ""}`}
                       title={t.name ?? ""} onClick={() => navigate(`/todo/${t.id}`)}>
                       {new Date(t.date_deadline!).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} {t.name}
                     </button>
