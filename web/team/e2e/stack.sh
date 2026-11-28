@@ -43,6 +43,9 @@ up() {
   sessions="$(mktemp -d)"
   sh "$ROOT/ingress.sh" "$sessions"
   chmod 777 "$sessions"; chmod 666 "$sessions/sessions.db"
+  # data/ is git-ignored, so a fresh checkout has none; Docker needs it as the mount point
+  # inside the read-only project mount.
+  mkdir -p "$ROOT/data"
   docker run -d --name "$SERVER" --network "$network" \
     -v "$ROOT:/app/project:ro" -v "$sessions:/app/project/data" -v "$ROOT/web/team/dist:/app/web:ro" \
     -e VANTAGE_API=team "$SERVER_IMAGE" --static /app/web > /dev/null
