@@ -11,6 +11,7 @@ and docs/parity-odoo.json (Odoo's line counts). nodo's lines are counted from th
 """
 
 import datetime
+import difflib
 import json
 import os
 import re
@@ -270,7 +271,10 @@ def main():
             except FileNotFoundError:
                 have = None
             if have != text:
-                stale.append(f"{os.path.relpath(path, ROOT)} is stale; run python3 -I scripts/parity.py")
+                rel = os.path.relpath(path, ROOT)
+                diff = difflib.unified_diff((have or "").splitlines(), text.splitlines(), rel, "expected", lineterm="", n=0)
+                print("\n".join(list(diff)[:40]), file=sys.stderr)
+                stale.append(f"{rel} is stale; run python3 -I scripts/parity.py")
         if stale:
             fail(stale)
         print("parity: up to date")

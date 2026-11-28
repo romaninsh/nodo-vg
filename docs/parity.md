@@ -24,8 +24,8 @@ Odoo app shares (chatter, followers, activities); To-do gets them without code o
 | Assignees | 6 | 3 | 1 | 2 | 0 | 58% | 128 | 424 | 435 | 248 | 166 |
 | Activities and chatter | 10 | 3 | 2 | 5 | 0 | 40% | 5,359 | 7,104 | 11,955 | 441 | 199 |
 | Other | 14 | 4 | 5 | 2 | 3 | 59% | 426 | 114 | 0 | 58 | 99 |
-| Shared |  |  |  |  |  |  | 0 | 0 | 0 | 391 | 556 |
-| **All** | **106** | **49** | **30** | **23** | **4** | **63%** | **6,724** | **8,478** | **12,952** | **2,219** | **2,547** |
+| Shared |  |  |  |  |  |  | 0 | 0 | 0 | 393 | 556 |
+| **All** | **106** | **49** | **30** | **23** | **4** | **63%** | **6,724** | **8,478** | **12,952** | **2,221** | **2,547** |
 
 ## Files per section
 
@@ -368,7 +368,7 @@ Odoo app shares (chatter, followers, activities); To-do gets them without code o
 
 | nodo | side | share | lines | counted |
 |---|---|--:|--:|--:|
-| `application.yaml` | backend | 1 | 34 | 34 |
+| `application.yaml` | backend | 1 | 36 | 36 |
 | `datasource/odoo.yaml` | backend | 1 | 90 | 90 |
 | `api/team.yaml` | backend | 1 | 131 | 131 |
 | `table/todo_view.yaml` | backend | 1 | 78 | 78 |

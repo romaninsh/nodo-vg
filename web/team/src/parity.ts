@@ -175,7 +175,7 @@ export const PARITY = {
     },
     "odooMail": 0,
     "nodo": {
-      "backend": 391,
+      "backend": 393,
       "frontend": 556
     }
   },
@@ -193,7 +193,7 @@ export const PARITY = {
     },
     "odooMail": 12952,
     "nodo": {
-      "backend": 2219,
+      "backend": 2221,
       "frontend": 2547
     }
   }
