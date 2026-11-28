@@ -78,7 +78,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Card avatars, shown only when shared with others | photos, only if 2+ people | none | initials, always shown | partly |
 | Card done checkmark, click to mark done | yes | no (Mark as done on the sheet) | checkmark circle, click toggles | partly (desktop) |
 | Done and cancelled cards dimmed | yes | no | dimmed, title struck through | partly (desktop) |
-| Card activity icon (next activity, schedule one) | yes | no | no | not yet |
+| Card activity icon (next activity, schedule one) | yes | no | a clock in Odoo's colours when one is planned; scheduled from the form | partly |
 | Card menu: colour, cover image, delete | yes | no | no | not yet |
 | Column bar of activities (planned, today, late) | yes | no | no | not yet |
 | Done and Cancelled folded, click to look inside | yes | yes | yes | done |
@@ -184,7 +184,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 
 | feature | Odoo | nodo desktop | nodo web | status |
 |---|---|---|---|---|
-| Schedule an activity on a to-do | yes | no | no | not yet |
+| Schedule an activity on a to-do | yes | no | yes: type, due date (the type's delay), summary, who; mark done with feedback, cancel | done (web) |
 | Activity view (to-dos by activity type) | yes | no | no | not yet |
 | Systray Activities with a To-Do group | yes | no | no | not yet |
 | Add a To-Do from anywhere (Alt+Shift+T) with a reminder | yes | no | no | not yet |

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
 import {
@@ -9,7 +9,7 @@ import {
   Button, Dialog, Form, Heading, Input, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover, SearchField, TextField, ToggleButton,
   ToggleButtonGroup,
 } from "react-aria-components";
-import { Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
+import { AlarmClock, Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Cards, Stages } from "../vantage.gen";
 import { call, deadlineLabel, fullDate, isDone, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
@@ -103,6 +103,8 @@ export const Board = observer(() => {
   // Odoo's board opens with its "Open" filter: done and cancelled to-dos stay out until asked.
   const [show, setShow] = useState<"open" | "all">("open");
   const [text, setText] = useState("");
+  // To-dos seen open during this visit, which stay on the board when they're closed.
+  const seenOpen = useRef(new Set<string>());
   const [dragging, setDragging] = useState<UniqueIdentifier | null>(null);
   const sensors = useSensors(
     useSensor(CardMouseSensor, { activationConstraint: { distance: 5 } }),
@@ -126,7 +128,11 @@ export const Board = observer(() => {
   const needle = text.trim().toLowerCase();
   const shown = cards.items.filter((c) => {
     const state = pendingValue(pending, c.task_id, "state") ?? c["task.state"];
-    if (show === "open" && (state === "1_done" || state === "1_canceled")) return false;
+    const closed = state === "1_done" || state === "1_canceled";
+    // Like Odoo's board, a card you mark done stays (dimmed) until you come back: only to-dos
+    // that were already closed when you arrived are left out.
+    if (!closed) seenOpen.current.add(String(c.task_id));
+    if (show === "open" && closed && !seenOpen.current.has(String(c.task_id))) return false;
     return !needle || (c["task.name"] ?? "").toLowerCase().includes(needle);
   });
   // The order of Odoo's To-do board: state (open ones before done and cancelled), priority
@@ -489,6 +495,13 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
         {v.date_deadline && (
           <span className={`deadline${due === "overdue" ? " overdue" : due === "today" ? " today" : ""}`} title={fullDate(v.date_deadline)}>
             <Clock size={12} aria-hidden="true" /> {deadlineLabel(v.date_deadline)}
+          </span>
+        )}
+        {card["task.activity_state"] && (
+          <span className={`activity-clock ${card["task.activity_state"]}`} role="img"
+            aria-label={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}
+            title={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}>
+            <AlarmClock size={14} aria-hidden="true" />
           </span>
         )}
         <Avatars names={v.assignees} />

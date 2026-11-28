@@ -37,11 +37,14 @@ columns:
   notes: { type: string, label: Description }
   summary: { type: string, label: Summary }
   write_date: { type: timestamp, label: Last updated }
+  # Its nearest planned activity, as Odoo colours a card's clock: overdue, today, planned, or
+  # none. Everyone on the to-do sees the same, as in Odoo.
+  activity_state: { type: string, label: Activity, enum: [overdue, today, planned] }
   # Who still has it open, as ",2,7,": not done or cancelled, and not sitting in that person's
   # folded column (Done, Cancelled). "Open" filters on the signed-in person's id in here.
   open_for: { type: string, label: Open for }
 postgres:
-  listen: [project_task, project_task_user_rel, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
+  listen: [project_task, project_task_user_rel, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner, mail_activity]
   rhai: |
     sql::select().from("project_task")
         .field("id")
@@ -60,5 +63,6 @@ postgres:
         .expression(sql::expr("btrim(replace(replace(replace(replace(replace(left(trim(regexp_replace(regexp_replace(coalesce(description, ''), '<(br|/p|/li|/div)[^>]*>', E'\\n', 'gi'), '<[^>]*>', '', 'g')), 2000), '&lt;', '<'), '&gt;', '>'), '&nbsp;', ' '), '&quot;', '\"'), '&amp;', '&'), E' \\n')").alias("notes"))
         .expression(sql::expr("nullif(left(trim(regexp_replace(regexp_replace(replace(replace(coalesce(description, ''), '&nbsp;', ' '), '&amp;', '&'), '<[^>]*>', ' ', 'g'), '\\s+', ' ', 'g')), 120), '')").alias("summary"))
         .field("write_date")
+        .expression(sql::expr("(SELECT CASE WHEN min(a.date_deadline) < (now() AT TIME ZONE 'UTC')::date THEN 'overdue' WHEN min(a.date_deadline) = (now() AT TIME ZONE 'UTC')::date THEN 'today' WHEN min(a.date_deadline) IS NOT NULL THEN 'planned' END FROM mail_activity a WHERE a.res_model = 'project.task' AND a.res_id = project_task.id AND a.active IS NOT FALSE AND a.date_done IS NULL)").alias("activity_state"))
         .expression(sql::expr("CASE WHEN state IN ('1_done', '1_canceled') THEN ',' ELSE ',' || coalesce((SELECT string_agg(ur.user_id::text, ',' ORDER BY ur.user_id) FROM project_task_user_rel ur LEFT JOIN project_task_type s ON s.id = ur.stage_id WHERE ur.task_id = project_task.id AND s.fold IS NOT TRUE), '') || ',' END").alias("open_for"))
         .where(sql::expr("project_id IS NULL AND parent_id IS NULL AND is_template IS NOT TRUE"))

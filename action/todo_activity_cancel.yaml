@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Cancel a planned activity on one of my to-dos (Odoo's "Cancel": the activity is deleted).
+# Args: activity.
+kind: script
+label: Cancel activity
+icon: X
+params:
+  activity: { type: int }
+body: |
+  import "todo" as t;
+  let a = table("todo_activity").get(parse_int(args.activity.to_string()));
+  if a == () || !t::assigned(table("todo_view").get(a.res_id), session.uid) { fail("That activity isn't on one of your to-dos"); }
+  table("activity").delete(a.id);
+  #{ id: a.id }

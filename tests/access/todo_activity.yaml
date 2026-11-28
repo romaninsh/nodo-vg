@@ -1,0 +1,14 @@
+# A to-do's planned activities: the `res_id` rule in datasource/odoo.yaml shows them only on
+# to-dos assigned to the reader. Activity 28 is on one of Marc's to-dos that Monica isn't on.
+app: team
+table: todo_activity
+cases:
+  - name: Marc sees the activities on his to-do
+    as: people.marc
+    record: { id: 28 }
+    read: { visible: true, columns: { id: shown, res_id: shown, type_id: shown, type: shown, icon_kind: shown, summary: shown, note: shown, date_deadline: shown, state: shown, assignee_id: shown, assignee: shown } }
+
+  - name: Monica can't see the activities on Marc's to-do
+    as: people.monica
+    record: { id: 28 }
+    read: { visible: false }

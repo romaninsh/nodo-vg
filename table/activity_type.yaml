@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./table-schema-1.json
+# The activity types a to-do can get (Odoo's mail_activity_type that aren't tied to another
+# app's records): Email, Call, Meeting, To-Do, Document. `delay_count` days is the default due
+# date, as Odoo suggests it.
+datasource: odoo
+title: Activity type
+id_column: id
+columns:
+  id: { type: int, flags: [id] }
+  name: { type: string, label: Type, flags: [title] }
+  delay_count: { type: int, label: Due in days }
+  sequence: { type: int, label: Order }
+postgres:
+  listen: [mail_activity_type]
+  rhai: |
+    sql::select().from("mail_activity_type")
+        .field("id")
+        .expression(sql::expr("name->>'en_US'").alias("name"))
+        .expression(sql::expr("coalesce(delay_count, 0)").alias("delay_count"))
+        .field("sequence")
+        .where(sql::expr("active IS NOT FALSE AND (res_model IS NULL OR res_model = 'project.task')"))

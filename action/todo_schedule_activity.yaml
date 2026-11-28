@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=./action-schema-1.json
+# Schedule an activity on one of my to-dos (Odoo's chatter → Activity). Args: id, type (an
+# activity type id), deadline ("YYYY-MM-DD"; today when left out, and the web form fills in the
+# type's usual delay, as Odoo suggests it), summary,
+# person (who does it, a user id; me when left out).
+kind: script
+label: Schedule activity
+icon: Clock
+params:
+  id: { type: int }
+  type: { type: int }
+  deadline: { type: string, required: false }
+  summary: { type: string, required: false }
+  person: { type: int, required: false }
+body: |
+  import "todo" as t;
+  let me = session.uid;
+  let id = parse_int(args.id.to_string());
+  let v = table("todo_view").get(id);
+  if !t::assigned(v, me) { fail("That to-do isn't yours"); }
+  let kind = table("activity_type").get(parse_int(args.type.to_string()));
+  if kind == () { fail("Pick an activity type"); }
+  let who = if args.person == () { me } else { parse_int(args.person.to_string()) };
+  if table("person").get(who) == () { fail("Unknown person"); }
+  let due = if args.deadline == () || args.deadline == "" { () } else { args.deadline.to_string() };
+  if due == () { due = now().to_string().sub_string(0, 10); }
+  let m = table("model_ref").get("project.task");
+  let aid = table("activity_write").insert(#{
+    res_model_id: m.model_id, res_model: "project.task", res_id: id, res_name: v.name,
+    activity_type_id: kind.id, user_id: who,
+    summary: if args.summary == () || args.summary == "" { () } else { args.summary.to_string() },
+    date_deadline: due, automated: false, active: true,
+    create_uid: me, write_uid: me, create_date: now(), write_date: now(),
+  });
+  #{ id: aid, deadline: due }

@@ -35,7 +35,7 @@ entities:
     observe: card
     read_only: true
     params:
-      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
+      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.activity_state, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
       filter: [task_id, stage_id]
     api: { load: instant }
   - name: stages
@@ -70,6 +70,22 @@ entities:
       filter: [res_id]
       default_sort: name
     api: { load: lazy, collection_limit: 200 }
+  # A to-do's planned activities, asked for by to-do (res_id), soonest first.
+  - name: activities
+    observe: todo_activity
+    read_only: true
+    params:
+      columns: [res_id, type, icon_kind, summary, note, date_deadline, state, assignee_id, assignee]
+      filter: [res_id]
+      default_sort: date_deadline
+    api: { load: lazy, collection_limit: 200 }
+  - name: activity_types
+    observe: activity_type
+    read_only: true
+    params:
+      columns: [name, delay_count, sequence]
+      default_sort: sequence
+    api: { load: instant }
   - name: people
     observe: person
     read_only: true
@@ -96,6 +112,9 @@ actions:
   - todo_log_note
   - todo_follow
   - todo_unfollow
+  - todo_schedule_activity
+  - todo_activity_done
+  - todo_activity_cancel
   - stage_create
   - stage_defaults
   - stage_rename

@@ -35,12 +35,16 @@ invariants:
       # included (hidden by this rule, but they block the delete); the action keeps to the
       # caller's own rows.
       - { type: action, name: stage_delete, when: 'session.uid != ()' }
+      # Activities carry who does them in `user_id`, often someone else; these actions check
+      # the to-do is the caller's first.
+      - { type: action, name: todo_schedule_activity, when: 'session.uid != ()' }
+      - { type: action, name: todo_activity_done, when: 'session.uid != ()' }
   # A to-do's chatter and followers (todo_message, todo_follower): only on to-dos assigned to you. The other tables that
   # point at a record by `res_id` (followers, messages and activities for writing) are reached
   # only from the to-do actions, which check the to-do is yours first.
   res_id:
     script: |
-      if table_name == "todo_message" || table_name == "todo_follower" {
+      if table_name == "todo_message" || table_name == "todo_follower" || table_name == "todo_activity" {
         table.with_condition(sql::expr("res_id IN (SELECT task_id FROM project_task_user_rel WHERE user_id = {})", [session.uid]));
       }
   # To-dos (project_task): tasks with no project, no parent, not a template, that are assigned
@@ -80,3 +84,6 @@ invariants:
       - { type: action, name: todo_log_note, when: 'session.uid != ()' }
       - { type: action, name: todo_follow, when: 'session.uid != ()' }
       - { type: action, name: todo_unfollow, when: 'session.uid != ()' }
+      - { type: action, name: todo_schedule_activity, when: 'session.uid != ()' }
+      - { type: action, name: todo_activity_done, when: 'session.uid != ()' }
+      - { type: action, name: todo_activity_cancel, when: 'session.uid != ()' }

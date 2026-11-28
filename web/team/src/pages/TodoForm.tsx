@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
-import { ArrowLeft, Check, Copy, RotateCcw, Settings, Trash2, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, Check, Copy, RotateCcw, Settings, Trash2, X } from "lucide-react";
 import type { Todo } from "../vantage.gen";
 import { Button, Dialog, DialogTrigger, Heading, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover } from "react-aria-components";
 import { auth, call, fromLocalInput, fullDate, ids, isDone, TAG_COLOR_COUNT, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
@@ -274,6 +274,83 @@ const Followers = observer(({ id }: { id: number }) => {
   );
 });
 
+/** A date `days` from today as "YYYY-MM-DD", in this computer's calendar. */
+const dayFromToday = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/**
+ * Odoo's planned activities on the to-do: each with its due date in Odoo's colours, Mark done
+ * (with optional feedback) and Cancel; a short form schedules a new one.
+ */
+const Activities = observer(({ id }: { id: number }) => {
+  const db = useDb();
+  const planned = useCollection(db.activities.where({ res_id: id }).sort("date_deadline", "asc"));
+  const types = useCollection(db.activity_types.sort("sequence", "asc"));
+  const people = useCollection(db.people.sort("name", "asc"));
+  const me = auth.me();
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [summary, setSummary] = useState("");
+  const [person, setPerson] = useState("");
+  const run = async (p: Promise<Outcome>) => { const out = await p; if (!out.ok) toast(out.message); return out.ok; };
+  // Picking a type suggests its usual due date, as Odoo does.
+  const pickType = (t: string) => {
+    setType(t);
+    const kind = types.items.find((k) => k.id === t);
+    if (kind) setDeadline(dayFromToday(kind.delay_count ?? 0));
+  };
+  const schedule = async () => {
+    const ok = await run(call(db.run.todo_schedule_activity, {
+      id, type: Number(type), deadline, summary, ...(person ? { person: Number(person) } : {}),
+    }));
+    if (ok) { setOpen(false); setSummary(""); setType(""); setPerson(""); }
+  };
+  return (
+    <div className="activities">
+      <span className="chatter-label">Planned activities ({planned.items.length})</span>
+      <ul className="activity-list">
+        {planned.items.map((a) => (
+          <li key={a.id} className="activity">
+            <span className={`activity-clock ${a.state ?? ""}`} aria-hidden="true"><AlarmClock size={14} /></span>
+            <span className={`activity-due ${a.state ?? ""}`}>{a.state === "today" ? "Today" : a.date_deadline}</span>
+            <strong>{a.type}</strong>
+            <span>{a.summary}</span>
+            <span className="muted">for {a.assignee}</span>
+            <span className="grow" />
+            <button className="btn" onClick={() => {
+              const feedback = window.prompt(`Mark "${a.summary ?? a.type}" done. Feedback (optional):`, "");
+              if (feedback !== null) void run(call(db.run.todo_activity_done, { activity: Number(a.id), feedback }));
+            }}>Mark done</button>
+            <button className="btn" onClick={() => void run(call(db.run.todo_activity_cancel, { activity: Number(a.id) }))}>Cancel</button>
+          </li>
+        ))}
+      </ul>
+      {!open ? (
+        <button className="btn" onClick={() => setOpen(true)}><AlarmClock size={14} aria-hidden="true" /> Schedule an activity</button>
+      ) : (
+        <div className="activity-form" role="group" aria-label="Schedule an activity">
+          <select className="input" aria-label="Activity type" value={type} onChange={(e) => pickType(e.target.value)}>
+            <option value="">Type…</option>
+            {types.items.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <input className="input" type="date" aria-label="Due date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          <input className="input" aria-label="Summary" placeholder="Summary" value={summary} onChange={(e) => setSummary(e.target.value)} />
+          <select className="input" aria-label="Assigned to" value={person} onChange={(e) => setPerson(e.target.value)}>
+            <option value="">{me?.name ?? "Me"}</option>
+            {people.items.filter((p) => Number(p.id) !== me?.uid).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button className="btn btn-primary" disabled={!type || !deadline} onClick={() => void schedule()}>Schedule</button>
+          <button className="btn" onClick={() => setOpen(false)}>Discard</button>
+        </div>
+      )}
+    </div>
+  );
+});
+
 /** As Odoo's chatter dates a message: the time today, else the day and time. */
 const messageDate = (iso: string | null | undefined) => {
   if (!iso) return "";
@@ -303,6 +380,7 @@ const Chatter = observer(({ id }: { id: number }) => {
   return (
     <section className="chatter" aria-label="Chatter">
       <Followers id={id} />
+      <Activities id={id} />
       <label className="chatter-label" htmlFor="log-note">Log note</label>
       <textarea id="log-note" className="input" rows={2} placeholder="Log an internal note…" value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -319,7 +397,7 @@ const Chatter = observer(({ id }: { id: number }) => {
             <div>
               <div className="message-head">
                 <strong>{m.author ?? "Someone"}</strong>
-                <span className="muted" title={fullDate(m.date)}>{messageDate(m.date)}</span>
+                <span className="muted message-date" title={fullDate(m.date)}>{messageDate(m.date)}</span>
                 {m.kind === "note" && <span className="badge">Note</span>}
               </div>
               <div className="message-text">{m.text}</div>

@@ -15,7 +15,9 @@ async function signIn(page: Page) {
   await expect(page.locator("article.card").first()).toBeVisible();
 }
 
-const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group"), page.locator(".tag")];
+// What changes from day to day or per install: deadlines, chatter times, and tags (random demo
+// colours).
+const dates = (page: Page) => [page.locator(".deadline"), page.locator(".dt-group"), page.locator(".tag"), page.locator(".message-date")];
 
 test("sign-in page", async ({ page }) => {
   await page.goto("/");

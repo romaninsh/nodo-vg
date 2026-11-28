@@ -14,6 +14,7 @@ columns:
   task.priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"] }
   task.state: { type: string, label: Status }
   task.sequence: { type: int, label: Order }
+  task.activity_state: { type: string, label: Activity }
   task.tags: { type: string, label: Tags }
   task.tag_ids: { type: string, label: Tag ids }
   task.assignees: { type: string, label: Assigned to }
@@ -21,7 +22,7 @@ columns:
   task.due: { type: string, label: Due }
   task.summary: { type: string, label: Summary }
 postgres:
-  listen: [project_task_user_rel, project_task, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner]
+  listen: [project_task_user_rel, project_task, project_tags_project_task_rel, project_tags, project_task_type, res_users, res_partner, mail_activity]
   base: todo_user
   rhai: |
     base.where(sql::expr("task_id IN (SELECT id FROM project_task WHERE active IS NOT FALSE)"))
