@@ -11,7 +11,7 @@ import {
 } from "react-aria-components";
 import { AlarmClock, Check, Clock, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import type { Cards, Stages } from "../vantage.gen";
-import { call, deadlineLabel, fullDate, isDone, rememberOrder, TAG_COLOR_COUNT, tagColor, useDb } from "../lib";
+import { call, deadlineLabel, fromLocalInput, fullDate, isDone, rememberOrder, TAG_COLOR_COUNT, tagColor, useDb } from "../lib";
 import { pendingValue, setPending, usePending, usePendingStore } from "../pending";
 import { TagPills, ViewSwitcher } from "../components";
 import { Avatars, DoneCheck, Priority, PriorityStar, toast, type Level } from "../ui";
@@ -135,7 +135,8 @@ export const Board = observer(() => {
     // that were already closed when you arrived are left out.
     if (!closed) seenOpen.current.add(String(c.task_id));
     if (show === "open" && closed && !seenOpen.current.has(String(c.task_id))) return false;
-    return !needle || (c["task.name"] ?? "").toLowerCase().includes(needle);
+    // The title and tag names, as Odoo's search box matches them.
+    return !needle || `${c["task.name"] ?? ""} ${c["task.tags"] ?? ""}`.toLowerCase().includes(needle);
   });
   // The order of Odoo's To-do board: state (open ones before done and cancelled), priority
   // (Urgent first), the nearest deadline (none last), sequence, then the newest.
@@ -412,25 +413,32 @@ function QuickCreate({ stage, inbox, onClose }: { stage: Stages; inbox: boolean;
   const db = useDb();
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [busy, setBusy] = useState(false);
   const add = async (e: FormEvent | null, edit = false) => {
     e?.preventDefault();
     if (!name.trim()) return;
     setBusy(true);
     // Odoo's keywords work here: "Call Ana #sales @marc !!".
-    const out = await call<{ name: string; stage?: number }, { id: number }>(db.run.todo_quick_add,
-      inbox ? { name: name.trim() } : { name: name.trim(), stage: Number(stage.id) });
+    const args: { name: string; stage?: number; date_deadline?: string } = { name: name.trim() };
+    if (!inbox) args.stage = Number(stage.id);
+    if (deadline) args.date_deadline = fromLocalInput(deadline);
+    const out = await call<typeof args, { id: number }>(db.run.todo_quick_add, args);
     setBusy(false);
     if (!out.ok) { toast(out.message); return; }
     setName("");
+    setDeadline("");
     if (edit) navigate(`/todo/${out.value.id}`);
   };
   return (
     <Form className="quick" onSubmit={(e) => void add(e)}>
       <TextField aria-label={`Title of the new to-do in ${stage.name_local}`} value={name} onChange={setName} autoFocus
         onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}>
-        <Input className="input" placeholder="Title  #tag  @person  !" />
+        <Input className="input" placeholder="e.g. Send invitations #event @Mitchell !" />
       </TextField>
+      {/* Odoo's quick add takes a deadline under the title. */}
+      <input className="input quick-deadline" type="datetime-local" aria-label="Deadline" value={deadline}
+        onChange={(e) => setDeadline(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }} />
       <div className="row">
         <Button type="submit" className="btn btn-primary" isDisabled={busy || !name.trim()}>Add</Button>
         <Button className="btn" isDisabled={busy || !name.trim()} onPress={() => void add(null, true)}>Edit</Button>

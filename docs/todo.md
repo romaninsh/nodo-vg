@@ -84,7 +84,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Done and Cancelled folded, click to look inside | yes | yes | yes | done |
 | Board shows only open to-dos by default | yes (Open filter) | shows all | yes, Open / All chips | done (web) |
 | Quick add on a column: title, Enter adds, box stays open, Edit opens it | yes | no (New dialog only) | yes | partly (desktop) |
-| Quick add takes a deadline | yes | in the New dialog | no | partly |
+| Quick add takes a deadline | yes | in the New dialog | yes, under the title | done (web) |
 | Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | yes, Odoo's rules (a run at the end of the title) | done (web) |
 | New button | quick add in first column | dialog (title, deadline), then opens it | quick add in the first column | done (web) |
 | Search and filters on the board | full search panel | search box | title search, Open / All | partly |
@@ -133,14 +133,14 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | feature | Odoo | nodo desktop | nodo web | status |
 |---|---|---|---|---|
 | Search by title | yes | yes | list only | done |
-| Search by tag | yes | no | no | not yet |
+| Search by tag | yes | no | yes, the search box matches tag names too (board and list) | done (web) |
 | Open, on by default | not done or cancelled | also hides my folded columns (your choice) | same as desktop | done |
-| Closed (done or cancelled) | yes | Done only | Done only | partly |
+| Closed (done or cancelled) | yes | Done only | yes, the list's Closed chip | done (web) |
 | Closed on (date periods) | yes | no | no | not yet |
 | Deadline by period (month, quarter, year) | yes | Overdue chip | Overdue chip | partly |
 | Starred | group by priority | chip (Medium and up) | chip (Medium and up) | done |
 | Archived | custom filter only | chip | chip | done |
-| Group by priority, deadline, tags, any field | yes | no | no | not yet |
+| Group by priority, deadline, tags, any field | yes | no | my column, priority, or none | partly |
 | Custom filter editor | yes | no | no | not yet |
 | Saved searches (Favorites) | yes | no | no | not yet |
 | Activity filters (mine, late, today, future) | yes, from the systray | no | no | not yet |
@@ -203,7 +203,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Duplicate | yes | no | yes, ⚙ menu; the description keeps its text, not its formatting | done (web) |
 | Delete | yes | no | yes, ⚙ menu after asking; followers, messages and activities go too | done (web) |
 | Convert to a project task | yes | no | no | won't (nodo has no Project app) |
-| Calendar by deadline | yes | no | no | not yet |
+| Calendar by deadline | yes | no | a month view of open to-dos, Sunday first; no week or day view, no drag to reschedule | partly |
 | Welcome to-do for each new user | yes | shows existing ones | shows existing ones | not yet |
 | Create with no title ("Untitled to-do", or first line of the description) | yes | title required | title required | won't (nodo asks for a title) |
 | Empty board help ("No to-do found. Let's create one!") | yes | note for people with no board | note when no columns | partly |

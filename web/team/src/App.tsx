@@ -6,6 +6,7 @@ import { auth, call, useDb } from "./lib";
 import { Login } from "./pages/Login";
 import { Board } from "./pages/Board";
 import { TodoList } from "./pages/TodoList";
+import { Calendar } from "./pages/Calendar";
 import { Avatar, Toaster } from "./ui";
 
 // The form alone needs the date picker, the comboboxes and the tag group: loaded when first opened.
@@ -40,6 +41,7 @@ export function App() {
         {/* the splash shows over the board at /about (a refresh or a shared link) */}
         <Route path="/about" element={<Board />} />
         <Route path="/list" element={<TodoList />} />
+        <Route path="/calendar" element={<Calendar />} />
         <Route path="/todo/:id" element={<Suspense fallback={<p className="muted pad">Loading…</p>}><TodoForm /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

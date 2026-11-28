@@ -14,6 +14,7 @@ columns:
   active: { type: bool, label: Active }
   project_id: { type: int, flags: [hidden] }
   tags: { type: string, label: Tags }
+  search_text: { type: string, label: Search text }
   tag_ids: { type: string, label: Tag ids }
   assignees: { type: string, label: Assigned to }
   assignee_ids: { type: string, label: Assignee ids }

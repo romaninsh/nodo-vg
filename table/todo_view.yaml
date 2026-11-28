@@ -25,6 +25,13 @@ columns:
     label: Tags
     expr: |
       sql::expr("(SELECT string_agg(n, ', ' ORDER BY n) FROM (SELECT coalesce(g.name->>{}, g.name->>'en_US', '') AS n FROM project_tags_project_task_rel tr JOIN project_tags g ON g.id = tr.project_tags_id WHERE tr.project_task_id = todo_view.id) t)", [session.lang])
+  # What the search box matches, as Odoo's does: the title and the tag names (reader's language).
+  search_text:
+    type: string
+    label: Search text
+    flags: [hidden]
+    expr: |
+      sql::expr("todo_view.name || ' ' || coalesce((SELECT string_agg(coalesce(g.name->>{}, g.name->>'en_US', ''), ' ') FROM project_tags_project_task_rel tr JOIN project_tags g ON g.id = tr.project_tags_id WHERE tr.project_task_id = todo_view.id), '')", [session.lang])
   # The reader's own column for it (their personal stage): what the list groups by.
   my_stage:
     type: int

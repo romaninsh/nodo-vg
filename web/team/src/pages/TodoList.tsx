@@ -9,14 +9,20 @@ import { Avatars, DoneCheck, Priority, toast, type Level } from "../ui";
 import { setPending, usePending } from "../pending";
 import type { Archived, Todos } from "../vantage.gen";
 
-type Filter = "open" | "done" | "starred" | "overdue" | "archived" | "all";
+type Filter = "open" | "closed" | "starred" | "overdue" | "archived" | "all";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "open", label: "Open" },
   { key: "starred", label: "Starred" },
   { key: "overdue", label: "Overdue" },
-  { key: "done", label: "Done" },
+  { key: "closed", label: "Closed" },
   { key: "all", label: "All" },
   { key: "archived", label: "Archived" },
+];
+
+type GroupBy = "stage" | "priority" | "none";
+// Odoo shows priority groups highest first.
+const PRIORITY_GROUPS = [
+  { key: "3", name: "Urgent" }, { key: "2", name: "High" }, { key: "1", name: "Medium" }, { key: "0", name: "Low" },
 ];
 
 /** What a row shows, from either endpoint. */
@@ -27,12 +33,15 @@ export const TodoList = observer(() => {
   const db = useDb();
   const [filter, setFilter] = useState<Filter>("open");
   const [text, setText] = useState("");
+  // Odoo's list groups by my column; its Group By also offers priority, or no grouping.
+  const [groupBy, setGroupBy] = useState<GroupBy>("stage");
 
   // The server filters and sorts. `todos` holds the to-dos that aren't archived and is kept
   // whole in the browser; archived ones are usually most of them, so they are their own
   // endpoint, read only under "Archived", a page at a time, the latest first.
   // `like` matches "contains", ignoring case (the server adds the wildcards).
-  const search = text.trim() ? { name: { like: text.trim() } } : {};
+  // The title and tag names, as Odoo's search box matches them.
+  const search = text.trim() ? { search_text: { like: text.trim() } } : {};
   let body;
   if (filter === "archived") {
     body = <Rows key="archived" list={db.archived.where(search).sort("write_date", "desc")} />;
@@ -41,10 +50,11 @@ export const TodoList = observer(() => {
     // Open, as in Odoo: not done or cancelled, and not sitting in one of my folded columns
     // (Done, Cancelled). `open_for` lists who still has it open, as ",2,7,".
     if (filter === "open") q = q.where({ open_for: { like: `,${auth.me()?.uid ?? 0},` } });
-    if (filter === "done") q = q.where({ state: "1_done" });
+    // Odoo's "Closed": done or cancelled.
+    if (filter === "closed") q = q.where({ state: { in: ["1_done", "1_canceled"] } });
     if (filter === "starred") q = q.where({ priority: { in: ["1", "2", "3"] } });
     if (filter === "overdue") q = q.where({ due: "overdue" });
-    body = <Rows key="open" list={q.sort("date_deadline", "asc")} byDeadline grouped />;
+    body = <Rows key="open" list={q.sort("date_deadline", "asc")} byDeadline groupBy={groupBy} />;
   }
 
   return (
@@ -60,6 +70,13 @@ export const TodoList = observer(() => {
           selectedKeys={[filter]} onSelectionChange={(keys) => { const k = [...keys][0]; if (k) setFilter(k as Filter); }}>
           {FILTERS.map((f) => <ToggleButton key={f.key} id={f.key} className="chip">{f.label}</ToggleButton>)}
         </ToggleButtonGroup>
+        {filter !== "archived" && (
+          <select className="input group-by" aria-label="Group by" value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)}>
+            <option value="stage">Group by: my column</option>
+            <option value="priority">Group by: priority</option>
+            <option value="none">No grouping</option>
+          </select>
+        )}
         <div className="grow" />
         <ViewSwitcher current="list" />
       </div>
@@ -69,12 +86,13 @@ export const TodoList = observer(() => {
 });
 
 /** The table for one collection. Only the mounted one is read from the server. */
-const Rows = observer(({ list, byDeadline, grouped }: {
+const Rows = observer(({ list, byDeadline, groupBy = "none" }: {
   list: Parameters<typeof useCollection<Item>>[0];
   byDeadline?: boolean;
-  /** Grouped by my column (personal stage) with counts, as Odoo's To-do list. */
-  grouped?: boolean;
+  /** Groups with counts, as Odoo's list: by my column (personal stage), by priority, or none. */
+  groupBy?: GroupBy;
 }) => {
+  const grouped = groupBy !== "none";
   const db = useDb();
   const navigate = useNavigate();
   const rows = useCollection(list);
@@ -95,13 +113,16 @@ const Rows = observer(({ list, byDeadline, grouped }: {
       || ((a as Todos).sequence ?? 10) - ((b as Todos).sequence ?? 10)
       || deadline(a, b) || Number(b.id) - Number(a.id))
     : byDeadline ? [...rows.items].sort((a, b) => deadline(a, b) || Number(a.id) - Number(b.id)) : rows.items;
-  const groups = grouped
+  const groups = groupBy === "stage"
     ? [
       ...stages.items.map((s) => ({ key: String(s.id), name: s.name_local ?? "", fold: !!s.fold })),
       { key: "", name: "No column", fold: false },
     ].map((g) => ({ ...g, rows: items.filter((t) => String((t as Todos).my_stage ?? "") === g.key) }))
       .filter((g) => g.rows.length > 0 || g.key !== "")
-    : [{ key: "all", name: "", fold: false, rows: items }];
+    : groupBy === "priority"
+      ? PRIORITY_GROUPS.map((g) => ({ key: `p${g.key}`, name: g.name, fold: false, rows: items.filter((t) => String(t.priority ?? "0") === g.key) }))
+        .filter((g) => g.rows.length > 0)
+      : [{ key: "all", name: "", fold: false, rows: items }];
   // The form's pager steps through the list as shown, group by group.
   rememberOrder(groups.flatMap((g) => g.rows.map((t) => String(t.id))));
 

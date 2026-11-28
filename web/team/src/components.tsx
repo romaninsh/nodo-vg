@@ -1,10 +1,10 @@
 import { Link } from "react-router";
 import { observer, useCollection } from "@vantage-ui/client/react";
-import { LayoutGrid, List } from "lucide-react";
+import { CalendarDays, LayoutGrid, List } from "lucide-react";
 import { ids, tagColor, tagText, useDb } from "./lib";
 
-/** The Board / List toggle at the right of the control panel. */
-export function ViewSwitcher({ current }: { current: "board" | "list" }) {
+/** The Board / List / Calendar toggle at the right of the control panel. */
+export function ViewSwitcher({ current }: { current: "board" | "list" | "calendar" }) {
   return (
     <nav className="switcher" aria-label="View">
       <Link to="/" className={current === "board" ? "active" : ""} aria-current={current === "board" ? "page" : undefined}>
@@ -12,6 +12,9 @@ export function ViewSwitcher({ current }: { current: "board" | "list" }) {
       </Link>
       <Link to="/list" className={current === "list" ? "active" : ""} aria-current={current === "list" ? "page" : undefined}>
         <List size={14} aria-hidden="true" /> List
+      </Link>
+      <Link to="/calendar" className={current === "calendar" ? "active" : ""} aria-current={current === "calendar" ? "page" : undefined}>
+        <CalendarDays size={14} aria-hidden="true" /> Calendar
       </Link>
     </nav>
   );

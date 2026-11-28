@@ -9,8 +9,8 @@ entities:
     observe: todo_open
     read_only: true
     params:
-      columns: [name, priority, date_deadline, state, active, tags, tag_ids, my_stage, sequence, assignees, assignee_ids, due, notes, summary, write_date, open_for]
-      filter: [name, state, priority, due, open_for]
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, my_stage, sequence, assignees, assignee_ids, due, notes, summary, write_date, open_for, search_text]
+      filter: [name, state, priority, due, open_for, search_text]
       default_sort: date_deadline
     # Computed views listen to the Odoo tables they read, so changes from nodo and Odoo
     # arrive as they happen.
@@ -20,8 +20,8 @@ entities:
     observe: todo_archived
     read_only: true
     params:
-      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, write_date]
-      filter: [name]
+      columns: [name, priority, date_deadline, state, active, tags, tag_ids, assignees, assignee_ids, due, write_date, search_text]
+      filter: [name, search_text]
       default_sort: write_date
     api: { load: lazy, collection_limit: 200 }
   # One to-do by id, archived or not: the to-do page. No lists.
