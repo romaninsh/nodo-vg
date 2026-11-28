@@ -31,7 +31,7 @@ jobs:
             | tar -xz actionlint
           ./actionlint -color
       - name: shellcheck
-        run: shellcheck seed/*.sh web/team/e2e/*.sh
+        run: shellcheck ingress.sh seed/*.sh web/team/e2e/*.sh
 
   # The app's scenario tests, headless against in-memory copies of the tables, in the released
   # server image (1.14.7 is the first that loads memory sessions).

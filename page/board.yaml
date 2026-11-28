@@ -29,10 +29,10 @@ body:
     observe: card
     params:
       lane: stage_id
-      title: task.name
-      description: task.summary
-      labels: task.tags
-      due: task.date_deadline
+      title: name
+      description: summary
+      labels: tags
+      due: date_deadline
       add_card: false
       search: true
       on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'
@@ -52,10 +52,10 @@ body:
     observe: card
     params:
       lane: stage_id
-      title: task.name
-      description: task.summary
-      labels: task.tags
-      due: task.date_deadline
+      title: name
+      description: summary
+      labels: tags
+      due: date_deadline
       add_card: false
       search: true
       on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'
@@ -75,10 +75,10 @@ body:
     observe: card
     params:
       lane: stage_id
-      title: task.name
-      description: task.summary
-      labels: task.tags
-      due: task.date_deadline
+      title: name
+      description: summary
+      labels: tags
+      due: date_deadline
       add_card: false
       search: true
       on_open: 'open_in("sheet", "todo", #{ id: row.task_id })'

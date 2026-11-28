@@ -129,20 +129,20 @@ export const Board = observer(() => {
   const stageOf = (c: Cards) => pendingValue(pending, c.task_id, "stage_id") ?? String(c.stage_id ?? "");
   const needle = text.trim().toLowerCase();
   const shown = cards.items.filter((c) => {
-    const state = pendingValue(pending, c.task_id, "state") ?? c["task.state"];
+    const state = pendingValue(pending, c.task_id, "state") ?? c["state"];
     const closed = state === "1_done" || state === "1_canceled";
     // Like Odoo's board, a card you mark done stays (dimmed) until you come back: only to-dos
     // that were already closed when you arrived are left out.
     if (!closed) seenOpen.current.add(String(c.task_id));
     if (show === "open" && closed && !seenOpen.current.has(String(c.task_id))) return false;
     // The title and tag names, as Odoo's search box matches them.
-    return !needle || `${c["task.name"] ?? ""} ${c["task.tags"] ?? ""}`.toLowerCase().includes(needle);
+    return !needle || `${c["name"] ?? ""} ${c["tags"] ?? ""}`.toLowerCase().includes(needle);
   });
   // The order of Odoo's To-do board: state (open ones before done and cancelled), priority
   // (Urgent first), the nearest deadline (none last), sequence, then the newest.
-  const stateOf = (c: Cards) => pendingValue(pending, c.task_id, "state") ?? c["task.state"] ?? "";
-  const rank = (c: Cards) => Number(pendingValue(pending, c.task_id, "priority") ?? c["task.priority"] ?? 0);
-  const due = (c: Cards) => pendingValue(pending, c.task_id, "date_deadline") ?? c["task.date_deadline"] ?? null;
+  const stateOf = (c: Cards) => pendingValue(pending, c.task_id, "state") ?? c["state"] ?? "";
+  const rank = (c: Cards) => Number(pendingValue(pending, c.task_id, "priority") ?? c["priority"] ?? 0);
+  const due = (c: Cards) => pendingValue(pending, c.task_id, "date_deadline") ?? c["date_deadline"] ?? null;
   const byDeadline = (a: Cards, b: Cards) => {
     const x = due(a), y = due(b);
     return x === y ? 0 : x === null ? 1 : y === null ? -1 : x < y ? -1 : 1;
@@ -151,7 +151,7 @@ export const Board = observer(() => {
     (stateOf(a) < stateOf(b) ? -1 : stateOf(a) > stateOf(b) ? 1 : 0)
     || rank(b) - rank(a)
     || byDeadline(a, b)
-    || (a["task.sequence"] ?? 10) - (b["task.sequence"] ?? 10)
+    || (a["sequence"] ?? 10) - (b["sequence"] ?? 10)
     || (b.task_id ?? 0) - (a.task_id ?? 0));
   const byStage = new Map<string, Cards[]>();
   for (const c of shown) {
@@ -163,7 +163,7 @@ export const Board = observer(() => {
   rememberOrder(order);
   const cardOf = (id: UniqueIdentifier | undefined) => cards.items.find((c) => String(c.task_id) === String(id));
   const stageName = (id: UniqueIdentifier | undefined) => stages.items.find((s) => s.id === String(id))?.name_local ?? "";
-  const nameOf = (id: UniqueIdentifier) => cardOf(id)?.["task.name"] ?? "the to-do";
+  const nameOf = (id: UniqueIdentifier) => cardOf(id)?.["name"] ?? "the to-do";
 
   const drop = async ({ active, over }: DragEndEvent) => {
     setDragging(null);
@@ -520,17 +520,17 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
   const db = useDb();
   const task = card.task_id;
   const v = usePending(task, {
-    name: card["task.name"],
-    priority: card["task.priority"],
-    state: card["task.state"],
-    tag_ids: card["task.tag_ids"],
-    assignees: card["task.assignees"],
-    date_deadline: card["task.date_deadline"],
+    name: card["name"],
+    priority: card["priority"],
+    state: card["state"],
+    tag_ids: card["tag_ids"],
+    assignees: card["assignees"],
+    date_deadline: card["date_deadline"],
     stage_id: String(card.stage_id ?? ""),
-    color: String(card["task.color"] ?? 0),
+    color: String(card["color"] ?? 0),
   });
   const done = isDone(v.state);
-  const due = card["task.due"];
+  const due = card["due"];
   const setPriority = async (priority: Level) => {
     if (task == null) return;
     const out = await call(db.run.todo_set_priority, { id: task, priority });
@@ -552,7 +552,7 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
         <span className="title">{v.name}</span>
         {!lifted && task != null && <CardMenu task={task} name={v.name ?? ""} color={color} />}
       </div>
-      {card["task.summary"] && <div className="summary">{card["task.summary"]}</div>}
+      {card["summary"] && <div className="summary">{card["summary"]}</div>}
       <TagPills tagIds={v.tag_ids} />
       <div className="bottom">
         {lifted ? <PriorityStar level={Number(v.priority ?? 0)} /> : <Priority value={v.priority} onChange={(p) => void setPriority(p)} />}
@@ -561,10 +561,10 @@ const CardView = observer(({ card, lifted, dimmed, cardRef, props }: {
             <Clock size={12} aria-hidden="true" /> {deadlineLabel(v.date_deadline)}
           </span>
         )}
-        {card["task.activity_state"] && (
-          <span className={`activity-clock ${card["task.activity_state"]}`} role="img"
-            aria-label={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}
-            title={`Next activity ${card["task.activity_state"] === "planned" ? "planned" : card["task.activity_state"] === "today" ? "due today" : "overdue"}`}>
+        {card["activity_state"] && (
+          <span className={`activity-clock ${card["activity_state"]}`} role="img"
+            aria-label={`Next activity ${card["activity_state"] === "planned" ? "planned" : card["activity_state"] === "today" ? "due today" : "overdue"}`}
+            title={`Next activity ${card["activity_state"] === "planned" ? "planned" : card["activity_state"] === "today" ? "due today" : "overdue"}`}>
             <AlarmClock size={14} aria-hidden="true" />
           </span>
         )}

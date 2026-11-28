@@ -1,4 +1,8 @@
 {
+  "odoo_user": [
+    { "id": 5, "login": "demo", "active": true, "share": false, "partner_id": 6 },
+    { "id": 6, "login": "light", "active": true, "share": false, "partner_id": 7 }
+  ],
   "person": [
     { "id": 5, "name": "Marc Demo", "login": "demo", "partner_id": 6 },
     { "id": 6, "name": "Monica Light", "login": "light", "partner_id": 7 }

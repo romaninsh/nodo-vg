@@ -18,8 +18,9 @@ body: |
   let p = table("person").get(id);
   let name = if p == () { login } else { p.name };
   let lang = if p == () || p.lang == () { "en_US" } else { p.lang };
-  // Memory session fields have no column type: store the id as a number, or the rules compare
-  // Odoo's integer user_id with text.
+  // The id as a number, so the rules compare Odoo's integer user_id with a number.
   let uid = parse_int(id.to_string());
-  let token = session.create(id, #{ uid: uid, name: name, login: login, lang: lang });
+  // A row in nodo's sign-in file (table/web_session.yaml); it ends 8 hours from now (the
+  // column's default) and survives restarts. `uid` links the row to the person, filled from `id`.
+  let token = session.create(id, #{ name: name, login: login, lang: lang });
   #{ token: token, uid: uid, name: name, login: login }

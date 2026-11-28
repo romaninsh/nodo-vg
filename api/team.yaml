@@ -35,7 +35,7 @@ entities:
     observe: card
     read_only: true
     params:
-      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.color, task.activity_state, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
+      columns: [task_id, stage_id, name, priority, sequence, color, activity_state, date_deadline, state, tags, tag_ids, assignees, due, summary]
       filter: [task_id, stage_id]
     api: { load: instant }
   - name: stages

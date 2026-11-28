@@ -10,12 +10,17 @@ home: board
 desktop_full_access: false
 
 session:
-  # No `table:`: web sign-ins live in the server's memory only (nothing stored beside Odoo).
-  # A restart signs everyone out.
+  # Web sign-ins are rows in nodo's own SQLite file (datasource/sessions.yaml, built by
+  # ingress.sh), never in Odoo's database, so app and server restarts keep everyone signed in.
+  table: web_session
   identity: odoo_user                         # Odoo's res_users
   password_schemes: [pbkdf2_sha512, argon2id] # Odoo's passlib hashes
-  idle: 28800                                 # 8 hours unused and the sign-in ends
-  valid: (identity == () || (identity.active == true && identity.share != true))
+  # A sign-in ends 8 hours after it began (its row's expires_at, never empty: NOT NULL with a
+  # default); an archived or portal user is signed out at once. Sessions without a row (the
+  # desktop's, an assumed one, an access test's or an MCP view's) have no expiry to check.
+  valid: >-
+    (identity == () || (identity.active == true && identity.share != true))
+    && (session.assumed || session.expires_at == () || session.expires_at > now())
   fields:
     uid: {}
     name: {}

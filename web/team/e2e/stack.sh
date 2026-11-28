@@ -37,8 +37,14 @@ up() {
     docker exec "$DB" psql -U odoo -p 5434 -d postgres -qc 'ALTER DATABASE nodo RENAME TO odoo'
     network="container:$DB"
   fi
+  # nodo's sign-in file (datasource/sessions.yaml): built fresh by ingress.sh in a temporary
+  # folder, mounted writable over the read-only project's data/. Open to the server's user, which
+  # isn't this one; SQLite also writes its journal next to the file.
+  sessions="$(mktemp -d)"
+  sh "$ROOT/ingress.sh" "$sessions"
+  chmod 777 "$sessions"; chmod 666 "$sessions/sessions.db"
   docker run -d --name "$SERVER" --network "$network" \
-    -v "$ROOT:/app/project:ro" -v "$ROOT/web/team/dist:/app/web:ro" \
+    -v "$ROOT:/app/project:ro" -v "$sessions:/app/project/data" -v "$ROOT/web/team/dist:/app/web:ro" \
     -e VANTAGE_API=team "$SERVER_IMAGE" --static /app/web > /dev/null
   for _ in $(seq 90); do
     curl -fs "http://127.0.0.1:$PORT/v1/ready" > /dev/null && { echo "stack up on http://127.0.0.1:$PORT"; return; }
