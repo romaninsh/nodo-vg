@@ -36,5 +36,16 @@ body: |
     p.priority = level;
   }
   if "state" in args && args.state != () { p.state = args.state; }
+  let before = table("todo").get(id);
   if p.len() > 0 { table("todo").record(id).set(p).flash(); }
+  // Odoo's change history for the fields it tracks on a to-do.
+  let changes = [];
+  if "name" in p { changes.push([before.name, p.name, "Title"]); }
+  if "priority" in p { changes.push([t::priority_label(before.priority), t::priority_label(p.priority), "Priority"]); }
+  if "state" in p { changes.push([t::state_label(before.state), t::state_label(p.state), "State"]); }
+  if "date_deadline" in p { changes.push([t::deadline_label(before.date_deadline), t::deadline_label(p.date_deadline), "Deadline"]); }
+  let who = table("person").get(me);
+  let m = t::tracking_message(id, t::tracking_body(changes), if who == () { () } else { who.partner_id },
+    table("mail_subtype").get("mt_note")?.subtype_id, me);
+  if m != () { table("message").insert(m); }
   #{ id: id }

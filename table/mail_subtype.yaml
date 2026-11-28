@@ -12,4 +12,4 @@ postgres:
     sql::select().from("ir_model_data")
         .expression(sql::expr("name").alias("xmlid"))
         .expression(sql::expr("res_id").alias("subtype_id"))
-        .where(sql::expr("module = 'mail' AND model = 'mail.message.subtype' AND name IN ('mt_note', 'mt_comment', 'mt_activities')"))
+        .where(sql::expr("model = 'mail.message.subtype' AND ((module = 'mail' AND name IN ('mt_note', 'mt_comment', 'mt_activities')) OR (module = 'project' AND name = 'mt_task_done'))"))

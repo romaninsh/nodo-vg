@@ -35,7 +35,7 @@ entities:
     observe: card
     read_only: true
     params:
-      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.activity_state, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
+      columns: [task_id, stage_id, task.name, task.priority, task.sequence, task.color, task.activity_state, task.date_deadline, task.state, task.tags, task.tag_ids, task.assignees, task.due, task.summary]
       filter: [task_id, stage_id]
     api: { load: instant }
   - name: stages
@@ -108,6 +108,7 @@ actions:
   - todo_set_assignees
   - todo_archive
   - todo_duplicate
+  - todo_set_color
   - todo_delete
   - todo_log_note
   - todo_follow

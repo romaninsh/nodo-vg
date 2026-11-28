@@ -18,6 +18,8 @@ export type TodoPatch = Partial<{
   notes: string;
   /** My board column for it, as text (a drop on the board). */
   stage_id: string;
+  /** The card's colour, Odoo's 0-11, as text. */
+  color: string;
 }>;
 
 /**

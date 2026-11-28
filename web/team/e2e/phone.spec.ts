@@ -53,6 +53,10 @@ test("form: fields stack under their labels", async ({ page }) => {
   await page.locator("article.card").first().tap();
   await expect(page.locator("#f-assignees")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Description" })).toBeVisible();
+  // The chatter loads after the form; wait for its followers and first message, or the page's
+  // height (and the full-page shot) depends on timing.
+  await expect(page.locator(".follower-list li").first()).toBeVisible();
+  await expect(page.locator(".message").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   await expect(page).toHaveScreenshot("form.png", { fullPage: true, mask: dates(page) });
 });

@@ -3,6 +3,8 @@ vars:
   monicas: { record: todo, id: 900 }
   marc_cards: { vista: todo_user, where: { user_id: 5 } }
   monicas_tags: { vista: todo_tag, where: { project_task_id: 900 } }
+  # Odoo's change history on Monica's to-do.
+  history: { vista: message, where: { res_id: 900, message_type: tracking } }
 
 scenarios:
   quick-add:
@@ -119,6 +121,10 @@ scenarios:
         as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_schedule_activity, args: { id: 900, type: 2 } }
         fails: "That to-do isn't yours"
+      - step: Nor colour its card
+        as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
+        do: { action: todo_set_color, args: { id: 900, color: 3 } }
+        fails: "That to-do isn't yours"
       - step: Nor add himself as a follower
         as: { app: team, uid: 5, name: Marc Demo, login: demo, lang: en_US }
         do: { action: todo_follow, args: { id: 900, person: 5 } }
@@ -167,6 +173,8 @@ scenarios:
           - monicas.state == "1_done"
           - monicas.date_end != ()
           - monicas.priority == "3"
+          - history.count() == 1
+          - 'history.first().body == "<div>In Progress → <b>Done</b> <i>(State)</i>\n</div>"'
       - step: She opens it again
         do: { action: todo_toggle_done, args: { id: 900 } }
         assert:

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { observer, useCollection, useRecord } from "@vantage-ui/client/react";
-import { AlarmClock, ArrowLeft, Check, Copy, RotateCcw, Settings, Trash2, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, Check, ChevronLeft, ChevronRight, Copy, RotateCcw, Settings, Trash2, X } from "lucide-react";
 import type { Todo } from "../vantage.gen";
 import { Button, Dialog, DialogTrigger, Heading, Menu, MenuItem, MenuTrigger, Modal, ModalOverlay, Popover } from "react-aria-components";
-import { auth, call, fromLocalInput, fullDate, ids, isDone, TAG_COLOR_COUNT, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
+import { auth, call, fromLocalInput, fullDate, ids, isDone, orderAround, TAG_COLOR_COUNT, tagColor, tagText, toLocalInput, useDb, type Outcome } from "../lib";
 import { Avatar, DateTimePicker, MultiPicker, Priority, toast } from "../ui";
 import { setPending, usePending } from "../pending";
 
@@ -99,6 +99,7 @@ const Editor = observer(({ todo }: { todo: Todo }) => {
         <button className="btn btn-primary" disabled={busy || !dirty || !name.trim()} onClick={() => void save()}>Save</button>
         {dirty && <button className="btn" onClick={discard}>Discard</button>}
         <div className="grow" />
+        <Pager id={String(id)} disabled={dirty} />
         <button className="btn" disabled={busy}
           onClick={() => void run(call(db.run.todo_archive, { id }), () => setPending(id, { active: archived }), archived ? "Restored" : "Archived")}>
           {archived ? "Unarchive" : "Archive"}
@@ -273,6 +274,25 @@ const Followers = observer(({ id }: { id: number }) => {
     </div>
   );
 });
+
+/**
+ * Odoo's pager on a form: "2 / 7" and arrows through the board or list this to-do was opened
+ * from. Off while there are unsaved edits, so moving on never drops them.
+ */
+function Pager({ id, disabled }: { id: string; disabled: boolean }) {
+  const navigate = useNavigate();
+  const at = orderAround(id);
+  if (!at || at.total < 2) return null;
+  return (
+    <span className="pager">
+      <span className="muted">{at.pos} / {at.total}</span>
+      <button className="btn icon" aria-label="Previous to-do" disabled={disabled || !at.prev}
+        onClick={() => at.prev && navigate(`/todo/${at.prev}`)}><ChevronLeft size={14} aria-hidden="true" /></button>
+      <button className="btn icon" aria-label="Next to-do" disabled={disabled || !at.next}
+        onClick={() => at.next && navigate(`/todo/${at.next}`)}><ChevronRight size={14} aria-hidden="true" /></button>
+    </span>
+  );
+}
 
 /** A date `days` from today as "YYYY-MM-DD", in this computer's calendar. */
 const dayFromToday = (days: number) => {

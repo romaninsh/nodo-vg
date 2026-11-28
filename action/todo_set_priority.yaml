@@ -16,5 +16,11 @@ body: |
     fail("Priority must be 0 (Low), 1 (Medium), 2 (High) or 3 (Urgent)");
   }
   if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
+  let before = table("todo").get(id).priority;
   table("todo").record(id).set(#{ priority: level }).flash();
+  // Odoo's change history: "Low priority → High priority (Priority)".
+  let p = table("person").get(session.uid);
+  let m = t::tracking_message(id, t::tracking_body([[t::priority_label(before), t::priority_label(level), "Priority"]]),
+    if p == () { () } else { p.partner_id }, table("mail_subtype").get("mt_note")?.subtype_id, session.uid);
+  if m != () { table("message").insert(m); }
   #{ id: id, priority: level }

@@ -9,6 +9,14 @@ body: |
   import "todo" as t;
   let id = parse_int(args.id.to_string());
   if !t::assigned(table("todo_view").get(id), session.uid) { fail("That to-do isn't yours"); }
-  let done = table("todo").get(id).state == "1_done";
-  table("todo").record(id).set(#{ state: if done { "01_in_progress" } else { "1_done" } }).flash();
+  let before = table("todo").get(id).state;
+  let done = before == "1_done";
+  let after = if done { "01_in_progress" } else { "1_done" };
+  table("todo").record(id).set(#{ state: after }).flash();
+  // Odoo's change history: "In Progress → Done (State)", with its Task Done subtype when done.
+  let p = table("person").get(session.uid);
+  let sub = table("mail_subtype").get(if done { "mt_note" } else { "mt_task_done" });
+  let m = t::tracking_message(id, t::tracking_body([[t::state_label(before), t::state_label(after), "State"]]),
+    if p == () { () } else { p.partner_id }, sub?.subtype_id, session.uid);
+  if m != () { table("message").insert(m); }
   #{ id: id, done: !done }

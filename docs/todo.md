@@ -79,14 +79,14 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Card done checkmark, click to mark done | yes | no (Mark as done on the sheet) | checkmark circle, click toggles | partly (desktop) |
 | Done and cancelled cards dimmed | yes | no | dimmed, title struck through | partly (desktop) |
 | Card activity icon (next activity, schedule one) | yes | no | a clock in Odoo's colours when one is planned; scheduled from the form | partly |
-| Card menu: colour, cover image, delete | yes | no | no | not yet |
+| Card menu: colour, cover image, delete | yes | no | colour (a stripe on the card) and delete; no cover image | partly |
 | Column bar of activities (planned, today, late) | yes | no | no | not yet |
 | Done and Cancelled folded, click to look inside | yes | yes | yes | done |
 | Board shows only open to-dos by default | yes (Open filter) | shows all | yes, Open / All chips | done (web) |
 | Quick add on a column: title, Enter adds, box stays open, Edit opens it | yes | no (New dialog only) | yes | partly (desktop) |
 | Quick add takes a deadline | yes | in the New dialog | no | partly |
 | Quick add keywords: #tag, @person, ! / !! / !!! | yes | no | yes, Odoo's rules (a run at the end of the title) | done (web) |
-| New button | quick add in first column | dialog (title, deadline), then opens it | none (per-column + only) | partly |
+| New button | quick add in first column | dialog (title, deadline), then opens it | quick add in the first column | done (web) |
 | Search and filters on the board | full search panel | search box | title search, Open / All | partly |
 
 ### List
@@ -125,7 +125,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Description version history, restore an old one | yes | no | no | not yet |
 | Saving | saves by itself when you leave | dialog Save | Save/Discard for text, the rest at once | partly |
 | Archived mark | red ribbon | "Archived" label | badge | done |
-| Previous / next to-do (2 / 10) | yes | no | no | not yet |
+| Previous / next to-do (2 / 10) | yes | no | yes, through the board or list it was opened from | done (web) |
 | Back to the board | breadcrumb | close the sheet | breadcrumb and Back | done |
 
 ### Search and filters
@@ -190,7 +190,7 @@ as a whole: `partly` when one side lacks it or both have only part of it.
 | Add a To-Do from anywhere (Alt+Shift+T) with a reminder | yes | no | no | not yet |
 | Chatter panel, toggled with D and remembered | yes | no | under the form, always shown; messages as text | partly |
 | Send message, log note | yes | no | log note (internal, notifies nobody); no send message | partly |
-| Change history in the chatter (stage, deadline, people) | yes | no | no | not yet |
+| Change history in the chatter (stage, deadline, people) | yes | no | yes: nodo's changes to title, priority, state, deadline and assignees are written as Odoo writes them, and shown (deadlines in UTC) | done (web) |
 | Followers: see, add, remove | yes | added on create and assign, not shown | yes, in the chatter (internal users to add) | done (web) |
 | Attachments | yes | no | no | not yet |
 | Search messages | yes | no | no | not yet |

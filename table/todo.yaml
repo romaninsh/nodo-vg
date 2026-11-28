@@ -13,6 +13,8 @@ columns:
   priority: { type: string, label: Priority, enum: ["0", "1", "2", "3"], default: "0" }
   state: { type: string, label: Status, enum: [01_in_progress, 02_changes_requested, 03_approved, 04_waiting_normal, 1_done, 1_canceled], default: 01_in_progress }
   active: { type: bool, label: Active, default: true }
+  # The card's colour, Odoo's 12 (0 = none).
+  color: { type: int, label: Colour }
   project_id: { type: int, flags: [hidden] }
   parent_id: { type: int, flags: [hidden] }
   is_template: { type: bool, flags: [hidden] }
