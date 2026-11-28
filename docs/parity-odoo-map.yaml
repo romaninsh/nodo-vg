@@ -1,0 +1,199 @@
+# The Odoo half of docs/parity-map.yaml: which of Odoo 20's files serve each section of
+# docs/todo.md's feature inventory, and what share of each file does. Paths are relative to
+# odoo/addons. Only app code To-do uses: the project_todo addon and the parts of project, mail
+# and mail_tracking it relies on. Not counted: the ORM, the generic web client (kanban, list and
+# calendar views, many2many_tags, priority, statusbar), and project-only features (milestones,
+# dependencies, recurrence, sharing, portal, ratings). mail files are shared by every Odoo app;
+# their shares are the parts a To-do user sees. Shares are estimates from reading the methods,
+# views and templates named in `why`.
+
+Board:
+  backend:
+    - { file: project_todo/views/project_task_views.xml, share: 0.24, why: "todo kanban view, quick create form" }
+    - { file: project/models/project_task.py, share: 0.045, why: "personal stage grouping, quick-add parsing, colour, order" }
+  frontend:
+    - { file: project_todo/static/src/components/todo_done_checkmark/todo_done_checkmark.js, share: 0.4, why: "checkmark on the card" }
+    - { file: project/static/src/views/project_task_kanban/project_task_kanban_view.js, share: 0.6, why: "task kanban wiring" }
+    - { file: project/static/src/views/project_task_kanban/project_task_kanban_renderer.js, share: 0.3, why: "renderer setup" }
+    - { file: project/static/src/views/project_task_kanban/project_task_kanban_model.js, share: 0.15, why: "_webReadGroup" }
+    - { file: project/static/src/components/done_checkmark/task_done_checkmark.scss, share: 0.4, why: "done button styles" }
+    - { file: project/static/src/views/components/project_task_template_dropdown.js, share: 0.1, why: "plain New button" }
+    - { file: mail/static/src/views/web/fields/kanban_activity/kanban_activity.js, share: 1.0, why: "card activity widget" }
+    - { file: mail/static/src/core/web/activity_button.js, share: 0.6, why: "card activity clock" }
+    - { file: mail/static/src/core/web/activity_list_popover.js, share: 0.5, why: "card activity popover" }
+    - { file: mail/static/src/core/web/activity_list_popover.xml, share: 0.5 }
+    - { file: mail/static/src/core/web/activity_list_popover_item.js, share: 0.5 }
+    - { file: mail/static/src/core/web/activity_list_popover_item.xml, share: 0.5 }
+List:
+  backend:
+    - { file: project_todo/views/project_task_views.xml, share: 0.08, why: "todo list view" }
+  frontend:
+    - { file: project_todo/static/src/components/todo_done_checkmark/todo_done_checkmark.js, share: 0.3, why: "checkmark in the row" }
+    - { file: project_todo/static/src/views/todo_list/todo_list_controller.js, share: 1.0, why: "bulk actions on selected rows" }
+    - { file: project_todo/static/src/views/todo_list/todo_list_view.js, share: 1.0 }
+    - { file: project/static/src/components/task_list_renderer.js, share: 1.0, why: "Add a line" }
+    - { file: mail/static/src/views/web/fields/list_activity/list_activity.js, share: 1.0, why: "activities column" }
+    - { file: mail/static/src/views/web/fields/list_activity/list_activity.xml, share: 1.0 }
+    - { file: mail/static/src/core/web/activity_button.js, share: 0.3 }
+    - { file: mail/static/src/core/web/activity_list_popover.js, share: 0.3 }
+    - { file: mail/static/src/core/web/activity_list_popover.xml, share: 0.3 }
+    - { file: mail/static/src/core/web/activity_list_popover_item.js, share: 0.3 }
+    - { file: mail/static/src/core/web/activity_list_popover_item.xml, share: 0.3 }
+Form:
+  backend:
+    - { file: project_todo/views/project_task_views.xml, share: 0.18, why: "todo form view" }
+    - { file: project/models/project_task.py, share: 0.035, why: "title, description, priority, state, deadline fields; description history" }
+  frontend:
+    - { file: project_todo/static/src/components/todo_done_checkmark/todo_done_checkmark.js, share: 0.3, why: "checkmark on the form" }
+    - { file: project_todo/static/src/views/todo_form/todo_form_view.js, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_form/todo_form_controller.js, share: 0.45, why: "version history" }
+    - { file: project_todo/static/src/views/todo_form/todo_form_controller.scss, share: 1.0 }
+    - { file: project_todo/static/src/scss/todo.scss, share: 0.55, why: "title, ribbon, state styles" }
+    - { file: project/static/src/components/project_task_priority_switch_field/project_task_priority_switch_field.js, share: 1.0, why: "priority with Alt+R" }
+Search and filters:
+  backend:
+    - { file: project_todo/views/project_task_views.xml, share: 0.11, why: "todo search view: filters, group-bys" }
+    - { file: project/models/project_task.py, share: 0.008, why: "_search_is_closed" }
+    - { file: mail/models/mail_activity_mixin.py, share: 0.1, why: "activity filter searches" }
+  frontend: []
+Stages:
+  backend:
+    - { file: project/models/project_task_stage_personal.py, share: 1.0, why: "personal stage per task and user" }
+    - { file: project/models/project_task_type.py, share: 0.45, why: "personal stage fields, rules, deletion" }
+    - { file: project/models/res_users.py, share: 0.35, why: "7 default stages for a new user" }
+    - { file: project/models/project_task.py, share: 0.035, why: "personal_stage_* fields and defaults" }
+    - { file: project/views/project_task_type_views.xml, share: 0.25, why: "edit a column" }
+    - { file: project_todo/security/ir.access.csv, share: 0.08 }
+    - { file: project/security/ir.access.csv, share: 0.05 }
+  frontend:
+    - { file: project/static/src/views/project_task_kanban/project_task_kanban_renderer.js, share: 0.3, why: "add a column" }
+    - { file: project/static/src/views/project_task_kanban/project_task_group_config_menu.js, share: 0.4, why: "edit or delete a column" }
+Tags:
+  backend:
+    - { file: project/models/project_tags.py, share: 0.5, why: "tags, default colour, recent tags first, create from name" }
+    - { file: project_todo/security/ir.access.csv, share: 0.08 }
+  frontend: []
+Assignees:
+  backend:
+    - { file: project_todo/security/ir.access.csv, share: 0.7, why: "each person sees their own to-dos" }
+    - { file: project/models/project_task.py, share: 0.03, why: "user_ids, self-assign, assignment notification and followers" }
+    - { file: project/data/mail_template_data.xml, share: 0.13, why: "assignment notification" }
+    - { file: mail/models/res_users.py, share: 0.015, why: "avatar card fields" }
+  frontend:
+    - { file: mail/static/src/views/web/fields/many2many_avatar_user_field/many2many_avatar_user_field.js, share: 0.8, why: "assignee avatars" }
+    - { file: mail/static/src/views/web/fields/many2many_avatar_user_field/many2many_avatar_user_field.xml, share: 0.8 }
+    - { file: mail/static/src/views/web/fields/many2many_avatar_user_field/many2many_avatar_user_field.scss, share: 0.8 }
+    - { file: mail/static/src/views/web/fields/assign_user_command_hook.js, share: 0.5, why: "assign commands" }
+    - { file: mail/static/src/views/web/fields/avatar_autocomplete/avatar_many2x_autocomplete.js, share: 0.8, why: "assignee picker" }
+    - { file: mail/static/src/core/web/avatar_card/avatar_card.js, share: 0.9, why: "person card" }
+    - { file: mail/static/src/core/web/avatar_card/avatar_card.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/avatar_card/avatar_card.scss, share: 0.9 }
+Activities and chatter:
+  backend:
+    - { file: project_todo/models/project_task.py, share: 0.45, why: "systray views, notification groups" }
+    - { file: project_todo/models/res_users.py, share: 0.6, why: "To-Do group in systray Activities" }
+    - { file: project_todo/wizard/mail_activity_todo_create.py, share: 0.95, why: "Add a To-Do (Alt+Shift+T)" }
+    - { file: project_todo/wizard/mail_activity_todo_create.xml, share: 0.95 }
+    - { file: project_todo/views/project_task_views.xml, share: 0.08, why: "activity view" }
+    - { file: project_todo/data/digest_data.xml, share: 1.0 }
+    - { file: project/models/project_task.py, share: 0.03, why: "tracking subtypes, creation message, followers" }
+    - { file: project/data/mail_message_subtype_data.xml, share: 0.2, why: "task subtypes" }
+    - { file: mail/models/mail_thread.py, share: 0.3, why: "tracking, log, message_post, followers API" }
+    - { file: mail/models/mail_message.py, share: 0.3, why: "message reading, edit, delete, access" }
+    - { file: mail/models/mail_activity.py, share: 0.65, why: "activities: state, done with feedback, reschedule" }
+    - { file: mail/models/mail_activity_mixin.py, share: 0.5, why: "activity fields and helpers" }
+    - { file: mail/models/mail_activity_type.py, share: 0.4, why: "type, delay, summary" }
+    - { file: mail/models/mail_followers.py, share: 0.5, why: "followers" }
+    - { file: mail/models/mail_message_subtype.py, share: 0.4, why: "follower subtypes" }
+    - { file: mail/models/mail_track_mixin.py, share: 0.8, why: "change history" }
+    - { file: mail/models/res_users.py, share: 0.12, why: "systray activity groups" }
+    - { file: mail/controllers/thread.py, share: 0.7, why: "messages and followers routes" }
+    - { file: mail/controllers/attachment.py, share: 0.4, why: "attachment routes" }
+    - { file: mail/wizard/mail_activity_schedule.py, share: 0.5, why: "schedule an activity" }
+    - { file: mail/wizard/mail_activity_schedule_views.xml, share: 0.5 }
+    - { file: mail/wizard/mail_followers_edit.py, share: 0.9, why: "add followers" }
+    - { file: mail/wizard/mail_followers_edit_views.xml, share: 0.9 }
+    - { file: mail/views/mail_activity_views.xml, share: 0.18, why: "activity forms" }
+    - { file: mail_tracking/models/mail_tracking_value.py, share: 0.8, why: "change history storage" }
+    - { file: mail_tracking/models/mail_message.py, share: 0.5 }
+    - { file: mail_tracking/models/mail_thread.py, share: 0.4 }
+  frontend:
+    - { file: project_todo/static/src/core/web/activity_menu_patch.js, share: 1.0, why: "Add a To-Do, systray group" }
+    - { file: project_todo/static/src/components/todo_chatter_panel/todo_chatter_panel.js, share: 1.0 }
+    - { file: project_todo/static/src/components/todo_chatter_panel/todo_chatter_panel.xml, share: 1.0 }
+    - { file: project_todo/static/src/components/todo_chatter_panel/todo_chatter_panel.scss, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_form/todo_form_control_panel.js, share: 1.0, why: "chatter toggle, remembered" }
+    - { file: project_todo/static/src/views/todo_form/todo_form_control_panel.xml, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_form/todo_form_renderer.js, share: 0.6 }
+    - { file: project_todo/static/src/views/todo_activity_wizard/todo_activity_wizard_controller.js, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_activity_wizard/todo_activity_wizard_view.js, share: 1.0 }
+    - { file: mail/static/src/chatter/web_portal_project/chatter.js, share: 0.85, why: "chatter" }
+    - { file: mail/static/src/chatter/web_portal_project/chatter.scss, share: 0.85 }
+    - { file: mail/static/src/chatter/web/chatter_patch.js, share: 0.8 }
+    - { file: mail/static/src/chatter/web/chatter.xml, share: 0.8 }
+    - { file: mail/static/src/core/common/thread.js, share: 0.5, why: "message list" }
+    - { file: mail/static/src/core/common/thread.xml, share: 0.6 }
+    - { file: mail/static/src/core/common/thread.scss, share: 0.5 }
+    - { file: mail/static/src/core/common/thread_model.js, share: 0.35 }
+    - { file: mail/static/src/core/common/message.js, share: 0.6, why: "messages with tracking values" }
+    - { file: mail/static/src/core/common/message.xml, share: 0.6 }
+    - { file: mail/static/src/core/common/message.scss, share: 0.5 }
+    - { file: mail/static/src/core/common/message_model.js, share: 0.5 }
+    - { file: mail/static/src/core/common/message_actions.js, share: 0.4 }
+    - { file: mail/static/src/core/common/composer.js, share: 0.45, why: "send message, log note" }
+    - { file: mail/static/src/core/common/composer.xml, share: 0.5 }
+    - { file: mail/static/src/core/common/composer.scss, share: 0.45 }
+    - { file: mail/static/src/core/common/composer_model.js, share: 0.5 }
+    - { file: mail/static/src/core/common/composer_actions.js, share: 0.4 }
+    - { file: mail/static/src/core/common/attachment_list.js, share: 0.6, why: "attachments" }
+    - { file: mail/static/src/core/common/attachment_list.xml, share: 0.6 }
+    - { file: mail/static/src/core/common/attachment_list.scss, share: 0.6 }
+    - { file: mail/static/src/core/common/attachment_model.js, share: 0.5 }
+    - { file: mail/static/src/core/common/attachment_upload_service.js, share: 0.5 }
+    - { file: mail/static/src/core/common/activity_model.js, share: 0.9 }
+    - { file: mail/static/src/core/common/follower_model.js, share: 0.9 }
+    - { file: mail/static/src/core/common/message_search_hook.js, share: 0.8, why: "search messages" }
+    - { file: mail/static/src/core/common/search_message_input.js, share: 0.9 }
+    - { file: mail/static/src/core/web/activity.js, share: 0.9, why: "activity: done, edit, cancel" }
+    - { file: mail/static/src/core/web/activity.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/activity.scss, share: 0.9 }
+    - { file: mail/static/src/core/web/activity_markasdone_popover.js, share: 0.9 }
+    - { file: mail/static/src/core/web/activity_markasdone_popover.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/activity_model_patch.js, share: 0.9 }
+    - { file: mail/static/src/core/web/activity_menu.js, share: 0.8, why: "systray Activities" }
+    - { file: mail/static/src/core/web/activity_menu.xml, share: 0.8 }
+    - { file: mail/static/src/core/web/follower.js, share: 0.9, why: "followers" }
+    - { file: mail/static/src/core/web/follower.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/follower_list.js, share: 0.9 }
+    - { file: mail/static/src/core/web/follower_list.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/follower_subtype_dialog.js, share: 0.9 }
+    - { file: mail/static/src/core/web/follower_subtype_dialog.xml, share: 0.9 }
+    - { file: mail/static/src/core/web/message_patch.js, share: 0.5 }
+    - { file: mail/static/src/core/web/message_patch.xml, share: 0.5 }
+    - { file: mail/static/src/core/web/recipients_input.js, share: 0.5 }
+    - { file: mail/static/src/views/web/activity/activity_controller.js, share: 0.9, why: "activity view" }
+    - { file: mail/static/src/views/web/activity/activity_controller.scss, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_renderer.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_renderer.xml, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_cell.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_cell.xml, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_compiler.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_record.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_arch_parser.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_model.js, share: 0.9 }
+    - { file: mail/static/src/views/web/activity/activity_view.js, share: 0.9 }
+Other:
+  backend:
+    - { file: project_todo/__manifest__.py, share: 1.0 }
+    - { file: project_todo/views/project_todo_menus.xml, share: 1.0 }
+    - { file: project_todo/views/project_task_views.xml, share: 0.22, why: "convert to task, calendar view, empty board help" }
+    - { file: project_todo/models/project_task.py, share: 0.4, why: "untitled to-do on create, convert to task" }
+    - { file: project_todo/models/res_users.py, share: 0.3, why: "welcome to-do" }
+    - { file: project_todo/data/todo_template.xml, share: 1.0, why: "welcome to-do text" }
+    - { file: project/models/project_task.py, share: 0.015, why: "duplicate, archive, delete, calendar days, empty help" }
+  frontend:
+    - { file: project_todo/static/src/views/todo_form/todo_form_controller.js, share: 0.45, why: "archive, duplicate, delete, convert" }
+    - { file: project_todo/static/src/views/todo_form/todo_form_cog_menu.js, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_conversion_form/todo_conversion_form_controller.js, share: 1.0 }
+    - { file: project_todo/static/src/views/todo_conversion_form/todo_conversion_form_view.js, share: 1.0 }
+    - { file: project_todo/static/src/webclient/share_target/todo_share_target_item.js, share: 1.0, why: "share from the phone" }

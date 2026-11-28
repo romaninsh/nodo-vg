@@ -61,7 +61,9 @@ columns hold project tasks too, and `project_task_user_rel.stage_id` is `ON DELE
 
 Odoo 20's To-do compared with nodo on 2026-11-21, from Odoo's source and both running apps
 (Mitchell Admin, same records). The desktop app is judged from its YAML. Status is for nodo
-as a whole: `partly` when one side lacks it or both have only part of it.
+as a whole: `partly` when one side lacks it or both have only part of it. Status starts with
+`done`, `partly`, `not yet` or `won't` (CI checks it); [parity.md](parity.md) sums the statuses
+per section and puts the code each side spends on it next to them.
 
 ### Board
 

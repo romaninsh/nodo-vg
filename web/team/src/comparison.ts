@@ -28,7 +28,7 @@ export const COMPARISON: Row[] = [
   {
     area: "Sign-in",
     odoo: "Database sessions, pbkdf2-sha512 password hashes, two-factor",
-    nodo: "The same hashes checked against Odoo's users; sessions in server memory, so a restart signs everyone out; no two-factor",
+    nodo: "The same hashes checked against Odoo's users; sessions in nodo's own SQLite file, so a restart keeps everyone signed in; no two-factor",
     mark: "partly",
   },
   {
@@ -64,8 +64,8 @@ export const COMPARISON: Row[] = [
   {
     area: "Chatter, activities, email",
     odoo: "Messages, followers and scheduled activities on every record",
-    nodo: "Followers are written so Odoo's chatter stays right; nothing of it is shown in nodo",
-    mark: "not yet",
+    nodo: "Followers, log notes, change history and activities, written as Odoo writes them; no sending messages, attachments or email",
+    mark: "partly",
   },
   {
     area: "Many-to-many links",
