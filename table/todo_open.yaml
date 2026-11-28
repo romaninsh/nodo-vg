@@ -15,6 +15,7 @@ columns:
   project_id: { type: int, flags: [hidden] }
   tags: { type: string, label: Tags }
   my_stage: { type: int, label: My column }
+  search_text: { type: string, label: Search text }
   sequence: { type: int, label: Order }
   tag_ids: { type: string, label: Tag ids }
   assignees: { type: string, label: Assigned to }

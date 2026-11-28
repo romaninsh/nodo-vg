@@ -2,7 +2,7 @@
 # The board's quick add, as Odoo's quick create: a title, optionally the column it was typed
 # into, and Odoo's keywords at the end of the title: "#tag" (made if new), "@person" (when
 # exactly one person matches; otherwise the word stays in the title), "!" to "!!!" (priority).
-# Args: name, stage (optional).
+# Args: name, stage and date_deadline (both optional).
 # Not atomic: actions can't be called inside an atomic one, so each step (create, tag, assign,
 # move) is atomic on its own. A step that fails leaves the to-do with the steps before it.
 kind: script
@@ -11,6 +11,8 @@ icon: Plus
 params:
   name: { type: string, label: Title }
   stage: { type: int, label: Column, required: false }
+  # Odoo's quick add has a deadline field under the title.
+  date_deadline: { type: string, label: Deadline, required: false }
 body: |
   import "todo" as t;
   let me = session.uid;
@@ -25,7 +27,7 @@ body: |
     if found.len() == 1 && found[0].id != me { users.push(found[0].id); }
     else if found.len() != 1 { name += " @" + u; }
   }
-  let made = actions.todo_create(#{ name: name, priority: k.priority });
+  let made = actions.todo_create(#{ name: name, priority: k.priority, date_deadline: args.date_deadline });
   let id = made.id;
   if k.tags.len() > 0 {
     let tags = k.tags.map(|g| actions.tag_create(#{ name: g }).id.to_string());
